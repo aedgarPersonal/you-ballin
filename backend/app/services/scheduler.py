@@ -15,9 +15,13 @@ TEACHING NOTE:
     3. TEAM CREATION (runs evening before game):
        Runs the balancing algorithm and publishes teams.
 
-    4. AWARD ANNOUNCEMENTS (runs every hour):
-       Checks for games whose 24-hour voting window has closed and
-       announces MVP and Shaqtin' a Fool winners.
+    4. VOTING REMINDERS (runs 9 AM daily):
+       Reminds players who haven't voted to cast their MVP and Shaqtin'
+       votes before the noon deadline.
+
+    5. AWARD ANNOUNCEMENTS (runs every 30 minutes):
+       Checks for games whose voting window has closed (noon day after)
+       and announces winners with top 10 standings and fun commentary.
 
     We use APScheduler for simplicity in development. In production,
     you'd want Celery Beat or a similar distributed scheduler that
@@ -37,9 +41,11 @@ from app.models.notification import NotificationType
 from app.models.user import PlayerStatus, User
 from app.services.notification_service import send_bulk_notification, send_notification
 from app.models.algorithm_config import AlgorithmWeight, CustomMetric, PlayerCustomMetric
-from app.models.team import TeamAssignment, pick_team_names
+from app.models.team import TeamAssignment, GameResult, TeamScore, pick_team_names
 from app.services.team_balancer import CustomMetricDef, create_balanced_teams
 from app.models.vote import GameVote, VoteType
+
+import random
 
 logger = logging.getLogger(__name__)
 
@@ -93,11 +99,21 @@ def setup_scheduler():
         replace_existing=True,
     )
 
-    # Check for closed voting windows and announce awards (every hour)
+    # Send voting reminders at 9 AM every day (catches morning after game)
+    scheduler.add_job(
+        send_voting_reminders,
+        "cron",
+        hour=9,
+        minute=0,
+        id="voting_reminders",
+        replace_existing=True,
+    )
+
+    # Check for closed voting windows and announce awards (every 30 minutes)
     scheduler.add_job(
         announce_awards,
         "interval",
-        hours=1,
+        minutes=30,
         id="announce_awards",
         replace_existing=True,
     )
@@ -386,6 +402,92 @@ async def _generate_teams_for_game(db, game):
         logger.error(f"Failed to auto-generate teams for game {game.id}: {e}")
 
 
+async def send_voting_reminders():
+    """Remind players to vote the morning after a game (before noon deadline).
+
+    TEACHING NOTE:
+        Runs at 9 AM daily. Finds COMPLETED games where:
+        - The game was yesterday (voting deadline is noon today)
+        - A VOTING_REMINDER notification hasn't been sent yet
+        Gives players a 3-hour heads-up before voting closes at noon.
+    """
+    logger.info("Checking for voting reminders to send...")
+
+    async with async_session() as db:
+        try:
+            from app.models.notification import Notification
+
+            now = datetime.now(timezone.utc)
+
+            result = await db.execute(
+                select(Game).where(Game.status == GameStatus.COMPLETED)
+            )
+            completed_games = result.scalars().all()
+
+            for game in completed_games:
+                game_time = game.game_date
+                if game_time.tzinfo is None:
+                    game_time = game_time.replace(tzinfo=timezone.utc)
+
+                # Voting deadline is noon the day after
+                voting_deadline = (game_time + timedelta(days=1)).replace(
+                    hour=12, minute=0, second=0, microsecond=0
+                )
+
+                # Only send reminder if voting is still open (before noon)
+                if now >= voting_deadline:
+                    continue
+
+                # Check if reminder already sent
+                existing = await db.execute(
+                    select(Notification).where(
+                        Notification.type == NotificationType.RSVP_REMINDER,
+                        Notification.title.like(f"%Vote Reminder%Game #{game.id}%"),
+                    ).limit(1)
+                )
+                if existing.scalar_one_or_none():
+                    continue
+
+                # Get participants who haven't voted yet
+                participants_result = await db.execute(
+                    select(TeamAssignment).where(TeamAssignment.game_id == game.id)
+                )
+                participant_ids = [ta.user_id for ta in participants_result.scalars().all()]
+
+                voted_result = await db.execute(
+                    select(GameVote.voter_id).where(
+                        GameVote.game_id == game.id
+                    ).distinct()
+                )
+                voted_ids = set(r[0] for r in voted_result.all())
+                non_voters = [pid for pid in participant_ids if pid not in voted_ids]
+
+                if not non_voters:
+                    continue
+
+                players_result = await db.execute(
+                    select(User).where(User.id.in_(non_voters))
+                )
+                players = list(players_result.scalars().all())
+
+                await send_bulk_notification(
+                    db,
+                    players,
+                    NotificationType.RSVP_REMINDER,
+                    f"Vote Reminder - Game #{game.id}",
+                    f"Don't forget to cast your MVP and Shaqtin' a Fool votes for {game.title}! "
+                    f"Voting closes at noon today. Your voice matters!",
+                )
+
+                logger.info(f"Sent voting reminders to {len(players)} players for game {game.id}")
+
+            await db.commit()
+
+        except Exception as e:
+            await db.rollback()
+            logger.error(f"Failed to send voting reminders: {e}")
+
+
 async def announce_awards():
     """Check for games with closed voting windows and announce winners.
 
@@ -415,7 +517,9 @@ async def announce_awards():
                 game_time = game.game_date
                 if game_time.tzinfo is None:
                     game_time = game_time.replace(tzinfo=timezone.utc)
-                voting_deadline = game_time + timedelta(hours=24)
+                voting_deadline = (game_time + timedelta(days=1)).replace(
+                    hour=12, minute=0, second=0, microsecond=0
+                )
 
                 if now <= voting_deadline:
                     continue  # Voting still open
@@ -438,13 +542,37 @@ async def announce_awards():
                     logger.info(f"No votes cast for game {game.id}, skipping announcement")
                     continue
 
-                # Build announcement message
+                # Get team names and scores from last night's game
+                team_names = await _get_game_team_names(db, game.id)
+                commentary = _generate_game_commentary(
+                    mvp_winner, shaqtin_winner, team_names
+                )
+
+                # Build award results
                 parts = []
                 if mvp_winner:
-                    parts.append(f"MVP: {mvp_winner.full_name} 🏆")
+                    parts.append(f"MVP: {mvp_winner.full_name}")
                 if shaqtin_winner:
-                    parts.append(f"Shaqtin' a Fool: {shaqtin_winner.full_name} 🤦")
-                message = " | ".join(parts)
+                    parts.append(f"Shaqtin' a Fool: {shaqtin_winner.full_name}")
+                awards_line = " | ".join(parts)
+
+                # Get top 10 overall standings
+                top10 = await _get_top10_standings(db)
+                standings_lines = []
+                for rank, player in enumerate(top10, 1):
+                    medal = {1: "🥇", 2: "🥈", 3: "🥉"}.get(rank, f"{rank}.")
+                    jf_pct = int((player.jordan_factor or 0.5) * 100)
+                    standings_lines.append(
+                        f"{medal} {player.full_name} - {jf_pct}% JF ({player.games_won}W-{player.games_played - player.games_won}L)"
+                    )
+                standings_text = "\n".join(standings_lines)
+
+                message = (
+                    f"{commentary}\n\n"
+                    f"{awards_line}\n\n"
+                    f"--- Top 10 Overall Standings ---\n"
+                    f"{standings_text}"
+                )
 
                 # Notify all participants
                 participants_result = await db.execute(
@@ -461,10 +589,10 @@ async def announce_awards():
                     list(players),
                     NotificationType.AWARDS_ANNOUNCED,
                     f"Awards Announced - Game #{game.id}",
-                    f"The votes are in for {game.title}! {message}",
+                    message,
                 )
 
-                logger.info(f"Awards announced for game {game.id}: {message}")
+                logger.info(f"Awards announced for game {game.id}: {awards_line}")
 
             await db.commit()
 
@@ -497,3 +625,91 @@ async def _tally_votes(db, game_id: int, vote_type: VoteType) -> User | None:
     nominee_id = row[0]
     user_result = await db.execute(select(User).where(User.id == nominee_id))
     return user_result.scalar_one_or_none()
+
+
+async def _get_game_team_names(db, game_id: int) -> dict[str, str]:
+    """Get team names and scores for a game. Returns {team_name: wins}."""
+    from sqlalchemy.orm import selectinload
+
+    result = await db.execute(
+        select(GameResult).where(GameResult.game_id == game_id)
+        .options(selectinload(GameResult.team_scores))
+    )
+    game_result = result.scalar_one_or_none()
+    if not game_result:
+        # Fall back to team assignments if no result recorded
+        ta_result = await db.execute(
+            select(TeamAssignment.team_name).where(
+                TeamAssignment.game_id == game_id
+            ).distinct()
+        )
+        return {name: "0" for (name,) in ta_result.all()}
+
+    return {ts.team_name: str(ts.wins) for ts in game_result.team_scores}
+
+
+async def _get_top10_standings(db) -> list[User]:
+    """Get top 10 players by Jordan Factor (must have played at least 1 game)."""
+    result = await db.execute(
+        select(User)
+        .where(User.games_played > 0, User.is_active == True)  # noqa: E712
+        .order_by(User.jordan_factor.desc(), User.games_won.desc())
+        .limit(10)
+    )
+    return list(result.scalars().all())
+
+
+# Commentary templates referencing team names and players
+_COMMENTARY_TEMPLATES = [
+    "What a night! {winner_team} showed up and showed out. {mvp} was absolutely unstoppable — someone check if they're secretly a pro. Meanwhile {shaqtin} provided the comedy relief we didn't know we needed.",
+    "Last night's battle between {teams} was one for the books. {mvp} put on a clinic that had everyone's jaws on the floor. As for {shaqtin}... let's just say the highlights and lowlights were equally entertaining.",
+    "The dust has settled from last night's showdown. {mvp} carried {winner_team} like they had a personal vendetta against losing. And {shaqtin}? Well, at least they made everyone else feel better about their game.",
+    "{teams} went toe-to-toe last night and the basketball gods were watching. {mvp} earned that MVP playing like they had something to prove. {shaqtin} earned their award by... well, you had to be there.",
+    "Another legendary night in the books! {mvp} was cooking with gas out there — absolutely could not be stopped. {shaqtin} on the other hand? More like Shaqtin' a WHOLE fool. {winner_team} takes the bragging rights!",
+    "If last night was a movie, {mvp} would be the main character and {shaqtin} would be the comic sidekick. {teams} brought the energy and {winner_team} brought the wins. See you next week!",
+]
+
+_NO_SHAQTIN_TEMPLATES = [
+    "What a night! {mvp} was absolutely unstoppable for {winner_team}. Nobody wanted the Shaqtin' crown this time — everyone brought their A-game!",
+    "Hats off to {mvp} who put on a show for {winner_team} last night. {teams} battled hard and the crowd was loving every minute.",
+]
+
+_NO_MVP_TEMPLATES = [
+    "Last night's game between {teams} was wild. Nobody stood out enough for MVP but {shaqtin} definitely earned their Shaqtin' award. You know who you are.",
+]
+
+
+def _generate_game_commentary(
+    mvp: User | None,
+    shaqtin: User | None,
+    team_scores: dict[str, str],
+) -> str:
+    """Generate fun commentary referencing teams and award winners."""
+    team_names = list(team_scores.keys())
+    teams_str = " vs ".join(team_names) if team_names else "the squads"
+
+    # Find winning team (most wins)
+    winner_team = "the squad"
+    if team_scores:
+        winner_team = max(team_scores, key=lambda t: int(team_scores[t]))
+
+    if mvp and shaqtin:
+        template = random.choice(_COMMENTARY_TEMPLATES)
+        return template.format(
+            mvp=mvp.full_name,
+            shaqtin=shaqtin.full_name,
+            teams=teams_str,
+            winner_team=winner_team,
+        )
+    elif mvp:
+        template = random.choice(_NO_SHAQTIN_TEMPLATES)
+        return template.format(
+            mvp=mvp.full_name, teams=teams_str, winner_team=winner_team,
+        )
+    elif shaqtin:
+        template = random.choice(_NO_MVP_TEMPLATES)
+        return template.format(
+            shaqtin=shaqtin.full_name, teams=teams_str,
+        )
+    else:
+        return f"Last night's game between {teams_str} is in the books!"

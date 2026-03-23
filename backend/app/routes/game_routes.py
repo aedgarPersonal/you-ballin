@@ -536,7 +536,7 @@ async def record_result(
         all_players,
         NotificationType.GAME_COMPLETED,
         f"Game Complete: {game.title}",
-        f"{winner_msg} Final: {score_summary}. Cast your MVP and Shaqtin' votes now.",
+        f"{winner_msg} Final: {score_summary}. Cast your MVP and Shaqtin' votes before noon tomorrow!",
     )
 
     await db.flush()
