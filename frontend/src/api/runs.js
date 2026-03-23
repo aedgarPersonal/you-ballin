@@ -12,3 +12,11 @@ export const removeRunAdmin = (runId, userId) => api.delete(`/runs/${runId}/admi
 export const listRunMembers = (runId) => api.get(`/runs/${runId}/members`);
 export const joinRun = (runId) => api.post(`/runs/${runId}/join`);
 export const updateMembership = (runId, userId, data) => api.patch(`/runs/${runId}/members/${userId}`, data);
+
+// Needs Players & Suggestions
+export const listRunsNeedingPlayers = () => api.get("/runs/needs-players");
+export const suggestPlayer = (runId, data) => api.post(`/runs/${runId}/suggestions`, data);
+export const listSuggestions = (runId, status) =>
+  api.get(`/runs/${runId}/suggestions`, { params: status ? { status_filter: status } : {} });
+export const handleSuggestion = (runId, suggestionId, data) =>
+  api.patch(`/runs/${runId}/suggestions/${suggestionId}`, data);

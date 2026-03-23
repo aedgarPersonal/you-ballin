@@ -29,7 +29,14 @@ import {
   importPlayers,
 } from "../api/admin";
 import { createGame } from "../api/games";
-import { updateRun } from "../api/runs";
+import {
+  updateRun,
+  listRunsNeedingPlayers,
+  suggestPlayer,
+  listSuggestions,
+  handleSuggestion,
+  listRunMembers,
+} from "../api/runs";
 import {
   getWeights,
   updateWeights,
@@ -80,6 +87,12 @@ export default function AdminPage() {
   });
   const [showNewMetricForm, setShowNewMetricForm] = useState(false);
   const [newGameTeams, setNewGameTeams] = useState(2);
+
+  // Suggestions state
+  const [suggestions, setSuggestions] = useState([]);
+  const [runsNeedingPlayers, setRunsNeedingPlayers] = useState([]);
+  const [myRunMembers, setMyRunMembers] = useState([]);
+  const [suggestForm, setSuggestForm] = useState({ targetRunId: "", userId: "", message: "" });
 
   // Import state
   const [importText, setImportText] = useState("");
@@ -141,9 +154,16 @@ export default function AdminPage() {
         default_roster_size: currentRun.default_roster_size || 16,
         default_num_teams: currentRun.default_num_teams || 2,
         dues_amount: currentRun.dues_amount ?? "",
+        skill_level: currentRun.skill_level ?? 5,
+        needs_players: currentRun.needs_players ?? false,
       });
     }
-  }, [tab, currentRun]);
+    if (tab === "suggestions" && runId) {
+      listSuggestions(runId).then(({ data }) => setSuggestions(data)).catch(() => {});
+      listRunsNeedingPlayers().then(({ data }) => setRunsNeedingPlayers(data)).catch(() => {});
+      listRunMembers(runId).then(({ data }) => setMyRunMembers(data)).catch(() => {});
+    }
+  }, [tab, currentRun, runId]);
 
   const handleSaveRunSettings = async (e) => {
     e.preventDefault();
@@ -159,6 +179,7 @@ export default function AdminPage() {
       payload.default_game_day = parseInt(payload.default_game_day);
       payload.default_roster_size = parseInt(payload.default_roster_size);
       payload.default_num_teams = parseInt(payload.default_num_teams);
+      payload.skill_level = parseInt(payload.skill_level);
       const { data } = await updateRun(runId, payload);
       setCurrentRun(data);
       toast.success("Run settings saved!");
@@ -325,7 +346,7 @@ export default function AdminPage() {
 
   const totalWeight = weights.reduce((sum, w) => sum + w.weight, 0);
 
-  const tabs = ["pending", "players", "import", "balancer", "settings"];
+  const tabs = ["pending", "players", "import", "balancer", "suggestions", "settings"];
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -563,6 +584,137 @@ export default function AdminPage() {
             </tbody>
           </table>
         </div>
+      ) : tab === "suggestions" ? (
+        /* ===== Suggestions Tab ===== */
+        <div className="space-y-6">
+          {/* Incoming Suggestions for this run */}
+          <div className="card">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Incoming Suggestions</h2>
+            {suggestions.length === 0 ? (
+              <p className="text-sm text-gray-400">No pending suggestions for this run.</p>
+            ) : (
+              <div className="space-y-3">
+                {suggestions.map((s) => (
+                  <div key={s.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="font-medium text-gray-900">
+                        {s.suggested_user?.full_name || `User #${s.suggested_user_id}`}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Suggested by {s.suggested_by?.full_name || `User #${s.suggested_by_user_id}`}
+                      </p>
+                      {s.message && <p className="text-sm text-gray-600 mt-1 italic">"{s.message}"</p>}
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={async () => {
+                          try {
+                            await handleSuggestion(runId, s.id, { status: "accepted" });
+                            toast.success(`${s.suggested_user?.full_name} added as drop-in!`);
+                            setSuggestions((prev) => prev.filter((x) => x.id !== s.id));
+                          } catch (err) {
+                            toast.error(err.response?.data?.detail || "Failed");
+                          }
+                        }}
+                        className="bg-green-500 hover:bg-green-600 text-white text-sm font-medium py-1.5 px-3 rounded-lg"
+                      >
+                        Accept
+                      </button>
+                      <button
+                        onClick={async () => {
+                          try {
+                            await handleSuggestion(runId, s.id, { status: "declined" });
+                            toast.success("Suggestion declined");
+                            setSuggestions((prev) => prev.filter((x) => x.id !== s.id));
+                          } catch (err) {
+                            toast.error(err.response?.data?.detail || "Failed");
+                          }
+                        }}
+                        className="bg-gray-300 hover:bg-gray-400 text-gray-700 text-sm font-medium py-1.5 px-3 rounded-lg"
+                      >
+                        Decline
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Suggest a player to another run */}
+          <div className="card">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Suggest a Player to Another Run</h2>
+            {runsNeedingPlayers.filter((r) => r.id !== runId).length === 0 ? (
+              <p className="text-sm text-gray-400">No other runs currently need players.</p>
+            ) : (
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Target Run</label>
+                  <select
+                    value={suggestForm.targetRunId}
+                    onChange={(e) => setSuggestForm({ ...suggestForm, targetRunId: e.target.value })}
+                    className="input"
+                  >
+                    <option value="">Select a run...</option>
+                    {runsNeedingPlayers
+                      .filter((r) => r.id !== runId)
+                      .map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.name} (Skill: {r.skill_level}/5)
+                        </option>
+                      ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Player to Suggest</label>
+                  <select
+                    value={suggestForm.userId}
+                    onChange={(e) => setSuggestForm({ ...suggestForm, userId: e.target.value })}
+                    className="input"
+                  >
+                    <option value="">Select a player...</option>
+                    {myRunMembers.map((m) => (
+                      <option key={m.user_id} value={m.user_id}>
+                        {m.user?.full_name || `User #${m.user_id}`} ({m.player_status})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Note (optional)</label>
+                  <input
+                    type="text"
+                    value={suggestForm.message}
+                    onChange={(e) => setSuggestForm({ ...suggestForm, message: e.target.value })}
+                    className="input"
+                    placeholder="e.g. Great shooter, competitive player"
+                  />
+                </div>
+                <button
+                  onClick={async () => {
+                    if (!suggestForm.targetRunId || !suggestForm.userId) {
+                      toast.error("Select both a run and a player");
+                      return;
+                    }
+                    try {
+                      await suggestPlayer(parseInt(suggestForm.targetRunId), {
+                        suggested_user_id: parseInt(suggestForm.userId),
+                        message: suggestForm.message || null,
+                      });
+                      toast.success("Player suggested!");
+                      setSuggestForm({ targetRunId: "", userId: "", message: "" });
+                    } catch (err) {
+                      toast.error(err.response?.data?.detail || "Failed to suggest player");
+                    }
+                  }}
+                  className="btn-primary"
+                >
+                  Suggest Player
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       ) : tab === "settings" ? (
         /* ===== Run Settings Tab ===== */
         <div className="card max-w-2xl">
@@ -657,6 +809,31 @@ export default function AdminPage() {
                     className="input"
                     placeholder="Optional"
                   />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Skill Level</label>
+                  <select
+                    value={runForm.skill_level}
+                    onChange={(e) => setRunForm({ ...runForm, skill_level: e.target.value })}
+                    className="input"
+                  >
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <option key={n} value={n}>{n} — {["Beginner", "Casual", "Intermediate", "Competitive", "Elite"][n - 1]}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex items-end">
+                  <label className="flex items-center gap-2 pb-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={runForm.needs_players}
+                      onChange={(e) => setRunForm({ ...runForm, needs_players: e.target.checked })}
+                      className="w-4 h-4 text-court-500 rounded focus:ring-court-500"
+                    />
+                    <span className="text-sm font-medium text-gray-700">This run needs players</span>
+                  </label>
                 </div>
               </div>
               <button

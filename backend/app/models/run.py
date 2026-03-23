@@ -19,6 +19,7 @@ TEACHING NOTE:
     - Run has many RunPlayerStats (one-to-many, per-user stats within the run)
 """
 
+import enum as stdlib_enum
 from datetime import datetime
 
 from sqlalchemy import (
@@ -56,6 +57,8 @@ class Run(Base):
     default_num_teams: Mapped[int] = mapped_column(Integer, default=2)
     dues_amount: Mapped[float | None] = mapped_column(Float, nullable=True)  # Cost per player
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    skill_level: Mapped[int] = mapped_column(Integer, default=5)  # 1-5 scale
+    needs_players: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # --- Timestamps ---
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
@@ -178,3 +181,38 @@ class RunPlayerStats(Base):
 
     def __repr__(self) -> str:
         return f"<RunPlayerStats run={self.run_id} user={self.user_id} GP={self.games_played}>"
+
+
+class SuggestionStatus(str, stdlib_enum.Enum):
+    PENDING = "pending"
+    ACCEPTED = "accepted"
+    DECLINED = "declined"
+
+
+class PlayerSuggestion(Base):
+    """A suggestion from one run's admin to add a player to another run."""
+
+    __tablename__ = "player_suggestions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    run_id: Mapped[int] = mapped_column(Integer, ForeignKey("runs.id"), nullable=False)
+    suggested_user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
+    suggested_by_user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
+    message: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    status: Mapped[SuggestionStatus] = mapped_column(
+        SAEnum(SuggestionStatus), default=SuggestionStatus.PENDING, nullable=False
+    )
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    resolved_by_user_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id"), nullable=True)
+
+    # --- Timestamps ---
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    # --- Relationships ---
+    run = relationship("Run")
+    suggested_user = relationship("User", foreign_keys=[suggested_user_id])
+    suggested_by = relationship("User", foreign_keys=[suggested_by_user_id])
+    resolved_by = relationship("User", foreign_keys=[resolved_by_user_id])
+
+    def __repr__(self) -> str:
+        return f"<PlayerSuggestion run={self.run_id} player={self.suggested_user_id} status={self.status.value}>"

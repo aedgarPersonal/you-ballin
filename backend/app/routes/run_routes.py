@@ -16,6 +16,8 @@ Endpoints:
     PATCH  /api/runs/{run_id}/members/{user_id}   - Update membership (admin or self)
 """
 
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -28,9 +30,12 @@ from app.auth.dependencies import (
     require_run_member,
 )
 from app.database import get_db
-from app.models.run import Run, RunAdmin, RunMembership, RunPlayerStats
+from app.models.run import Run, RunAdmin, RunMembership, RunPlayerStats, PlayerSuggestion, SuggestionStatus
 from app.models.user import PlayerStatus, User, UserRole
 from app.schemas.run import (
+    PlayerSuggestionAction,
+    PlayerSuggestionCreate,
+    PlayerSuggestionResponse,
     RunAdminResponse,
     RunCreate,
     RunMembershipResponse,
@@ -100,6 +105,18 @@ async def list_runs(
         .order_by(Run.created_at.desc())
     )
     return list(result.scalars().all())
+
+
+@router.get("/needs-players", response_model=list[RunResponse])
+async def list_runs_needing_players(
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(get_current_user),
+):
+    """List all active runs that need players."""
+    result = await db.execute(
+        select(Run).where(Run.is_active == True, Run.needs_players == True)
+    )
+    return result.scalars().all()
 
 
 @router.get("/{run_id}", response_model=RunResponse)
@@ -395,3 +412,193 @@ async def update_membership(
     await db.flush()
     await db.refresh(membership)
     return membership
+
+
+# =============================================================================
+# Player Suggestions
+# =============================================================================
+
+@router.post("/{run_id}/suggestions", response_model=PlayerSuggestionResponse, status_code=201)
+async def suggest_player(
+    run_id: int,
+    data: PlayerSuggestionCreate,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Suggest a player to be added to this run (any run admin can suggest)."""
+    # Verify the suggesting user is an admin of SOME run (or super admin)
+    if user.role != UserRole.SUPER_ADMIN:
+        admin_check = await db.execute(
+            select(RunAdmin).where(RunAdmin.user_id == user.id)
+        )
+        if not admin_check.scalar_one_or_none():
+            raise HTTPException(status_code=403, detail="Only run admins can suggest players")
+
+    # Verify the target run exists and needs players
+    run_result = await db.execute(select(Run).where(Run.id == run_id))
+    run = run_result.scalar_one_or_none()
+    if not run:
+        raise HTTPException(status_code=404, detail="Run not found")
+
+    # Verify the suggested user exists
+    user_result = await db.execute(select(User).where(User.id == data.suggested_user_id))
+    suggested_user = user_result.scalar_one_or_none()
+    if not suggested_user:
+        raise HTTPException(status_code=404, detail="Suggested player not found")
+
+    # Check if player is already a member of this run
+    existing_membership = await db.execute(
+        select(RunMembership).where(
+            RunMembership.run_id == run_id,
+            RunMembership.user_id == data.suggested_user_id,
+        )
+    )
+    if existing_membership.scalar_one_or_none():
+        raise HTTPException(status_code=409, detail="Player is already a member of this run")
+
+    # Check for duplicate pending suggestion
+    existing_suggestion = await db.execute(
+        select(PlayerSuggestion).where(
+            PlayerSuggestion.run_id == run_id,
+            PlayerSuggestion.suggested_user_id == data.suggested_user_id,
+            PlayerSuggestion.status == SuggestionStatus.PENDING,
+        )
+    )
+    if existing_suggestion.scalar_one_or_none():
+        raise HTTPException(status_code=409, detail="A pending suggestion already exists for this player")
+
+    suggestion = PlayerSuggestion(
+        run_id=run_id,
+        suggested_user_id=data.suggested_user_id,
+        suggested_by_user_id=user.id,
+        message=data.message,
+    )
+    db.add(suggestion)
+
+    # Notify target run admins
+    admins_result = await db.execute(
+        select(RunAdmin).where(RunAdmin.run_id == run_id)
+    )
+    admin_ids = [a.user_id for a in admins_result.scalars().all()]
+    if admin_ids:
+        admins_users_result = await db.execute(select(User).where(User.id.in_(admin_ids)))
+        admin_users = list(admins_users_result.scalars().all())
+        from app.services.notification_service import send_bulk_notification
+        from app.models.notification import NotificationType
+        msg = f"{user.full_name} suggests adding {suggested_user.full_name} to {run.name}."
+        if data.message:
+            msg += f' Note: "{data.message}"'
+        await send_bulk_notification(
+            db, admin_users, NotificationType.PLAYER_SUGGESTED,
+            f"Player Suggested for {run.name}", msg, run_id=run_id,
+        )
+
+    await db.flush()
+    await db.refresh(suggestion)
+    # Reload with relationships
+    result = await db.execute(
+        select(PlayerSuggestion).where(PlayerSuggestion.id == suggestion.id)
+        .options(
+            selectinload(PlayerSuggestion.suggested_user),
+            selectinload(PlayerSuggestion.suggested_by),
+            selectinload(PlayerSuggestion.run),
+        )
+    )
+    return result.scalar_one()
+
+
+@router.get("/{run_id}/suggestions", response_model=list[PlayerSuggestionResponse])
+async def list_suggestions(
+    run_id: int,
+    status_filter: str | None = None,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(require_run_admin()),
+):
+    """List player suggestions for this run (run admin only)."""
+    query = select(PlayerSuggestion).where(PlayerSuggestion.run_id == run_id).options(
+        selectinload(PlayerSuggestion.suggested_user),
+        selectinload(PlayerSuggestion.suggested_by),
+    )
+    if status_filter:
+        query = query.where(PlayerSuggestion.status == status_filter)
+    else:
+        query = query.where(PlayerSuggestion.status == SuggestionStatus.PENDING)
+    query = query.order_by(PlayerSuggestion.created_at.desc())
+    result = await db.execute(query)
+    return result.scalars().all()
+
+
+@router.patch("/{run_id}/suggestions/{suggestion_id}", response_model=PlayerSuggestionResponse)
+async def handle_suggestion(
+    run_id: int,
+    suggestion_id: int,
+    data: PlayerSuggestionAction,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(require_run_admin()),
+):
+    """Accept or decline a player suggestion (run admin of target run)."""
+    result = await db.execute(
+        select(PlayerSuggestion).where(
+            PlayerSuggestion.id == suggestion_id,
+            PlayerSuggestion.run_id == run_id,
+        ).options(
+            selectinload(PlayerSuggestion.suggested_user),
+            selectinload(PlayerSuggestion.suggested_by),
+            selectinload(PlayerSuggestion.run),
+        )
+    )
+    suggestion = result.scalar_one_or_none()
+    if not suggestion:
+        raise HTTPException(status_code=404, detail="Suggestion not found")
+    if suggestion.status != SuggestionStatus.PENDING:
+        raise HTTPException(status_code=400, detail="Suggestion already resolved")
+
+    new_status = SuggestionStatus(data.status)
+    suggestion.status = new_status
+    suggestion.resolved_at = datetime.now(timezone.utc)
+    suggestion.resolved_by_user_id = admin.id
+
+    from app.services.notification_service import send_notification
+    from app.models.notification import NotificationType
+
+    if new_status == SuggestionStatus.ACCEPTED:
+        # Add player as DROPIN to this run
+        membership = RunMembership(
+            run_id=run_id,
+            user_id=suggestion.suggested_user_id,
+            player_status=PlayerStatus.DROPIN,
+        )
+        db.add(membership)
+
+        # Create RunPlayerStats
+        stats = RunPlayerStats(
+            run_id=run_id,
+            user_id=suggestion.suggested_user_id,
+        )
+        db.add(stats)
+
+        # Notify the suggested player
+        await send_notification(
+            db, suggestion.suggested_user, NotificationType.SUGGESTION_ACCEPTED,
+            f"You've been added to {suggestion.run.name}!",
+            f"An admin suggested you for {suggestion.run.name} and you've been added as a drop-in player.",
+            run_id=run_id,
+        )
+        # Notify the suggesting admin
+        await send_notification(
+            db, suggestion.suggested_by, NotificationType.SUGGESTION_ACCEPTED,
+            f"Suggestion accepted for {suggestion.run.name}",
+            f"Your suggestion to add {suggestion.suggested_user.full_name} to {suggestion.run.name} was accepted!",
+            run_id=run_id,
+        )
+    else:
+        # Notify the suggesting admin of decline
+        await send_notification(
+            db, suggestion.suggested_by, NotificationType.SUGGESTION_DECLINED,
+            f"Suggestion declined for {suggestion.run.name}",
+            f"Your suggestion to add {suggestion.suggested_user.full_name} to {suggestion.run.name} was declined.",
+            run_id=run_id,
+        )
+
+    await db.flush()
+    return suggestion

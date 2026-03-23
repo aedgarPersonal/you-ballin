@@ -33,6 +33,9 @@ class NotificationType(str, enum.Enum):
     GAME_COMPLETED = "game_completed"
     STATUS_CHANGED = "status_changed"
     GENERAL = "general"
+    PLAYER_SUGGESTED = "player_suggested"
+    SUGGESTION_ACCEPTED = "suggestion_accepted"
+    SUGGESTION_DECLINED = "suggestion_declined"
 
 
 class Notification(Base):

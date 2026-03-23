@@ -12,6 +12,8 @@ class RunCreate(BaseModel):
     default_roster_size: int = Field(default=16, ge=2, le=30)
     default_num_teams: int = Field(default=2, ge=2, le=8)
     dues_amount: float | None = None
+    skill_level: int = Field(default=5, ge=1, le=5)
+    needs_players: bool = False
 
 
 class RunUpdate(BaseModel):
@@ -24,6 +26,8 @@ class RunUpdate(BaseModel):
     default_num_teams: int | None = Field(None, ge=2, le=8)
     dues_amount: float | None = None
     is_active: bool | None = None
+    skill_level: int | None = Field(None, ge=1, le=5)
+    needs_players: bool | None = None
 
 
 class RunResponse(BaseModel):
@@ -37,6 +41,8 @@ class RunResponse(BaseModel):
     default_num_teams: int
     dues_amount: float | None
     is_active: bool
+    skill_level: int
+    needs_players: bool
     created_at: datetime
     model_config = {"from_attributes": True}
 
@@ -85,4 +91,29 @@ class RunPlayerStatsResponse(BaseModel):
     mvp_count: int
     shaqtin_count: int
     xfactor_count: int
+    model_config = {"from_attributes": True}
+
+
+class PlayerSuggestionCreate(BaseModel):
+    suggested_user_id: int
+    message: str | None = None
+
+
+class PlayerSuggestionAction(BaseModel):
+    status: str = Field(description="accepted or declined")
+
+
+class PlayerSuggestionResponse(BaseModel):
+    id: int
+    run_id: int
+    suggested_user_id: int
+    suggested_by_user_id: int
+    message: str | None
+    status: str
+    created_at: datetime
+    resolved_at: datetime | None = None
+    resolved_by_user_id: int | None = None
+    suggested_user: UserResponse | None = None
+    suggested_by: UserResponse | None = None
+    run: RunResponse | None = None
     model_config = {"from_attributes": True}
