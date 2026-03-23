@@ -16,25 +16,35 @@ TEACHING NOTE:
 """
 
 import logging
+from uuid import uuid4
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.pool import NullPool
 
 from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-# Create the async engine with connection pooling
-# SQLite doesn't support pool_size/max_overflow, so we conditionally set them
+# Create the async engine
+# When using Supabase transaction pooler (pgbouncer), we must disable
+# prepared statement caching and use NullPool since pgbouncer manages pooling.
 _is_sqlite = settings.database_url.startswith("sqlite")
-_engine_kwargs = {"echo": False}
+_engine_kwargs: dict = {"echo": False}
 if not _is_sqlite:
-    _engine_kwargs.update(
-        pool_size=5, max_overflow=10, pool_pre_ping=True,
-        # Disable prepared statement cache for Supabase transaction pooler (pgbouncer)
-        connect_args={"statement_cache_size": 0},
-    )
+    _is_pooler = "pooler.supabase.com" in settings.database_url
+    if _is_pooler:
+        _engine_kwargs.update(
+            poolclass=NullPool,
+            connect_args={
+                "statement_cache_size": 0,
+                "prepared_statement_cache_size": 0,
+                "prepared_statement_name_func": lambda: f"__asyncpg_{uuid4()}__",
+            },
+        )
+    else:
+        _engine_kwargs.update(pool_size=5, max_overflow=10, pool_pre_ping=True)
 
 engine = create_async_engine(settings.database_url, **_engine_kwargs)
 
