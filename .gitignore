@@ -32,7 +32,9 @@ Thumbs.db
 
 # Database
 *.db
+*.db.backup*
 *.sqlite3
 
 # Logs
 *.log
+.mcp.json

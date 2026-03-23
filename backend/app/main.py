@@ -83,13 +83,13 @@ app = FastAPI(
 # Middleware
 # =============================================================================
 
+cors_origins = [settings.frontend_url]
+if settings.backend_url.startswith("http://localhost"):
+    cors_origins += ["http://localhost:5173", "http://localhost:3000"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        settings.frontend_url,
-        "http://localhost:5173",
-        "http://localhost:3000",
-    ],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -11,6 +11,7 @@ TEACHING NOTE:
     See .env.example for all available settings.
 """
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -23,6 +24,12 @@ class Settings(BaseSettings):
         case_sensitive=False,
     )
 
+    @model_validator(mode="after")
+    def set_google_redirect_uri(self):
+        if not self.google_redirect_uri:
+            self.google_redirect_uri = f"{self.backend_url}/api/auth/google/callback"
+        return self
+
     # --- Database ---
     database_url: str = "postgresql+asyncpg://postgres:password@localhost:5432/you_ballin"
 
@@ -34,7 +41,7 @@ class Settings(BaseSettings):
     # --- Google OAuth ---
     google_client_id: str = ""
     google_client_secret: str = ""
-    google_redirect_uri: str = "http://localhost:8000/api/auth/google/callback"
+    google_redirect_uri: str = ""
 
     # --- Email (Resend) ---
     resend_api_key: str = ""
