@@ -7,24 +7,27 @@
  *   `avatar_url` field on the User model.
  *
  *   The picker renders as a modal grid organized by era, with each
- *   player shown in their team colors (NBA Jam style).
+ *   player shown as an 8-bit pixel art sprite in their team colors.
  */
 
 import { useState } from "react";
 import LEGACY_PLAYERS, { ERAS, getPlayerById } from "../data/legacyPlayers";
+import PixelAvatar from "./PixelAvatar";
 
 export function AvatarBadge({ avatarId, size = "md", className = "" }) {
   const player = getPlayerById(avatarId);
-  const sizes = {
-    sm: "w-8 h-8 text-xs",
-    md: "w-12 h-12 text-sm",
-    lg: "w-20 h-20 text-2xl",
-    xl: "w-28 h-28 text-3xl",
-  };
+  const pxSizes = { sm: 28, md: 40, lg: 64, xl: 96 };
+  const px = pxSizes[size] || pxSizes.md;
 
   if (!player) {
+    const fallbackSizes = {
+      sm: "w-8 h-8 text-xs",
+      md: "w-12 h-12 text-sm",
+      lg: "w-20 h-20 text-2xl",
+      xl: "w-28 h-28 text-3xl",
+    };
     return (
-      <div className={`${sizes[size]} rounded-full bg-gray-300 flex items-center justify-center text-gray-600 font-bold ${className}`}>
+      <div className={`${fallbackSizes[size]} rounded-lg bg-gray-300 flex items-center justify-center text-gray-600 font-bold ${className}`}>
         ?
       </div>
     );
@@ -32,11 +35,10 @@ export function AvatarBadge({ avatarId, size = "md", className = "" }) {
 
   return (
     <div
-      className={`${sizes[size]} rounded-full flex flex-col items-center justify-center font-bold text-white border-2 border-white shadow-md ${className}`}
-      style={{ background: `linear-gradient(135deg, ${player.colors[0]}, ${player.colors[1]})` }}
+      className={`flex items-center justify-center ${className}`}
       title={`${player.name} - ${player.team} #${player.number}`}
     >
-      <span className="leading-none">#{player.number}</span>
+      <PixelAvatar playerId={avatarId} size={px} />
     </div>
   );
 }
@@ -46,7 +48,7 @@ export function AvatarWithName({ avatarId, fallbackInitial = "?" }) {
 
   if (!player) {
     return (
-      <div className="w-20 h-20 rounded-full bg-court-100 flex items-center justify-center text-court-600 font-bold text-3xl">
+      <div className="w-20 h-20 rounded-lg bg-court-100 flex items-center justify-center text-court-600 font-bold text-3xl">
         {fallbackInitial}
       </div>
     );
@@ -54,12 +56,7 @@ export function AvatarWithName({ avatarId, fallbackInitial = "?" }) {
 
   return (
     <div className="flex flex-col items-center">
-      <div
-        className="w-20 h-20 rounded-full flex flex-col items-center justify-center font-bold text-white border-3 border-white shadow-lg"
-        style={{ background: `linear-gradient(135deg, ${player.colors[0]}, ${player.colors[1]})` }}
-      >
-        <span className="text-2xl leading-none">#{player.number}</span>
-      </div>
+      <PixelAvatar playerId={avatarId} size={72} />
       <span className="text-xs text-gray-500 mt-1">{player.name}</span>
     </div>
   );
@@ -122,15 +119,9 @@ export default function AvatarPicker({ value, onChange, onClose }) {
                     : "border-gray-700 bg-gray-800 hover:border-gray-500 hover:bg-gray-750"
                 }`}
               >
-                {/* Player "Avatar" */}
-                <div
-                  className="w-14 h-14 mx-auto rounded-full flex items-center justify-center font-black text-white text-lg border-2 mb-2"
-                  style={{
-                    background: `linear-gradient(135deg, ${player.colors[0]}, ${player.colors[1]})`,
-                    borderColor: isSelected ? "#22d3ee" : "rgba(255,255,255,0.2)",
-                  }}
-                >
-                  #{player.number}
+                {/* Pixel Art Avatar */}
+                <div className="flex justify-center mb-2">
+                  <PixelAvatar playerId={player.id} size={48} />
                 </div>
                 <p className="text-xs font-bold text-white leading-tight truncate">{player.name}</p>
                 <p className="text-[10px] text-gray-400">{player.team}</p>

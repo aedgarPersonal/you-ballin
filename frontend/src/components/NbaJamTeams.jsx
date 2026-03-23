@@ -14,6 +14,7 @@
 
 import { Link } from "react-router-dom";
 import { getPlayerById } from "../data/legacyPlayers";
+import PixelAvatar from "./PixelAvatar";
 
 function StatBar({ label, value, max = 5.0, color = "#22d3ee" }) {
   const pct = Math.min((value / max) * 100, 100);
@@ -53,18 +54,16 @@ function JamPlayerCard({ player, isStarter }) {
           className="relative flex items-center justify-center py-3"
           style={{ background: bgGradient }}
         >
-          {/* Jersey number / avatar circle */}
-          <div className="w-14 h-14 rounded-full bg-black/30 border-2 border-white/30 flex flex-col items-center justify-center">
-            {legacy ? (
-              <span className="text-xl font-black text-white leading-none">
-                #{legacy.number}
-              </span>
-            ) : (
+          {/* 8-bit pixel avatar */}
+          {legacy ? (
+            <PixelAvatar playerId={player.avatar_url} size={56} />
+          ) : (
+            <div className="w-14 h-14 rounded-full bg-black/30 border-2 border-white/30 flex items-center justify-center">
               <span className="text-2xl font-black text-white leading-none">
                 {initial}
               </span>
-            )}
-          </div>
+            </div>
+          )}
           {/* Starter badge */}
           {isStarter && (
             <div className="absolute top-1 right-1 text-[8px] font-bold bg-yellow-400 text-gray-900 px-1.5 py-0.5 rounded">
