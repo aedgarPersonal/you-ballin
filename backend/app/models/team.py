@@ -1,13 +1,15 @@
 """
 Team & Game Result Models
 =========================
-Stores team assignments and game outcomes for the "winner" rating.
+Stores team assignments and game outcomes for the Jordan Factor.
 
 TEACHING NOTE:
     After the team balancing algorithm runs, each accepted player is assigned
     to Team A or Team B. After the game, an admin records which team won.
-    This feeds into the `winner_rating` on the User model, which tracks
-    each player's historical win rate.
+    This feeds into the `jordan_factor` on the User model, which tracks
+    each player's historical win percentage (games_won / games_played).
+    The Jordan Factor is used by the team balancing algorithm to create
+    fair teams — players who win a lot get balanced against each other.
 """
 
 import enum
@@ -51,9 +53,10 @@ class GameResult(Base):
 
     TEACHING NOTE:
         After each game, an admin records the winner. The system then
-        updates each player's `winner_rating` based on whether they were
-        on the winning team. This creates a feedback loop that improves
-        future team balancing.
+        updates each player's Jordan Factor (games_won, games_played,
+        jordan_factor = won/played) based on whether they were on the
+        winning team. This creates a feedback loop that improves future
+        team balancing.
     """
 
     __tablename__ = "game_results"

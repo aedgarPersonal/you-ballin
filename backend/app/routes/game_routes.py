@@ -300,9 +300,17 @@ async def record_result(
     """Record the outcome of a game (admin only).
 
     TEACHING NOTE:
-        After recording the result, we update each player's winner_rating.
-        The winner_rating is a running win rate (wins / total games).
-        Players on the winning team get a "win" added to their record.
+        After recording the result, we update each player's Jordan Factor.
+        The Jordan Factor tracks win percentage (games_won / games_played).
+        Named after the GOAT - a high Jordan Factor means you win a lot.
+
+        We use explicit games_won and games_played counters instead of
+        recalculating from scratch each time. This is faster and makes
+        the win/loss record directly visible to players.
+
+        The Jordan Factor feeds back into the team balancing algorithm,
+        so consistent winners get balanced against each other in future
+        games, creating fairer matchups over time.
     """
     # Verify game exists
     result = await db.execute(
@@ -328,36 +336,15 @@ async def record_result(
     )
     db.add(game_result)
 
-    # Update winner ratings for all players in the game
+    # Update Jordan Factor for all players in the game
     for assignment in game.teams:
         player_result = await db.execute(select(User).where(User.id == assignment.user_id))
         player = player_result.scalar_one_or_none()
         if player:
-            # Count total games and wins for this player
-            total_games_result = await db.execute(
-                select(TeamAssignment).where(TeamAssignment.user_id == player.id)
-            )
-            total_assignments = total_games_result.scalars().all()
-
-            # Count wins (games where their team won)
-            wins = 0
-            total = 0
-            for ta in total_assignments:
-                gr_result = await db.execute(
-                    select(GameResult).where(GameResult.game_id == ta.game_id)
-                )
-                gr = gr_result.scalar_one_or_none()
-                if gr:
-                    total += 1
-                    if gr.winning_team == ta.team:
-                        wins += 1
-
-            # Include the current game
-            total += 1
+            player.games_played += 1
             if assignment.team == winning_team:
-                wins += 1
-
-            player.winner_rating = wins / total if total > 0 else 0.5
+                player.games_won += 1
+            player.jordan_factor = player.games_won / player.games_played
 
     game.status = GameStatus.COMPLETED
     await db.flush()

@@ -85,14 +85,16 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Win Rate */}
+        {/* Jordan Factor */}
         <div className="card">
-          <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">Win Rate</h3>
+          <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">Jordan Factor</h3>
           <div className="mt-2">
             <div className="text-3xl font-bold text-court-600">
-              {((user?.winner_rating || 0.5) * 100).toFixed(0)}%
+              {((user?.jordan_factor || 0.5) * 100).toFixed(0)}%
             </div>
-            <div className="text-xs text-gray-500">Career win percentage</div>
+            <div className="text-xs text-gray-500">
+              {user?.games_won || 0}W - {(user?.games_played || 0) - (user?.games_won || 0)}L
+            </div>
           </div>
         </div>
       </div>

@@ -17,12 +17,17 @@ TEACHING NOTE:
 
     Weight Configuration:
     - Overall rating (peer-rated):  35% - highest weight as requested
-    - Winner rating (win history):  20% - rewards consistent winners
+    - Jordan Factor (win history):  20% - rewards consistent winners
     - Offense rating:               15%
     - Defense rating:               15%
     - Height (normalized):           5%
     - Age (normalized, inverse):     5% - younger slightly favored
     - Mobility:                      5%
+
+    The Jordan Factor is named after the GOAT - it's a player's career
+    win percentage (games_won / games_played). A high Jordan Factor
+    means you tend to be on the winning team. The algorithm uses this
+    to balance teams so that consistent winners are spread evenly.
 
     The algorithm is deterministic given the same inputs, which makes
     it testable and debuggable.
@@ -39,13 +44,13 @@ from app.models.user import User
 # =============================================================================
 
 WEIGHTS = {
-    "overall": 0.35,     # Peer-rated overall skill (highest weight)
-    "winner": 0.20,      # Historical win rate
-    "offense": 0.15,     # Peer-rated offensive skill
-    "defense": 0.15,     # Peer-rated defensive skill
-    "height": 0.05,      # Physical height (normalized)
-    "age": 0.05,         # Age factor (younger = slightly higher)
-    "mobility": 0.05,    # Admin-rated mobility
+    "overall": 0.35,         # Peer-rated overall skill (highest weight)
+    "jordan_factor": 0.20,   # Historical win percentage (the Jordan Factor)
+    "offense": 0.15,         # Peer-rated offensive skill
+    "defense": 0.15,         # Peer-rated defensive skill
+    "height": 0.05,          # Physical height (normalized)
+    "age": 0.05,             # Age factor (younger = slightly higher)
+    "mobility": 0.05,        # Admin-rated mobility
 }
 
 
@@ -94,7 +99,7 @@ def compute_player_score(player: User) -> PlayerScore:
     # Normalize each factor to 0.0-1.0 range
     factors = {
         "overall": normalize(player.avg_overall or 3.0, 1.0, 5.0),
-        "winner": player.winner_rating or 0.5,  # Already 0-1
+        "jordan_factor": player.jordan_factor if player.jordan_factor is not None else 0.5,  # Already 0-1
         "offense": normalize(player.avg_offense or 3.0, 1.0, 5.0),
         "defense": normalize(player.avg_defense or 3.0, 1.0, 5.0),
         "height": normalize(player.height_inches or 70, 60, 84),

@@ -86,7 +86,9 @@ class UserResponse(BaseModel):
     avg_offense: float
     avg_defense: float
     avg_overall: float
-    winner_rating: float
+    jordan_factor: float
+    games_played: int
+    games_won: int
     created_at: datetime
 
     model_config = {"from_attributes": True}

@@ -59,7 +59,9 @@ async def get_player_rating_summary(
         avg_defense=player.avg_defense,
         avg_overall=player.avg_overall,
         total_ratings=total_ratings,
-        winner_rating=player.winner_rating,
+        jordan_factor=player.jordan_factor,
+        games_played=player.games_played,
+        games_won=player.games_won,
     )
 
 

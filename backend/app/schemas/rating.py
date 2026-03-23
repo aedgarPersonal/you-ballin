@@ -42,7 +42,9 @@ class PlayerRatingSummary(BaseModel):
     avg_defense: float
     avg_overall: float
     total_ratings: int
-    winner_rating: float
+    jordan_factor: float
+    games_played: int
+    games_won: int
 
 
 class MyRatingForPlayer(BaseModel):

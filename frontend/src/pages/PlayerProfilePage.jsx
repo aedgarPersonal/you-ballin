@@ -107,7 +107,7 @@ export default function PlayerProfilePage() {
         <StatCard label="Offense" value={summary?.avg_offense?.toFixed(1)} max="5.0" />
         <StatCard label="Defense" value={summary?.avg_defense?.toFixed(1)} max="5.0" />
         <StatCard label="Overall" value={summary?.avg_overall?.toFixed(1)} max="5.0" highlight />
-        <StatCard label="Win Rate" value={`${((summary?.winner_rating || 0.5) * 100).toFixed(0)}%`} />
+        <StatCard label="Jordan Factor" value={`${((summary?.jordan_factor || 0.5) * 100).toFixed(0)}%`} subtitle={`${summary?.games_won || 0}W - ${(summary?.games_played || 0) - (summary?.games_won || 0)}L`} />
       </div>
 
       {/* Physical Stats */}
@@ -179,7 +179,7 @@ export default function PlayerProfilePage() {
   );
 }
 
-function StatCard({ label, value, max, highlight }) {
+function StatCard({ label, value, max, highlight, subtitle }) {
   return (
     <div className={`card text-center ${highlight ? "border-2 border-court-300" : ""}`}>
       <p className="text-sm text-gray-500">{label}</p>
@@ -187,6 +187,7 @@ function StatCard({ label, value, max, highlight }) {
         {value}
       </p>
       {max && <p className="text-xs text-gray-400">/ {max}</p>}
+      {subtitle && <p className="text-xs text-gray-400">{subtitle}</p>}
     </div>
   );
 }
