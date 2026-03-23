@@ -1,14 +1,16 @@
 """
 Rating Routes
 =============
-Anonymous player ratings with once-per-month update limit.
+Anonymous player ratings with once-per-month update limit, scoped per-run.
 
 TEACHING NOTE:
     Key design decisions:
     - Ratings are anonymous: the rater_id is never exposed
-    - Each player can only rate another player once (then update monthly)
-    - When a rating is created/updated, we recalculate the player's
-      cached averages to avoid expensive aggregation queries
+    - Each player can only rate another player once per run (then update monthly)
+    - When a rating is created/updated, we recalculate both the run-scoped
+      RunPlayerStats averages and the global User cached averages
+    - Ratings are scoped to a run because players may perform differently
+      in different groups
 """
 
 from datetime import datetime, timedelta, timezone
@@ -20,6 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.dependencies import get_current_user
 from app.database import get_db
 from app.models.rating import PlayerRating
+from app.models.run import RunPlayerStats
 from app.models.user import User
 from app.schemas.rating import (
     MyRatingForPlayer,
@@ -28,31 +31,59 @@ from app.schemas.rating import (
     RatingResponse,
 )
 
-router = APIRouter(prefix="/api/ratings", tags=["Ratings"])
+router = APIRouter(prefix="/api/runs/{run_id}/ratings", tags=["Ratings"])
 
 
 @router.get("/player/{player_id}/summary", response_model=PlayerRatingSummary)
 async def get_player_rating_summary(
+    run_id: int,
     player_id: int,
     db: AsyncSession = Depends(get_db),
     _user: User = Depends(get_current_user),
 ):
-    """Get aggregated ratings for a player.
+    """Get aggregated ratings for a player within a specific run.
 
     TEACHING NOTE:
-        We read from the cached values on the User model for performance.
-        These are recalculated whenever a rating is submitted.
+        We first try to read from RunPlayerStats for run-specific averages.
+        If no run stats exist yet, we fall back to the cached values on the
+        User model for a reasonable default.
     """
     result = await db.execute(select(User).where(User.id == player_id))
     player = result.scalar_one_or_none()
     if not player:
         raise HTTPException(status_code=404, detail="Player not found")
 
+    # Try run-specific stats first
+    stats_result = await db.execute(
+        select(RunPlayerStats).where(
+            RunPlayerStats.run_id == run_id,
+            RunPlayerStats.user_id == player_id,
+        )
+    )
+    stats = stats_result.scalar_one_or_none()
+
+    # Count ratings for this run
     count_result = await db.execute(
-        select(func.count()).where(PlayerRating.player_id == player_id)
+        select(func.count()).where(
+            PlayerRating.player_id == player_id,
+            PlayerRating.run_id == run_id,
+        )
     )
     total_ratings = count_result.scalar()
 
+    if stats:
+        return PlayerRatingSummary(
+            player_id=player_id,
+            avg_offense=stats.avg_offense,
+            avg_defense=stats.avg_defense,
+            avg_overall=stats.avg_overall,
+            total_ratings=total_ratings,
+            jordan_factor=stats.jordan_factor,
+            games_played=stats.games_played,
+            games_won=stats.games_won,
+        )
+
+    # Fall back to user-level stats if no run stats
     return PlayerRatingSummary(
         player_id=player_id,
         avg_offense=player.avg_offense,
@@ -67,20 +98,22 @@ async def get_player_rating_summary(
 
 @router.get("/player/{player_id}/mine", response_model=MyRatingForPlayer)
 async def get_my_rating_for_player(
+    run_id: int,
     player_id: int,
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    """Check if the current user has rated a player, and when they can update.
+    """Check if the current user has rated a player in this run, and when they can update.
 
     TEACHING NOTE:
         This powers the rating form UI. It tells the frontend:
-        - Whether the user has already rated this player
+        - Whether the user has already rated this player in this run
         - What their current rating is
         - Whether they can update (based on the 30-day cooldown)
     """
     result = await db.execute(
         select(PlayerRating).where(
+            PlayerRating.run_id == run_id,
             PlayerRating.player_id == player_id,
             PlayerRating.rater_id == user.id,
         )
@@ -105,19 +138,21 @@ async def get_my_rating_for_player(
 
 @router.post("/player/{player_id}", response_model=RatingResponse, status_code=status.HTTP_201_CREATED)
 async def rate_player(
+    run_id: int,
     player_id: int,
     data: RatingCreate,
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    """Rate a player (or update an existing rating if eligible).
+    """Rate a player within a run (or update an existing rating if eligible).
 
     TEACHING NOTE:
         Business rules:
         1. Can't rate yourself
-        2. One rating per player-rater pair
+        2. One rating per player-rater pair per run
         3. Can update existing rating only after 30 days
-        4. After save, recalculate the player's cached averages
+        4. After save, recalculate both run-scoped RunPlayerStats
+           and global User cached averages
     """
     if user.id == player_id:
         raise HTTPException(status_code=400, detail="You cannot rate yourself")
@@ -128,9 +163,10 @@ async def rate_player(
     if not target:
         raise HTTPException(status_code=404, detail="Player not found")
 
-    # Check for existing rating
+    # Check for existing rating in this run
     existing_result = await db.execute(
         select(PlayerRating).where(
+            PlayerRating.run_id == run_id,
             PlayerRating.player_id == player_id,
             PlayerRating.rater_id == user.id,
         )
@@ -153,8 +189,9 @@ async def rate_player(
         existing.updated_at = now
         rating = existing
     else:
-        # Create new rating
+        # Create new rating scoped to this run
         rating = PlayerRating(
+            run_id=run_id,
             player_id=player_id,
             rater_id=user.id,
             offense=data.offense,
@@ -165,7 +202,7 @@ async def rate_player(
 
     await db.flush()
 
-    # Recalculate cached averages on the target player
+    # Recalculate global cached averages on the target player (across all runs)
     avg_result = await db.execute(
         select(
             func.avg(PlayerRating.offense),
@@ -177,6 +214,31 @@ async def rate_player(
     target.avg_offense = round(avgs[0] or 3.0, 2)
     target.avg_defense = round(avgs[1] or 3.0, 2)
     target.avg_overall = round(avgs[2] or 3.0, 2)
+
+    # Update run-specific stats
+    run_stats_result = await db.execute(
+        select(RunPlayerStats).where(
+            RunPlayerStats.run_id == run_id,
+            RunPlayerStats.user_id == player_id,
+        )
+    )
+    run_stats = run_stats_result.scalar_one_or_none()
+    if run_stats:
+        # Recalculate from run-scoped ratings only
+        run_avg_result = await db.execute(
+            select(
+                func.avg(PlayerRating.offense),
+                func.avg(PlayerRating.defense),
+                func.avg(PlayerRating.overall),
+            ).where(
+                PlayerRating.player_id == player_id,
+                PlayerRating.run_id == run_id,
+            )
+        )
+        run_avgs = run_avg_result.one()
+        run_stats.avg_offense = round(run_avgs[0] or 3.0, 2)
+        run_stats.avg_defense = round(run_avgs[1] or 3.0, 2)
+        run_stats.avg_overall = round(run_avgs[2] or 3.0, 2)
 
     await db.flush()
     return rating

@@ -6,6 +6,7 @@
 
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import useRunStore from "../stores/runStore";
 import { listPlayers } from "../api/players";
 import { AvatarBadge } from "../components/AvatarPicker";
 
@@ -20,15 +21,21 @@ const SORT_OPTIONS = [
 ];
 
 export default function PlayersPage() {
+  const { currentRun } = useRunStore();
+  const runId = currentRun?.id;
   const [players, setPlayers] = useState([]);
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("jordan_factor");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!runId) {
+      setLoading(false);
+      return;
+    }
     const fetch = async () => {
       try {
-        const { data } = await listPlayers({ search: search || undefined });
+        const { data } = await listPlayers(runId, { search: search || undefined });
         setPlayers(data.users);
       } catch {
         setPlayers([]);
@@ -38,7 +45,15 @@ export default function PlayersPage() {
     };
     const debounce = setTimeout(fetch, 300);
     return () => clearTimeout(debounce);
-  }, [search]);
+  }, [runId, search]);
+
+  if (!currentRun) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-8 text-center">
+        <p className="text-gray-500">Please select a Run from the dropdown above.</p>
+      </div>
+    );
+  }
 
   const sortedPlayers = [...players].sort((a, b) => {
     if (sortBy === "name") return a.full_name.localeCompare(b.full_name);

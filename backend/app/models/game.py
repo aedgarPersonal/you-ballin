@@ -49,6 +49,7 @@ class Game(Base):
     __tablename__ = "games"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    run_id: Mapped[int] = mapped_column(Integer, ForeignKey("runs.id"), nullable=False)
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     game_date: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
     location: Mapped[str] = mapped_column(String(300), nullable=False, default="TBD")
@@ -64,6 +65,7 @@ class Game(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 
     # --- Relationships ---
+    run = relationship("Run", back_populates="games")
     rsvps = relationship("RSVP", back_populates="game", lazy="selectin")
     teams = relationship("TeamAssignment", back_populates="game", lazy="selectin")
     result = relationship("GameResult", back_populates="game", uselist=False, lazy="selectin")

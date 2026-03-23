@@ -6,13 +6,16 @@ Automated tasks that run on a schedule to manage the game lifecycle.
 TEACHING NOTE:
     This module defines the recurring jobs that drive the weekly flow:
 
-    1. WEEKLY GAME CREATION (runs Sunday evening):
-       Creates next week's game and sends invites to regular players.
+    1. WEEKLY GAME CREATION (runs daily at 6 PM):
+       Iterates over all active Runs.  For each run whose default_game_day
+       matches the upcoming week, creates next week's game and sends
+       invites to REGULAR members of that run.
 
-    2. DROP-IN NOTIFICATION (runs 8 AM on game day):
-       Any unclaimed spots are opened to drop-in players.
+    2. DROP-IN NOTIFICATION (runs daily at 8 AM):
+       Finds today's games across all runs.  For each game with open
+       spots, notifies DROPIN members of that game's run.
 
-    3. TEAM CREATION (runs evening before game):
+    3. TEAM CREATION (runs every 15 minutes):
        Runs the balancing algorithm and publishes teams.
 
     4. VOTING REMINDERS (runs 9 AM daily):
@@ -22,6 +25,7 @@ TEACHING NOTE:
     5. AWARD ANNOUNCEMENTS (runs every 30 minutes):
        Checks for games whose voting window has closed (noon day after)
        and announces winners with top 10 standings and fun commentary.
+       Updates both RunPlayerStats and global User stats.
 
     We use APScheduler for simplicity in development. In production,
     you'd want Celery Beat or a similar distributed scheduler that
@@ -39,6 +43,7 @@ from app.database import async_session
 from app.models.game import Game, GameStatus, RSVP, RSVPStatus
 from app.models.notification import NotificationType
 from app.models.user import PlayerStatus, User
+from app.models.run import Run, RunMembership, RunPlayerStats
 from app.services.notification_service import send_bulk_notification, send_notification
 from app.models.algorithm_config import AlgorithmWeight, CustomMetric, PlayerCustomMetric
 from app.models.team import TeamAssignment, GameResult, TeamScore, pick_team_names
@@ -57,32 +62,24 @@ def setup_scheduler():
     """Configure and start the background job scheduler.
 
     TEACHING NOTE:
-        APScheduler supports three trigger types:
-        - 'cron': run at specific times (like Unix cron)
-        - 'interval': run every N minutes/hours/days
-        - 'date': run once at a specific time
-
-        We use 'cron' for weekly recurring jobs.
+        Because different runs can have different game days, the
+        scheduler now runs create_weekly_game and open_dropin_spots
+        daily and lets each job figure out which runs need attention.
     """
-    # Create next week's game every Sunday at 6 PM
+    # Create next week's game - run daily at 6 PM (checks each run's default_game_day)
     scheduler.add_job(
         create_weekly_game,
         "cron",
-        day_of_week="sun",
         hour=18,
         minute=0,
         id="create_weekly_game",
         replace_existing=True,
     )
 
-    # Open drop-in spots at 8 AM on game day
-    game_day_map = {0: "mon", 1: "tue", 2: "wed", 3: "thu", 4: "fri", 5: "sat", 6: "sun"}
-    game_day = game_day_map.get(settings.default_game_day, "wed")
-
+    # Open drop-in spots at 8 AM daily (checks all runs' games for today)
     scheduler.add_job(
         open_dropin_spots,
         "cron",
-        day_of_week=game_day,
         hour=8,
         minute=0,
         id="open_dropin_spots",
@@ -119,7 +116,7 @@ def setup_scheduler():
     )
 
     scheduler.start()
-    logger.info("Scheduler started with weekly game jobs")
+    logger.info("Scheduler started with daily game jobs (multi-run)")
 
 
 # =============================================================================
@@ -127,89 +124,140 @@ def setup_scheduler():
 # =============================================================================
 
 async def create_weekly_game():
-    """Create next week's game and invite all regular players.
+    """Create next week's game for each active Run whose game day is upcoming.
 
     TEACHING NOTE:
-        This runs every Sunday evening. It:
-        1. Calculates next week's game date
-        2. Creates the Game record
-        3. Finds all REGULAR players
+        This runs every day at 6 PM. For each active run it:
+        1. Checks if today is the right day to create next week's game
+           (i.e., the run's default_game_day is within the next 7 days)
+        2. Creates the Game record with run_id
+        3. Finds all REGULAR members via RunMembership
         4. Creates PENDING RSVPs for each
         5. Sends invitation notifications (email + SMS + in-app)
     """
-    logger.info("Creating weekly game...")
+    logger.info("Creating weekly games for active runs...")
 
     async with async_session() as db:
         try:
-            # Calculate next game date
-            now = datetime.now(timezone.utc)
-            days_until_game = (settings.default_game_day - now.weekday()) % 7
-            if days_until_game == 0:
-                days_until_game = 7  # Next week, not today
-            game_date = now + timedelta(days=days_until_game)
-
-            # Parse game time
-            hour, minute = map(int, settings.default_game_time.split(":"))
-            game_date = game_date.replace(hour=hour, minute=minute, second=0, microsecond=0)
-
-            # Create the game
-            game = Game(
-                title=f"Weekly Pickup - {game_date.strftime('%b %d')}",
-                game_date=game_date,
-                location="TBD",
-                status=GameStatus.INVITES_SENT,
-                roster_size=settings.game_roster_size,
-            )
-            db.add(game)
-            await db.flush()
-
-            # Get all regular players
+            # Load all active runs
             result = await db.execute(
-                select(User).where(
-                    User.player_status == PlayerStatus.REGULAR,
-                    User.is_active == True,  # noqa: E712
-                )
+                select(Run).where(Run.is_active == True)  # noqa: E712
             )
-            regular_players = result.scalars().all()
+            runs = result.scalars().all()
 
-            # Create RSVPs and send invitations
-            for player in regular_players:
-                rsvp = RSVP(
-                    game_id=game.id,
-                    user_id=player.id,
-                    status=RSVPStatus.PENDING,
+            if not runs:
+                logger.info("No active runs found")
+                return
+
+            now = datetime.now(timezone.utc)
+
+            for run in runs:
+                if run.default_game_day is None or run.default_game_time is None:
+                    logger.info(f"Run '{run.name}' (id={run.id}) has no default schedule, skipping")
+                    continue
+
+                # Calculate next game date for this run
+                days_until_game = (run.default_game_day - now.weekday()) % 7
+                if days_until_game == 0:
+                    days_until_game = 7  # Next week, not today
+                game_date = now + timedelta(days=days_until_game)
+
+                # Parse game time from run settings
+                hour, minute = map(int, run.default_game_time.split(":"))
+                game_date = game_date.replace(hour=hour, minute=minute, second=0, microsecond=0)
+
+                # Check if a game already exists for this run on that date
+                day_start = game_date.replace(hour=0, minute=0, second=0)
+                day_end = game_date.replace(hour=23, minute=59, second=59)
+                existing_game_result = await db.execute(
+                    select(Game).where(
+                        Game.run_id == run.id,
+                        Game.game_date.between(day_start, day_end),
+                    )
                 )
-                db.add(rsvp)
+                if existing_game_result.scalar_one_or_none():
+                    logger.info(f"Game already exists for run '{run.name}' on {game_date.date()}, skipping")
+                    continue
 
-            deadline = game_date - timedelta(hours=24)
-            await send_bulk_notification(
-                db,
-                regular_players,
-                NotificationType.GAME_INVITE,
-                f"Game Invite: {game.title}",
-                f"You're invited to play on {game_date.strftime('%A, %B %d at %I:%M %p')}. "
-                f"Please RSVP by {deadline.strftime('%A at %I:%M %p')}.",
-            )
+                # Create the game
+                game = Game(
+                    run_id=run.id,
+                    title=f"{run.name} - {game_date.strftime('%b %d')}",
+                    game_date=game_date,
+                    location=run.default_location or "TBD",
+                    status=GameStatus.INVITES_SENT,
+                    roster_size=run.default_roster_size,
+                    num_teams=run.default_num_teams,
+                )
+                db.add(game)
+                await db.flush()
+
+                # Get all REGULAR members of this run via RunMembership
+                members_result = await db.execute(
+                    select(RunMembership).where(
+                        RunMembership.run_id == run.id,
+                        RunMembership.player_status == PlayerStatus.REGULAR,
+                    )
+                )
+                memberships = members_result.scalars().all()
+
+                # Fetch the User objects for these members
+                member_user_ids = [m.user_id for m in memberships]
+                if not member_user_ids:
+                    logger.info(f"No REGULAR members for run '{run.name}', game created with no invites")
+                    continue
+
+                players_result = await db.execute(
+                    select(User).where(
+                        User.id.in_(member_user_ids),
+                        User.is_active == True,  # noqa: E712
+                    )
+                )
+                regular_players = list(players_result.scalars().all())
+
+                # Create RSVPs and send invitations
+                for player in regular_players:
+                    rsvp = RSVP(
+                        game_id=game.id,
+                        user_id=player.id,
+                        status=RSVPStatus.PENDING,
+                    )
+                    db.add(rsvp)
+
+                deadline = game_date - timedelta(hours=24)
+                await send_bulk_notification(
+                    db,
+                    regular_players,
+                    NotificationType.GAME_INVITE,
+                    f"Game Invite: {game.title}",
+                    f"You're invited to play on {game_date.strftime('%A, %B %d at %I:%M %p')}. "
+                    f"Please RSVP by {deadline.strftime('%A at %I:%M %p')}.",
+                    run_id=run.id,
+                )
+
+                logger.info(
+                    f"Created game {game.id} for run '{run.name}' and "
+                    f"invited {len(regular_players)} players"
+                )
 
             await db.commit()
-            logger.info(f"Created game {game.id} and invited {len(regular_players)} players")
 
         except Exception as e:
             await db.rollback()
-            logger.error(f"Failed to create weekly game: {e}")
+            logger.error(f"Failed to create weekly games: {e}")
 
 
 async def open_dropin_spots():
-    """Open unclaimed spots to drop-in players at 8 AM on game day.
+    """Open unclaimed spots to drop-in players at 8 AM for today's games across all runs.
 
     TEACHING NOTE:
-        This runs at 8 AM on game day. It:
-        1. Finds today's game
-        2. Counts unclaimed spots (roster_size - accepted RSVPs)
-        3. If spots are available, changes game status to DROPIN_OPEN
-        4. Notifies all DROP-IN players about the available spots
+        This runs at 8 AM daily. For each game happening today it:
+        1. Counts unclaimed spots (roster_size - accepted RSVPs)
+        2. If spots are available, changes game status to DROPIN_OPEN
+        3. Finds DROPIN members of that game's run via RunMembership
+        4. Notifies them about the available spots
     """
-    logger.info("Checking for drop-in spots...")
+    logger.info("Checking for drop-in spots across all runs...")
 
     async with async_session() as db:
         try:
@@ -217,49 +265,62 @@ async def open_dropin_spots():
             today_start = now.replace(hour=0, minute=0, second=0)
             today_end = now.replace(hour=23, minute=59, second=59)
 
-            # Find today's game
+            # Find all games happening today that still have INVITES_SENT status
             result = await db.execute(
                 select(Game).where(
                     Game.game_date.between(today_start, today_end),
                     Game.status == GameStatus.INVITES_SENT,
                 )
             )
-            game = result.scalar_one_or_none()
+            games = result.scalars().all()
 
-            if not game:
-                logger.info("No game found for today")
+            if not games:
+                logger.info("No games found for today needing drop-in openings")
                 return
 
-            spots = game.spots_remaining
-            if spots <= 0:
-                logger.info(f"Game {game.id} is full, no drop-in spots available")
-                return
+            for game in games:
+                spots = game.spots_remaining
+                if spots <= 0:
+                    logger.info(f"Game {game.id} is full, no drop-in spots available")
+                    continue
 
-            # Update game status
-            game.status = GameStatus.DROPIN_OPEN
+                # Update game status
+                game.status = GameStatus.DROPIN_OPEN
 
-            # Get all drop-in players
-            result = await db.execute(
-                select(User).where(
-                    User.player_status == PlayerStatus.DROPIN,
-                    User.is_active == True,  # noqa: E712
+                # Get DROPIN members of this game's run via RunMembership
+                members_result = await db.execute(
+                    select(RunMembership).where(
+                        RunMembership.run_id == game.run_id,
+                        RunMembership.player_status == PlayerStatus.DROPIN,
+                    )
                 )
-            )
-            dropin_players = result.scalars().all()
+                dropin_memberships = members_result.scalars().all()
+                dropin_user_ids = [m.user_id for m in dropin_memberships]
 
-            if dropin_players:
-                await send_bulk_notification(
-                    db,
-                    dropin_players,
-                    NotificationType.DROPIN_AVAILABLE,
-                    f"{spots} Spots Available Today!",
-                    f"There are {spots} open spots for today's game at "
-                    f"{game.game_date.strftime('%I:%M %p')}. "
-                    f"First come, first served - RSVP now!",
-                )
+                if dropin_user_ids:
+                    players_result = await db.execute(
+                        select(User).where(
+                            User.id.in_(dropin_user_ids),
+                            User.is_active == True,  # noqa: E712
+                        )
+                    )
+                    dropin_players = list(players_result.scalars().all())
+
+                    if dropin_players:
+                        await send_bulk_notification(
+                            db,
+                            dropin_players,
+                            NotificationType.DROPIN_AVAILABLE,
+                            f"{spots} Spots Available Today!",
+                            f"There are {spots} open spots for today's game at "
+                            f"{game.game_date.strftime('%I:%M %p')}. "
+                            f"First come, first served - RSVP now!",
+                            run_id=game.run_id,
+                        )
+
+                logger.info(f"Opened {spots} drop-in spots for game {game.id}")
 
             await db.commit()
-            logger.info(f"Opened {spots} drop-in spots for game {game.id}")
 
         except Exception as e:
             await db.rollback()
@@ -331,12 +392,16 @@ async def _generate_teams_for_game(db, game):
         players_result = await db.execute(select(User).where(User.id.in_(player_ids)))
         players = list(players_result.scalars().all())
 
-        # Load algorithm config from DB
-        weights_result = await db.execute(select(AlgorithmWeight))
+        # Load algorithm config from DB, filtered by this game's run_id
+        weights_result = await db.execute(
+            select(AlgorithmWeight).where(AlgorithmWeight.run_id == game.run_id)
+        )
         db_weights = weights_result.scalars().all()
         weights = {w.metric_name: w.weight for w in db_weights} if db_weights else None
 
-        cm_result = await db.execute(select(CustomMetric))
+        cm_result = await db.execute(
+            select(CustomMetric).where(CustomMetric.run_id == game.run_id)
+        )
         custom_metrics_db = cm_result.scalars().all()
         custom_metric_defs = [
             CustomMetricDef(
@@ -391,6 +456,7 @@ async def _generate_teams_for_game(db, game):
                 NotificationType.TEAMS_PUBLISHED,
                 "Teams Are Set!",
                 f"You're on {team_name} for tonight's game. See you on the court!",
+                run_id=game.run_id,
             )
 
         team_summary = " vs ".join(
@@ -477,6 +543,7 @@ async def send_voting_reminders():
                     f"Vote Reminder - Game #{game.id}",
                     f"Don't forget to cast your MVP and Shaqtin' a Fool votes for {game.title}! "
                     f"Voting closes at noon today. Your voice matters!",
+                    run_id=game.run_id,
                 )
 
                 logger.info(f"Sent voting reminders to {len(players)} players for game {game.id}")
@@ -497,7 +564,8 @@ async def announce_awards():
         - Awards haven't been announced yet (no AWARDS_ANNOUNCED notification exists)
 
         When found, it tallies the votes, determines the MVP and Shaqtin'
-        winners, and notifies all participants.
+        winners, updates both RunPlayerStats and global User stats,
+        and notifies all participants.
     """
     logger.info("Checking for award announcements...")
 
@@ -543,13 +611,16 @@ async def announce_awards():
                     logger.info(f"No votes cast for game {game.id}, skipping announcement")
                     continue
 
-                # Increment award counts on winner profiles
+                # Increment award counts on winner profiles (both RunPlayerStats and User)
                 if mvp_winner:
                     mvp_winner.mvp_count += 1
+                    await _increment_run_player_stat(db, game.run_id, mvp_winner.id, "mvp_count")
                 if shaqtin_winner:
                     shaqtin_winner.shaqtin_count += 1
+                    await _increment_run_player_stat(db, game.run_id, shaqtin_winner.id, "shaqtin_count")
                 if xfactor_winner:
                     xfactor_winner.xfactor_count += 1
+                    await _increment_run_player_stat(db, game.run_id, xfactor_winner.id, "xfactor_count")
 
                 # Get team names and scores from last night's game
                 team_names = await _get_game_team_names(db, game.id)
@@ -567,11 +638,11 @@ async def announce_awards():
                     parts.append(f"X Factor: {xfactor_winner.full_name}")
                 awards_line = " | ".join(parts)
 
-                # Get top 10 overall standings
+                # Get top 10 overall standings (global, across all runs)
                 top10 = await _get_top10_standings(db)
                 standings_lines = []
                 for rank, player in enumerate(top10, 1):
-                    medal = {1: "🥇", 2: "🥈", 3: "🥉"}.get(rank, f"{rank}.")
+                    medal = {1: "\U0001f947", 2: "\U0001f948", 3: "\U0001f949"}.get(rank, f"{rank}.")
                     jf_pct = int((player.jordan_factor or 0.5) * 100)
                     standings_lines.append(
                         f"{medal} {player.full_name} - {jf_pct}% JF ({player.games_won}W-{player.games_played - player.games_won}L)"
@@ -601,6 +672,7 @@ async def announce_awards():
                     NotificationType.AWARDS_ANNOUNCED,
                     f"Awards Announced - Game #{game.id}",
                     message,
+                    run_id=game.run_id,
                 )
 
                 logger.info(f"Awards announced for game {game.id}: {awards_line}")
@@ -610,6 +682,24 @@ async def announce_awards():
         except Exception as e:
             await db.rollback()
             logger.error(f"Failed to announce awards: {e}")
+
+
+# =============================================================================
+# Helper Functions
+# =============================================================================
+
+async def _increment_run_player_stat(db, run_id: int, user_id: int, stat_field: str):
+    """Increment a specific award counter on RunPlayerStats for the given run and user."""
+    stats_result = await db.execute(
+        select(RunPlayerStats).where(
+            RunPlayerStats.run_id == run_id,
+            RunPlayerStats.user_id == user_id,
+        )
+    )
+    stats = stats_result.scalar_one_or_none()
+    if stats:
+        current = getattr(stats, stat_field, 0)
+        setattr(stats, stat_field, current + 1)
 
 
 async def _tally_votes(db, game_id: int, vote_type: VoteType) -> User | None:
@@ -660,7 +750,11 @@ async def _get_game_team_names(db, game_id: int) -> dict[str, str]:
 
 
 async def _get_top10_standings(db) -> list[User]:
-    """Get top 10 players by Jordan Factor (must have played at least 1 game)."""
+    """Get top 10 players by Jordan Factor (must have played at least 1 game).
+
+    TEACHING NOTE:
+        This remains global (across all runs), using User-level cached stats.
+    """
     result = await db.execute(
         select(User)
         .where(User.games_played > 0, User.is_active == True)  # noqa: E712

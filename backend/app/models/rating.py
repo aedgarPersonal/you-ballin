@@ -17,19 +17,28 @@ TEACHING NOTE:
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, func
+from sqlalchemy import DateTime, Float, ForeignKey, Integer, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
 
 
 class PlayerRating(Base):
-    """An anonymous skill rating from one player to another."""
+    """An anonymous skill rating from one player to another, scoped to a Run.
+
+    TEACHING NOTE:
+        Ratings are per-run because a player may perform differently in
+        different groups. The composite unique constraint on
+        (run_id, player_id, rater_id) ensures one rating per rater per
+        player per run.
+    """
 
     __tablename__ = "player_ratings"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
 
+    # Which run this rating belongs to
+    run_id: Mapped[int] = mapped_column(Integer, ForeignKey("runs.id"), nullable=False)
     # Who is being rated
     player_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
     # Who is doing the rating (kept private!)
@@ -48,5 +57,9 @@ class PlayerRating(Base):
     player = relationship("User", foreign_keys=[player_id], back_populates="ratings_received")
     rater = relationship("User", foreign_keys=[rater_id], back_populates="ratings_given")
 
+    __table_args__ = (
+        UniqueConstraint("run_id", "player_id", "rater_id", name="uq_run_player_rater"),
+    )
+
     def __repr__(self) -> str:
-        return f"<PlayerRating player={self.player_id} O={self.offense} D={self.defense} OVR={self.overall}>"
+        return f"<PlayerRating run={self.run_id} player={self.player_id} O={self.offense} D={self.defense} OVR={self.overall}>"

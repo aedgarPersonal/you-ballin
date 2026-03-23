@@ -8,6 +8,10 @@ TEACHING NOTE:
     needs to notify a user, it calls one function here, and the service
     handles all three channels (email, SMS, in-app).
 
+    When a run_id is provided, per-run notification preferences from
+    RunMembership are checked (notify_email, notify_sms) and override
+    the default send_email / send_sms flags.
+
     In development, email/SMS are logged to console instead of actually
     sending. Set SMTP and Twilio credentials in .env for real delivery.
 """
@@ -33,6 +37,7 @@ async def send_notification(
     message: str,
     send_email: bool = True,
     send_sms: bool = True,
+    run_id: int | None = None,
 ) -> Notification:
     """Send a notification to a user via all configured channels.
 
@@ -40,6 +45,10 @@ async def send_notification(
         The notification is always saved to the database (in-app).
         Email and SMS are attempted if credentials are configured
         and the user has the relevant contact info.
+
+        When run_id is provided, per-run notification preferences
+        from RunMembership are checked and used to override the
+        default send_email / send_sms flags.
 
     Args:
         db: Database session.
@@ -49,13 +58,31 @@ async def send_notification(
         message: Full message body.
         send_email: Whether to attempt email delivery.
         send_sms: Whether to attempt SMS delivery.
+        run_id: Optional run ID to associate with this notification
+                and to look up per-run notification preferences.
 
     Returns:
         The created Notification record.
     """
+    # Check per-run notification preferences if run_id is provided
+    if run_id:
+        from app.models.run import RunMembership
+
+        membership_result = await db.execute(
+            select(RunMembership).where(
+                RunMembership.run_id == run_id,
+                RunMembership.user_id == user.id,
+            )
+        )
+        membership = membership_result.scalar_one_or_none()
+        if membership:
+            send_email = membership.notify_email
+            send_sms = membership.notify_sms
+
     # Always create in-app notification
     notification = Notification(
         user_id=user.id,
+        run_id=run_id,
         type=notification_type,
         title=title,
         message=message,
@@ -88,16 +115,20 @@ async def send_bulk_notification(
     notification_type: NotificationType,
     title: str,
     message: str,
+    run_id: int | None = None,
 ) -> list[Notification]:
     """Send the same notification to multiple users.
 
     TEACHING NOTE:
         Used for game invitations and team announcements where all
-        players receive the same message.
+        players receive the same message. When run_id is provided,
+        each user's per-run notification preferences are respected.
     """
     notifications = []
     for user in users:
-        notif = await send_notification(db, user, notification_type, title, message)
+        notif = await send_notification(
+            db, user, notification_type, title, message, run_id=run_id,
+        )
         notifications.append(notif)
     return notifications
 

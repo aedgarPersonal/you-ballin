@@ -52,17 +52,27 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-court-50 to-orange-100 px-4">
-      <div className="w-full max-w-md">
+    <div
+      className="min-h-screen flex items-center justify-center px-4 relative"
+      style={{
+        backgroundImage: "url(/logo.png)",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+      }}
+    >
+      {/* Dark overlay for readability */}
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+
+      <div className="w-full max-w-md relative z-10">
         {/* Header */}
         <div className="text-center mb-8">
-          <span className="text-6xl">🏀</span>
-          <h1 className="text-3xl font-bold text-gray-900 mt-4">You Ballin</h1>
-          <p className="text-gray-600 mt-2">Sign in to your account</p>
+          <h1 className="text-4xl font-bold text-white mt-4 drop-shadow-lg">You Ballin</h1>
+          <p className="text-gray-200 mt-2 drop-shadow">Sign in to your account</p>
         </div>
 
         {/* Card */}
-        <div className="card">
+        <div className="card bg-white/95 backdrop-blur-md">
           {/* Tabs */}
           <div className="flex border-b border-gray-200 mb-6">
             <button

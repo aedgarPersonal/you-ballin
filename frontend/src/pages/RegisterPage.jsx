@@ -59,7 +59,7 @@ export default function RegisterPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-court-50 to-orange-100 px-4 py-8">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <span className="text-6xl">🏀</span>
+          <img src="/logo.png" alt="You Ballin" className="h-24 mx-auto rounded-lg" />
           <h1 className="text-3xl font-bold text-gray-900 mt-4">Join the Game</h1>
           <p className="text-gray-600 mt-2">Register for pickup basketball</p>
         </div>

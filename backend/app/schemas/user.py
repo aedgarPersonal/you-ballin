@@ -63,9 +63,15 @@ class UserUpdate(BaseModel):
 
 
 class AdminUserUpdate(BaseModel):
-    """Fields only an admin can update."""
+    """Fields only an admin can update.
+
+    For super admin: role and is_active (user-level fields).
+    For run admin: player_status, dues_paid (run-level), plus height/age/mobility on User.
+    """
     player_status: str | None = None  # regular, dropin, inactive
-    role: str | None = None  # player, admin
+    role: str | None = None  # player, super_admin
+    is_active: bool | None = None
+    dues_paid: bool | None = None
     height_inches: int | None = None
     age: int | None = None
     mobility: float | None = Field(None, ge=1.0, le=5.0)

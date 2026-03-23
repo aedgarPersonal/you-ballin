@@ -3,28 +3,22 @@ Authentication Dependencies
 ============================
 FastAPI dependencies for protecting routes.
 
-TEACHING NOTE:
-    FastAPI's dependency injection system lets us declare auth requirements
-    declaratively. A route that needs authentication simply adds:
-
-        async def my_route(user: User = Depends(get_current_user)):
-
-    FastAPI automatically:
-    1. Extracts the Bearer token from the Authorization header
-    2. Calls get_current_user() to validate it
-    3. Passes the User object to the route handler
-    4. Returns 401 if the token is invalid
-
-    For admin-only routes, use `get_current_admin` which adds a role check.
+Includes:
+    - get_current_user: Validates JWT and returns the User object.
+    - get_current_super_admin: Ensures the user is a SUPER_ADMIN.
+    - get_current_admin: Alias for get_current_super_admin (backward compat).
+    - require_run_admin(): Factory for run-level admin authorization.
+    - require_run_member(): Factory for run-level membership authorization.
 """
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.jwt import verify_access_token
 from app.database import get_db
+from app.models.run import RunAdmin, RunMembership
 from app.models.user import User, UserRole
 
 # This tells FastAPI to expect a Bearer token in the Authorization header
@@ -63,22 +57,129 @@ async def get_current_user(
     return user
 
 
+async def get_current_super_admin(
+    user: User = Depends(get_current_user),
+) -> User:
+    """Ensure the current user is a SUPER_ADMIN.
+
+    Raises:
+        HTTPException 403: If the user is not a super admin.
+    """
+    if user.role != UserRole.SUPER_ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Super admin access required",
+        )
+    return user
+
+
 async def get_current_admin(
     user: User = Depends(get_current_user),
 ) -> User:
-    """Ensure the current user has admin privileges.
+    """Ensure the current user has admin privileges (SUPER_ADMIN only).
 
-    TEACHING NOTE:
-        This dependency *chains* on get_current_user. FastAPI resolves
-        dependencies recursively, so get_current_user runs first, then
-        this function checks the role.
+    This is kept for backward compatibility. For run-level admin checks,
+    use require_run_admin() instead.
 
     Raises:
-        HTTPException 403: If the user is not an admin.
+        HTTPException 403: If the user is not a super admin.
     """
-    if user.role != UserRole.ADMIN:
+    if user.role not in (UserRole.SUPER_ADMIN,):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required",
         )
     return user
+
+
+def require_run_admin(run_id_param: str = "run_id"):
+    """Factory that returns a dependency checking run-level admin access.
+
+    Allows access if the user is a SUPER_ADMIN or is listed in the
+    run_admins table for the given run.
+
+    Args:
+        run_id_param: Name of the path parameter containing the run ID.
+    """
+
+    async def dependency(
+        request: Request,
+        user: User = Depends(get_current_user),
+        db: AsyncSession = Depends(get_db),
+    ) -> User:
+        run_id = request.path_params.get(run_id_param)
+        if not run_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="run_id is required",
+            )
+        if user.role == UserRole.SUPER_ADMIN:
+            return user
+        result = await db.execute(
+            select(RunAdmin).where(
+                RunAdmin.run_id == int(run_id),
+                RunAdmin.user_id == user.id,
+            )
+        )
+        if not result.scalar_one_or_none():
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Run admin access required",
+            )
+        return user
+
+    return dependency
+
+
+def require_run_member(run_id_param: str = "run_id"):
+    """Factory that returns a dependency checking run-level membership.
+
+    Allows access if the user is a SUPER_ADMIN, is a run admin, or has
+    an active RunMembership for the given run.
+
+    Args:
+        run_id_param: Name of the path parameter containing the run ID.
+    """
+
+    async def dependency(
+        request: Request,
+        user: User = Depends(get_current_user),
+        db: AsyncSession = Depends(get_db),
+    ) -> User:
+        run_id = request.path_params.get(run_id_param)
+        if not run_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="run_id is required",
+            )
+        run_id_int = int(run_id)
+
+        # SUPER_ADMIN always has access
+        if user.role == UserRole.SUPER_ADMIN:
+            return user
+
+        # Check if user is a run admin
+        admin_result = await db.execute(
+            select(RunAdmin).where(
+                RunAdmin.run_id == run_id_int,
+                RunAdmin.user_id == user.id,
+            )
+        )
+        if admin_result.scalar_one_or_none():
+            return user
+
+        # Check if user is a run member
+        member_result = await db.execute(
+            select(RunMembership).where(
+                RunMembership.run_id == run_id_int,
+                RunMembership.user_id == user.id,
+            )
+        )
+        if not member_result.scalar_one_or_none():
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Run membership required",
+            )
+        return user
+
+    return dependency

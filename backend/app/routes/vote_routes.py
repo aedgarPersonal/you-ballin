@@ -5,7 +5,7 @@ MVP and "Shaqtin' a Fool" voting for game participants.
 
 TEACHING NOTE:
     Voting flow:
-    1. Admin records a game result (game status → COMPLETED)
+    1. Admin records a game result (game status -> COMPLETED)
     2. Voting opens automatically until noon the next day
     3. Only players who were on a team for that game can vote
     4. Each player casts one MVP vote and one Shaqtin' vote
@@ -13,8 +13,10 @@ TEACHING NOTE:
     6. At noon the next day, voting closes and results are published
        with top 10 overall standings and fun commentary
 
-    The public results endpoint (/api/games/{id}/awards) does NOT require
-    authentication, so it can be displayed on the group's public page.
+    The public results endpoint (/api/runs/{run_id}/games/{id}/awards) does NOT
+    require authentication, so it can be displayed on the group's public page.
+
+    The awards_router at /api/awards remains global and cross-run.
 """
 
 from datetime import datetime, timedelta, timezone
@@ -40,7 +42,7 @@ from app.schemas.vote import (
     VoteResponse,
 )
 
-router = APIRouter(prefix="/api/games", tags=["Voting"])
+router = APIRouter(prefix="/api/runs/{run_id}/games", tags=["Voting"])
 awards_router = APIRouter(prefix="/api/awards", tags=["Awards"])
 
 def _get_voting_deadline(game: Game) -> datetime:
@@ -72,12 +74,24 @@ async def _verify_participant(db: AsyncSession, game_id: int, user_id: int) -> b
     return result.scalar_one_or_none() is not None
 
 
+async def _get_game_in_run(db: AsyncSession, run_id: int, game_id: int) -> Game:
+    """Fetch a game and verify it belongs to the specified run."""
+    result = await db.execute(select(Game).where(Game.id == game_id))
+    game = result.scalar_one_or_none()
+    if not game:
+        raise HTTPException(status_code=404, detail="Game not found")
+    if game.run_id != run_id:
+        raise HTTPException(status_code=404, detail="Game not found in this run")
+    return game
+
+
 # =============================================================================
 # Cast / Update Votes
 # =============================================================================
 
 @router.post("/{game_id}/votes", response_model=VoteResponse, status_code=status.HTTP_201_CREATED)
 async def cast_vote(
+    run_id: int,
     game_id: int,
     data: VoteCast,
     db: AsyncSession = Depends(get_db),
@@ -87,6 +101,7 @@ async def cast_vote(
 
     TEACHING NOTE:
         Business rules enforced:
+        - Game must belong to the specified run
         - Game must be completed
         - Voting window must be open (24h after game time)
         - Voter must have been a participant (on a team)
@@ -94,11 +109,8 @@ async def cast_vote(
         - Nominee must also have been a participant
         - One vote per category (upsert: update if exists)
     """
-    # Verify game exists and is completed
-    result = await db.execute(select(Game).where(Game.id == game_id))
-    game = result.scalar_one_or_none()
-    if not game:
-        raise HTTPException(status_code=404, detail="Game not found")
+    # Verify game exists and belongs to this run
+    game = await _get_game_in_run(db, run_id, game_id)
 
     if game.status != GameStatus.COMPLETED:
         raise HTTPException(status_code=400, detail="Voting is only available for completed games")
@@ -153,6 +165,7 @@ async def cast_vote(
 
 @router.get("/{game_id}/votes/mine", response_model=MyVotesResponse)
 async def get_my_votes(
+    run_id: int,
     game_id: int,
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
@@ -164,6 +177,9 @@ async def get_my_votes(
         votes so they know what they've already picked and can change
         before the deadline.
     """
+    # Verify game belongs to this run
+    await _get_game_in_run(db, run_id, game_id)
+
     result = await db.execute(
         select(GameVote).where(
             GameVote.game_id == game_id,
@@ -189,6 +205,7 @@ async def get_my_votes(
 
 @router.get("/{game_id}/awards", response_model=GameAwardsResponse)
 async def get_game_awards(
+    run_id: int,
     game_id: int,
     db: AsyncSession = Depends(get_db),
 ):
@@ -205,10 +222,8 @@ async def get_game_awards(
         If voting is still open, winners are NOT revealed to prevent
         bandwagon voting. Only vote counts are shown.
     """
-    result = await db.execute(select(Game).where(Game.id == game_id))
-    game = result.scalar_one_or_none()
-    if not game:
-        raise HTTPException(status_code=404, detail="Game not found")
+    # Verify game belongs to this run
+    game = await _get_game_in_run(db, run_id, game_id)
 
     if game.status != GameStatus.COMPLETED:
         raise HTTPException(status_code=400, detail="Awards not available for this game")
@@ -292,25 +307,32 @@ async def _get_winner(
 
 
 # =============================================================================
-# Recent Award Winners (for Dashboard)
+# Recent Award Winners (for Dashboard) - Global, cross-run
 # =============================================================================
 
 @awards_router.get("/recent", response_model=list[RecentGameAwards])
 async def get_recent_awards(
+    run_id: int | None = None,
     db: AsyncSession = Depends(get_db),
 ):
     """Get award winners from the most recent completed games.
 
     Returns up to 5 most recent games that have completed voting,
     with their MVP, Shaqtin', and X Factor winners.
+
+    Optionally filter by run_id to get awards for a specific run only.
     """
     # Find recently completed games where voting has closed
-    result = await db.execute(
+    query = (
         select(Game)
         .where(Game.status == GameStatus.COMPLETED)
         .order_by(Game.game_date.desc())
         .limit(5)
     )
+    if run_id:
+        query = query.where(Game.run_id == run_id)
+
+    result = await db.execute(query)
     games = result.scalars().all()
 
     recent_awards = []

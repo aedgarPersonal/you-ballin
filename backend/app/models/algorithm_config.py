@@ -34,51 +34,48 @@ from app.database import Base
 
 
 class AlgorithmWeight(Base):
-    """A single weight entry for the team balancing algorithm.
+    """A single weight entry for the team balancing algorithm, scoped per-run.
 
     TEACHING NOTE:
-        Each row maps a metric name to its weight. The weights don't need
-        to sum to 1.0 — the algorithm normalizes them at runtime. This
-        means admins can think in relative terms ("offense should matter
-        twice as much as height") without worrying about exact math.
+        Each row maps a metric name to its weight within a specific run.
+        The weights don't need to sum to 1.0 — the algorithm normalizes
+        them at runtime. run_id is nullable to support global defaults
+        (null = fallback for runs without custom weights).
     """
 
     __tablename__ = "algorithm_weights"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    metric_name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    run_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("runs.id"), nullable=True)
+    metric_name: Mapped[str] = mapped_column(String(100), nullable=False)
     weight: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     is_builtin: Mapped[bool] = mapped_column(default=True)  # Built-in vs custom metric
 
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 
+    __table_args__ = (
+        UniqueConstraint("run_id", "metric_name", name="uq_run_metric_weight"),
+    )
+
     def __repr__(self) -> str:
-        return f"<AlgorithmWeight {self.metric_name}={self.weight}>"
+        return f"<AlgorithmWeight run={self.run_id} {self.metric_name}={self.weight}>"
 
 
 class CustomMetric(Base):
-    """A custom player metric defined by an admin.
+    """A custom player metric defined by an admin, scoped per-run.
 
     TEACHING NOTE:
         Custom metrics let admins track anything they think matters for
-        team balancing. Examples: "shooting", "basketball_iq", "hustle",
-        "post_game", "three_point". Each metric has:
-
-        - name: unique identifier (lowercase, underscored)
-        - display_name: human-readable label for the UI
-        - min_value / max_value: the rating scale
-        - default_value: assigned to players who haven't been rated yet
-
-        When a custom metric is created, a corresponding AlgorithmWeight
-        entry is also created (defaulting to 0.0 so it doesn't affect
-        team balancing until the admin sets a weight).
+        team balancing within a specific run. run_id is nullable to
+        support global defaults.
     """
 
     __tablename__ = "custom_metrics"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    run_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("runs.id"), nullable=True)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
     display_name: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     min_value: Mapped[float] = mapped_column(Float, default=1.0)
@@ -90,8 +87,12 @@ class CustomMetric(Base):
     # Relationship to player values
     player_values = relationship("PlayerCustomMetric", back_populates="metric", cascade="all, delete-orphan")
 
+    __table_args__ = (
+        UniqueConstraint("run_id", "name", name="uq_run_custom_metric"),
+    )
+
     def __repr__(self) -> str:
-        return f"<CustomMetric {self.name} ({self.min_value}-{self.max_value})>"
+        return f"<CustomMetric run={self.run_id} {self.name} ({self.min_value}-{self.max_value})>"
 
 
 class PlayerCustomMetric(Base):

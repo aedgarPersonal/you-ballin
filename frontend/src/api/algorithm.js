@@ -1,27 +1,18 @@
-/**
- * Algorithm Configuration API
- * ===========================
- * Endpoints for managing team balancing weights and custom metrics.
- */
-
 import api from "./client";
 
-// --- Weights ---
-export const getWeights = () => api.get("/admin/algorithm/weights");
-export const updateWeights = (weights) =>
-  api.put("/admin/algorithm/weights", { weights });
+export const getWeights = (runId) => api.get(`/runs/${runId}/algorithm/weights`);
+export const updateWeights = (runId, weights) =>
+  api.put(`/runs/${runId}/algorithm/weights`, { weights });
 
-// --- Custom Metrics ---
-export const listCustomMetrics = () => api.get("/admin/algorithm/metrics");
-export const createCustomMetric = (data) =>
-  api.post("/admin/algorithm/metrics", data);
-export const updateCustomMetric = (id, data) =>
-  api.patch(`/admin/algorithm/metrics/${id}`, data);
-export const deleteCustomMetric = (id) =>
-  api.delete(`/admin/algorithm/metrics/${id}`);
+export const listCustomMetrics = (runId) => api.get(`/runs/${runId}/algorithm/metrics`);
+export const createCustomMetric = (runId, data) =>
+  api.post(`/runs/${runId}/algorithm/metrics`, data);
+export const updateCustomMetric = (runId, id, data) =>
+  api.patch(`/runs/${runId}/algorithm/metrics/${id}`, data);
+export const deleteCustomMetric = (runId, id) =>
+  api.delete(`/runs/${runId}/algorithm/metrics/${id}`);
 
-// --- Player Custom Metric Values ---
-export const getPlayerMetrics = (userId) =>
-  api.get(`/admin/algorithm/players/${userId}/metrics`);
-export const updatePlayerMetrics = (userId, metrics) =>
-  api.put(`/admin/algorithm/players/${userId}/metrics`, metrics);
+export const getPlayerMetrics = (runId, userId) =>
+  api.get(`/runs/${runId}/algorithm/players/${userId}/metrics`);
+export const updatePlayerMetrics = (runId, userId, metrics) =>
+  api.put(`/runs/${runId}/algorithm/players/${userId}/metrics`, metrics);

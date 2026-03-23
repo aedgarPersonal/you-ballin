@@ -35,7 +35,6 @@ function ProtectedRoute({ children }) {
 function AdminRoute({ children }) {
   const user = useAuthStore((s) => s.user);
   if (!user) return <Navigate to="/login" />;
-  if (user.role !== "admin") return <Navigate to="/" />;
   return children;
 }
 

@@ -25,9 +25,15 @@ from app.database import Base
 
 
 class UserRole(str, enum.Enum):
-    """User permission levels."""
+    """User permission levels.
+
+    TEACHING NOTE:
+        PLAYER is the default role. SUPER_ADMIN has global access to all
+        runs, games, and players. "Run admin" is NOT a user role — it's
+        a relationship in the run_admins table (see RunAdmin model).
+    """
     PLAYER = "player"
-    ADMIN = "admin"
+    SUPER_ADMIN = "super_admin"
 
 
 class PlayerStatus(str, enum.Enum):
@@ -99,6 +105,9 @@ class User(Base):
         "PlayerRating", foreign_keys="PlayerRating.player_id", back_populates="player", lazy="selectin"
     )
     notifications = relationship("Notification", back_populates="user", lazy="selectin")
+    run_memberships = relationship("RunMembership", back_populates="user", lazy="selectin")
+    run_admin_roles = relationship("RunAdmin", back_populates="user", lazy="selectin")
+    run_stats = relationship("RunPlayerStats", back_populates="user", lazy="selectin")
 
     def __repr__(self) -> str:
-        return f"<User {self.username} ({self.player_status.value})>"
+        return f"<User {self.username} ({self.role.value})>"

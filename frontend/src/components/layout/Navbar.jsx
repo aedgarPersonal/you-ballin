@@ -1,26 +1,29 @@
 /**
  * Navigation Bar
  * ==============
- * Top navigation with links, notifications badge, and user menu.
+ * Top navigation with links, run switcher, notifications badge, and user menu.
  */
 
 import { Link, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import useAuthStore from "../../stores/authStore";
 import useNotificationStore from "../../stores/notificationStore";
+import useRunStore from "../../stores/runStore";
 import { AvatarBadge } from "../AvatarPicker";
 
 export default function Navbar() {
   const { user, logout } = useAuthStore();
   const { unreadCount, fetchNotifications } = useNotificationStore();
+  const { runs, currentRun, setCurrentRun, fetchRuns } = useRunStore();
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchNotifications();
+    fetchRuns();
     // Poll for new notifications every 30 seconds
     const interval = setInterval(fetchNotifications, 30000);
     return () => clearInterval(interval);
-  }, [fetchNotifications]);
+  }, [fetchNotifications, fetchRuns]);
 
   const handleLogout = () => {
     logout();
@@ -34,8 +37,7 @@ export default function Navbar() {
           {/* Logo & Nav Links */}
           <div className="flex items-center space-x-8">
             <Link to="/" className="flex items-center space-x-2">
-              <span className="text-2xl">🏀</span>
-              <span className="font-bold text-xl text-court-600">You Ballin</span>
+              <img src="/logo.png" alt="You Ballin" className="h-10 rounded" />
             </Link>
 
             <div className="hidden md:flex items-center space-x-4">
@@ -48,10 +50,26 @@ export default function Navbar() {
               <Link to="/players" className="text-gray-600 hover:text-court-600 transition-colors px-3 py-2 rounded-md text-sm font-medium">
                 Players
               </Link>
-              {user?.role === "admin" && (
+              {user?.role === "super_admin" && (
                 <Link to="/admin" className="text-gray-600 hover:text-court-600 transition-colors px-3 py-2 rounded-md text-sm font-medium">
                   Admin
                 </Link>
+              )}
+
+              {/* Run Switcher */}
+              {runs.length > 0 && (
+                <select
+                  value={currentRun?.id || ""}
+                  onChange={(e) => {
+                    const run = runs.find(r => r.id === parseInt(e.target.value));
+                    if (run) setCurrentRun(run);
+                  }}
+                  className="text-sm border-gray-300 rounded-md px-2 py-1.5 bg-white text-gray-700 focus:ring-court-500 focus:border-court-500"
+                >
+                  {runs.map(run => (
+                    <option key={run.id} value={run.id}>{run.name}</option>
+                  ))}
+                </select>
               )}
             </div>
           </div>
@@ -80,9 +98,6 @@ export default function Navbar() {
                 )}
                 <span className="text-sm font-medium text-gray-700">{user?.full_name}</span>
               </Link>
-              <span className={user?.player_status === "regular" ? "badge-regular" : "badge-dropin"}>
-                {user?.player_status}
-              </span>
               <button onClick={handleLogout} className="text-sm text-gray-500 hover:text-red-500 transition-colors">
                 Logout
               </button>

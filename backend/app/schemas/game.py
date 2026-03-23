@@ -35,6 +35,7 @@ class GameUpdate(BaseModel):
 class GameResponse(BaseModel):
     """Game data returned by the API."""
     id: int
+    run_id: int
     title: str
     game_date: datetime
     location: str

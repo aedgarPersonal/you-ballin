@@ -1,30 +1,20 @@
-/**
- * Games API Functions
- * ===================
- */
-
 import api from "./client";
 
-export const listGames = (status) =>
-  api.get("/games", { params: status ? { status_filter: status } : {} });
+export const listGames = (runId, status) =>
+  api.get(`/runs/${runId}/games`, { params: status ? { status_filter: status } : {} });
 
-export const getGame = (id) => api.get(`/games/${id}`);
-export const createGame = (data) => api.post("/games", data);
-export const updateGame = (id, data) => api.patch(`/games/${id}`, data);
+export const getGame = (runId, id) => api.get(`/runs/${runId}/games/${id}`);
+export const createGame = (runId, data) => api.post(`/runs/${runId}/games`, data);
+export const updateGame = (runId, id, data) => api.patch(`/runs/${runId}/games/${id}`, data);
 
-// RSVPs
-export const rsvpToGame = (gameId, status) =>
-  api.post(`/games/${gameId}/rsvp`, { status });
-export const getGameRsvps = (gameId) => api.get(`/games/${gameId}/rsvps`);
+export const rsvpToGame = (runId, gameId, status) =>
+  api.post(`/runs/${runId}/games/${gameId}/rsvp`, { status });
+export const getGameRsvps = (runId, gameId) => api.get(`/runs/${runId}/games/${gameId}/rsvps`);
 
-// Teams
-export const generateTeams = (gameId) => api.post(`/games/${gameId}/teams`);
-export const getTeams = (gameId) => api.get(`/games/${gameId}/teams`);
+export const generateTeams = (runId, gameId) => api.post(`/runs/${runId}/games/${gameId}/teams`);
+export const getTeams = (runId, gameId) => api.get(`/runs/${runId}/games/${gameId}/teams`);
 
-// Results
-export const recordResult = (gameId, data) =>
-  api.post(`/games/${gameId}/result`, data);
+export const recordResult = (runId, gameId, data) =>
+  api.post(`/runs/${runId}/games/${gameId}/result`, data);
 
-// Cancel
-export const cancelGame = (gameId) => api.post(`/games/${gameId}/cancel`);
-
+export const cancelGame = (runId, gameId) => api.post(`/runs/${runId}/games/${gameId}/cancel`);

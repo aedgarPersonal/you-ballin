@@ -18,6 +18,8 @@
 
 import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
+import useAuthStore from "../stores/authStore";
+import useRunStore from "../stores/runStore";
 import {
   listPendingRegistrations,
   approveRegistration,
@@ -47,6 +49,11 @@ const BUILTIN_LABELS = {
 };
 
 export default function AdminPage() {
+  const user = useAuthStore((s) => s.user);
+  const { currentRun } = useRunStore();
+  const runId = currentRun?.id;
+  const isSuperAdmin = user?.role === "super_admin";
+
   const [tab, setTab] = useState("pending");
   const [pending, setPending] = useState([]);
   const [players, setPlayers] = useState([]);
@@ -74,22 +81,24 @@ export default function AdminPage() {
   const [importing, setImporting] = useState(false);
 
   const fetchPending = async () => {
+    if (!runId) return;
     try {
-      const { data } = await listPendingRegistrations();
+      const { data } = await listPendingRegistrations(runId);
       setPending(data.users);
     } catch { /* empty */ }
   };
 
   const fetchPlayers = async () => {
+    if (!runId) return;
     try {
-      const { data } = await listAllPlayers();
+      const { data } = await listAllPlayers(runId);
       setPlayers(data.users);
     } catch { /* empty */ }
   };
 
   const fetchWeights = async () => {
     try {
-      const { data } = await getWeights();
+      const { data } = await getWeights(runId);
       setWeights(data.weights);
       setWeightsDirty(false);
     } catch { /* empty */ }
@@ -97,14 +106,18 @@ export default function AdminPage() {
 
   const fetchCustomMetrics = async () => {
     try {
-      const { data } = await listCustomMetrics();
+      const { data } = await listCustomMetrics(runId);
       setCustomMetrics(data);
     } catch { /* empty */ }
   };
 
   useEffect(() => {
-    Promise.all([fetchPending(), fetchPlayers()]).then(() => setLoading(false));
-  }, []);
+    if (runId) {
+      Promise.all([fetchPending(), fetchPlayers()]).then(() => setLoading(false));
+    } else {
+      setLoading(false);
+    }
+  }, [runId]);
 
   // Load balancer data when tab is selected
   useEffect(() => {
@@ -116,7 +129,7 @@ export default function AdminPage() {
 
   const handleApprove = async (userId, status) => {
     try {
-      await approveRegistration(userId, status);
+      await approveRegistration(runId, userId, status);
       toast.success(`Player approved as ${status}`);
       fetchPending();
       fetchPlayers();
@@ -128,7 +141,7 @@ export default function AdminPage() {
   const handleDeny = async (userId) => {
     if (!confirm("Deny this registration? The user will be notified and their account deactivated.")) return;
     try {
-      await denyRegistration(userId);
+      await denyRegistration(runId, userId);
       toast.success("Registration denied");
       fetchPending();
     } catch (err) {
@@ -143,7 +156,7 @@ export default function AdminPage() {
       if (!confirm(`Change this player's status to ${labels[value] || value}? They will be notified.`)) return;
     }
     try {
-      await updatePlayerAdmin(userId, { [field]: value });
+      await updatePlayerAdmin(runId, userId, { [field]: value });
       toast.success("Player updated");
       fetchPlayers();
     } catch {
@@ -156,7 +169,7 @@ export default function AdminPage() {
     date.setDate(date.getDate() + 7);
     date.setHours(19, 0, 0, 0);
     try {
-      await createGame({
+      await createGame(runId, {
         title: `Weekly Pickup - ${date.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`,
         game_date: date.toISOString(),
         location: "TBD",
@@ -182,7 +195,7 @@ export default function AdminPage() {
   const handleSaveWeights = async () => {
     setSavingWeights(true);
     try {
-      const { data } = await updateWeights(weights);
+      const { data } = await updateWeights(runId, weights);
       setWeights(data.weights);
       setWeightsDirty(false);
       toast.success("Weights saved");
@@ -196,7 +209,7 @@ export default function AdminPage() {
   const handleCreateMetric = async (e) => {
     e.preventDefault();
     try {
-      await createCustomMetric(newMetric);
+      await createCustomMetric(runId, newMetric);
       toast.success(`Metric "${newMetric.display_name}" created`);
       setNewMetric({ name: "", display_name: "", description: "", min_value: 1, max_value: 5, default_value: 3 });
       setShowNewMetricForm(false);
@@ -210,7 +223,7 @@ export default function AdminPage() {
   const handleDeleteMetric = async (metric) => {
     if (!confirm(`Delete metric "${metric.display_name}"? This removes all player values for it.`)) return;
     try {
-      await deleteCustomMetric(metric.id);
+      await deleteCustomMetric(runId, metric.id);
       toast.success("Metric deleted");
       fetchWeights();
       fetchCustomMetrics();
@@ -247,7 +260,7 @@ export default function AdminPage() {
     setImporting(true);
     setImportResult(null);
     try {
-      const { data } = await importPlayers({ players });
+      const { data } = await importPlayers(runId, { players });
       setImportResult(data);
       toast.success(`Imported ${data.created_count} player(s)`);
       if (data.created_count > 0) {
@@ -259,6 +272,14 @@ export default function AdminPage() {
       setImporting(false);
     }
   };
+
+  if (!currentRun) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-8 text-center">
+        <p className="text-gray-500">Please select a Run from the dropdown above.</p>
+      </div>
+    );
+  }
 
   const totalWeight = weights.reduce((sum, w) => sum + w.weight, 0);
 
@@ -427,7 +448,9 @@ export default function AdminPage() {
                 <th className="py-3 px-4 text-sm font-medium text-gray-500">Height</th>
                 <th className="py-3 px-4 text-sm font-medium text-gray-500">Age</th>
                 <th className="py-3 px-4 text-sm font-medium text-gray-500">Mobility</th>
-                <th className="py-3 px-4 text-sm font-medium text-gray-500">Role</th>
+                {isSuperAdmin && (
+                  <th className="py-3 px-4 text-sm font-medium text-gray-500">Role</th>
+                )}
               </tr>
             </thead>
             <tbody>
@@ -480,16 +503,19 @@ export default function AdminPage() {
                       placeholder="1-5"
                     />
                   </td>
-                  <td className="py-3 px-4">
-                    <select
-                      value={player.role}
-                      onChange={(e) => handleUpdatePlayer(player.id, "role", e.target.value)}
-                      className="text-sm border rounded px-2 py-1"
-                    >
-                      <option value="player">Player</option>
-                      <option value="admin">Admin</option>
-                    </select>
-                  </td>
+                  {isSuperAdmin && (
+                    <td className="py-3 px-4">
+                      <select
+                        value={player.role}
+                        onChange={(e) => handleUpdatePlayer(player.id, "role", e.target.value)}
+                        className="text-sm border rounded px-2 py-1"
+                      >
+                        <option value="player">Player</option>
+                        <option value="admin">Admin</option>
+                        <option value="super_admin">Super Admin</option>
+                      </select>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

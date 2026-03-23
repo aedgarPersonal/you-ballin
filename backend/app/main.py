@@ -30,6 +30,7 @@ from app.routes import (
     notification_routes,
     player_routes,
     rating_routes,
+    run_routes,
     vote_routes,
 )
 from app.services.scheduler import setup_scheduler
@@ -99,10 +100,13 @@ app.add_middleware(
 # =============================================================================
 
 app.include_router(auth_routes.router)
+app.include_router(run_routes.router)
 app.include_router(player_routes.router)
+app.include_router(player_routes.run_players_router)
 app.include_router(game_routes.router)
 app.include_router(rating_routes.router)
 app.include_router(admin_routes.router)
+app.include_router(admin_routes.run_admin_router)
 app.include_router(notification_routes.router)
 app.include_router(vote_routes.router)
 app.include_router(vote_routes.awards_router)

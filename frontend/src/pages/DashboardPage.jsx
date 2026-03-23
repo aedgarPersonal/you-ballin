@@ -11,6 +11,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import useAuthStore from "../stores/authStore";
+import useRunStore from "../stores/runStore";
 import { listGames } from "../api/games";
 import { getRecentAwards } from "../api/votes";
 import { AvatarBadge } from "../components/AvatarPicker";
@@ -18,16 +19,22 @@ import { getPlayerById } from "../data/legacyPlayers";
 
 export default function DashboardPage() {
   const user = useAuthStore((s) => s.user);
+  const { currentRun } = useRunStore();
+  const runId = currentRun?.id;
   const [nextGame, setNextGame] = useState(null);
   const [recentAwards, setRecentAwards] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!runId) {
+      setLoading(false);
+      return;
+    }
     const fetchData = async () => {
       try {
         const [gamesRes, awardsRes] = await Promise.allSettled([
-          listGames(),
-          getRecentAwards(),
+          listGames(runId),
+          getRecentAwards(runId),
         ]);
 
         if (gamesRes.status === "fulfilled") {
@@ -47,7 +54,15 @@ export default function DashboardPage() {
       }
     };
     fetchData();
-  }, []);
+  }, [runId]);
+
+  if (!currentRun) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-8 text-center">
+        <p className="text-gray-500">Please select a Run from the dropdown above.</p>
+      </div>
+    );
+  }
 
   const statusMessage = {
     pending: "Your registration is pending admin approval. You'll be notified when you're approved!",
@@ -86,7 +101,7 @@ export default function DashboardPage() {
           <div className="mt-2 flex items-center gap-2">
             <span className={`badge-${user?.player_status}`}>{user?.player_status}</span>
             <span className="text-sm text-gray-500">
-              {user?.role === "admin" && "(Admin)"}
+              {user?.role === "super_admin" && "(Super Admin)"}
             </span>
           </div>
         </div>

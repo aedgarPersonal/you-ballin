@@ -6,6 +6,7 @@
 
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import useRunStore from "../stores/runStore";
 import { listGames } from "../api/games";
 
 const STATUS_LABELS = {
@@ -27,14 +28,21 @@ const STATUS_COLORS = {
 };
 
 export default function GamesPage() {
+  const { currentRun } = useRunStore();
+  const runId = currentRun?.id;
   const [games, setGames] = useState([]);
   const [filter, setFilter] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!runId) {
+      setLoading(false);
+      return;
+    }
     const fetch = async () => {
+      setLoading(true);
       try {
-        const { data } = await listGames(filter || undefined);
+        const { data } = await listGames(runId, filter || undefined);
         setGames(data);
       } catch {
         setGames([]);
@@ -43,7 +51,15 @@ export default function GamesPage() {
       }
     };
     fetch();
-  }, [filter]);
+  }, [runId, filter]);
+
+  if (!currentRun) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-8 text-center">
+        <p className="text-gray-500">Please select a Run from the dropdown above.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

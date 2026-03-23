@@ -1,15 +1,18 @@
 """
-Game Management Routes
-======================
-CRUD operations for games, RSVPs, and team management.
+Game Management Routes (Run-Scoped)
+====================================
+CRUD operations for games, RSVPs, and team management within a Run.
 
 TEACHING NOTE:
     The game lifecycle flows through these endpoints:
-    1. Admin creates a game (POST /games)
-    2. Players RSVP (POST /games/{id}/rsvp)
-    3. Admin (or scheduler) triggers team creation (POST /games/{id}/teams)
-    4. Admin records results (POST /games/{id}/result)
-    5. Admin can cancel a game (POST /games/{id}/cancel)
+    1. Admin creates a game (POST /runs/{run_id}/games)
+    2. Players RSVP (POST /runs/{run_id}/games/{id}/rsvp)
+    3. Admin (or scheduler) triggers team creation (POST /runs/{run_id}/games/{id}/teams)
+    4. Admin records results (POST /runs/{run_id}/games/{id}/result)
+    5. Admin can cancel a game (POST /runs/{run_id}/games/{id}/cancel)
+
+    Every game belongs to a Run. The run_id comes from the URL path,
+    ensuring all operations are scoped to the correct run.
 """
 
 from datetime import datetime, timezone
@@ -19,9 +22,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.auth.dependencies import get_current_admin, get_current_user
+from app.auth.dependencies import get_current_user, require_run_admin, require_run_member
 from app.database import get_db
 from app.models.game import Game, GameStatus, RSVP, RSVPStatus
+from app.models.run import RunMembership, RunPlayerStats
 from app.models.team import GameResult, TeamAssignment, TeamScore, pick_team_names
 from app.models.user import PlayerStatus, User
 from app.models.notification import NotificationType
@@ -40,7 +44,7 @@ from app.models.algorithm_config import AlgorithmWeight, CustomMetric, PlayerCus
 from app.services.team_balancer import CustomMetricDef, create_balanced_teams
 from app.services.notification_service import send_bulk_notification
 
-router = APIRouter(prefix="/api/games", tags=["Games"])
+router = APIRouter(prefix="/api/runs/{run_id}/games", tags=["Games"])
 
 
 # =============================================================================
@@ -49,12 +53,13 @@ router = APIRouter(prefix="/api/games", tags=["Games"])
 
 @router.get("", response_model=list[GameResponse])
 async def list_games(
+    run_id: int,
     status_filter: str | None = None,
     db: AsyncSession = Depends(get_db),
     _user: User = Depends(get_current_user),
 ):
-    """List all games, optionally filtered by status."""
-    query = select(Game).order_by(Game.game_date.desc())
+    """List all games for this run, optionally filtered by status."""
+    query = select(Game).where(Game.run_id == run_id).order_by(Game.game_date.desc())
     if status_filter:
         query = query.where(Game.status == status_filter)
     result = await db.execute(query)
@@ -63,12 +68,13 @@ async def list_games(
 
 @router.post("", response_model=GameResponse, status_code=status.HTTP_201_CREATED)
 async def create_game(
+    run_id: int,
     data: GameCreate,
     db: AsyncSession = Depends(get_db),
-    _admin: User = Depends(get_current_admin),
+    _admin: User = Depends(require_run_admin()),
 ):
-    """Create a new game (admin only)."""
-    game = Game(**data.model_dump())
+    """Create a new game in this run (run admin only)."""
+    game = Game(run_id=run_id, **data.model_dump())
     db.add(game)
     await db.flush()
     await db.refresh(game, ["rsvps", "teams", "result"])
@@ -77,6 +83,7 @@ async def create_game(
 
 @router.get("/{game_id}", response_model=GameDetailResponse)
 async def get_game(
+    run_id: int,
     game_id: int,
     db: AsyncSession = Depends(get_db),
     _user: User = Depends(get_current_user),
@@ -94,17 +101,20 @@ async def get_game(
     game = result.scalar_one_or_none()
     if not game:
         raise HTTPException(status_code=404, detail="Game not found")
+    if game.run_id != run_id:
+        raise HTTPException(status_code=404, detail="Game not found in this run")
     return game
 
 
 @router.patch("/{game_id}", response_model=GameResponse)
 async def update_game(
+    run_id: int,
     game_id: int,
     data: GameUpdate,
     db: AsyncSession = Depends(get_db),
-    _admin: User = Depends(get_current_admin),
+    _admin: User = Depends(require_run_admin()),
 ):
-    """Update game details (admin only).
+    """Update game details (run admin only).
 
     Notifies all RSVPed players when time, date, or location changes.
     """
@@ -114,6 +124,8 @@ async def update_game(
     game = result.scalar_one_or_none()
     if not game:
         raise HTTPException(status_code=404, detail="Game not found")
+    if game.run_id != run_id:
+        raise HTTPException(status_code=404, detail="Game not found in this run")
 
     update_fields = data.model_dump(exclude_unset=True)
 
@@ -158,11 +170,12 @@ async def update_game(
 
 @router.post("/{game_id}/cancel", response_model=GameResponse)
 async def cancel_game(
+    run_id: int,
     game_id: int,
     db: AsyncSession = Depends(get_db),
-    _admin: User = Depends(get_current_admin),
+    _admin: User = Depends(require_run_admin()),
 ):
-    """Cancel a game and notify all RSVPed players (admin only).
+    """Cancel a game and notify all RSVPed players (run admin only).
 
     TEACHING NOTE:
         This lets an admin declare "no game this week." It:
@@ -176,6 +189,8 @@ async def cancel_game(
     game = result.scalar_one_or_none()
     if not game:
         raise HTTPException(status_code=404, detail="Game not found")
+    if game.run_id != run_id:
+        raise HTTPException(status_code=404, detail="Game not found in this run")
 
     if game.status == GameStatus.CANCELLED:
         raise HTTPException(status_code=400, detail="Game is already cancelled")
@@ -214,6 +229,7 @@ async def cancel_game(
 
 @router.post("/{game_id}/rsvp", response_model=RSVPResponse)
 async def rsvp_to_game(
+    run_id: int,
     game_id: int,
     data: RSVPCreate,
     db: AsyncSession = Depends(get_db),
@@ -223,26 +239,38 @@ async def rsvp_to_game(
 
     TEACHING NOTE:
         Business rules enforced here:
-        - Only approved players (regular or dropin) can RSVP
+        - Only approved run members (regular or dropin) can RSVP
         - Regular players can RSVP anytime before the deadline
         - Drop-in players can only RSVP when status is DROPIN_OPEN
         - If the game is full, drop-in players go on the waitlist
         - First-come-first-served for drop-in spots
     """
-    # Verify game exists and is accepting RSVPs
+    # Verify game exists and belongs to this run
     result = await db.execute(select(Game).where(Game.id == game_id))
     game = result.scalar_one_or_none()
     if not game:
         raise HTTPException(status_code=404, detail="Game not found")
+    if game.run_id != run_id:
+        raise HTTPException(status_code=404, detail="Game not found in this run")
 
-    # Check player is approved
-    if user.player_status == PlayerStatus.PENDING:
+    # Check the user's RunMembership status for this run
+    membership_result = await db.execute(
+        select(RunMembership).where(
+            RunMembership.run_id == run_id,
+            RunMembership.user_id == user.id,
+        )
+    )
+    membership = membership_result.scalar_one_or_none()
+    if not membership:
+        raise HTTPException(status_code=403, detail="You are not a member of this run")
+
+    if membership.player_status == PlayerStatus.PENDING:
         raise HTTPException(status_code=403, detail="Your registration is pending approval")
-    if user.player_status == PlayerStatus.INACTIVE:
+    if membership.player_status == PlayerStatus.INACTIVE:
         raise HTTPException(status_code=403, detail="Your account is inactive")
 
     # Drop-in players can only join when spots are open
-    if user.player_status == PlayerStatus.DROPIN:
+    if membership.player_status == PlayerStatus.DROPIN:
         if game.status not in (GameStatus.DROPIN_OPEN, GameStatus.INVITES_SENT):
             raise HTTPException(status_code=403, detail="Drop-in spots are not yet available")
 
@@ -261,7 +289,7 @@ async def rsvp_to_game(
     else:
         # Handle drop-in waitlist logic
         if (
-            user.player_status == PlayerStatus.DROPIN
+            membership.player_status == PlayerStatus.DROPIN
             and rsvp_status == RSVPStatus.ACCEPTED
             and game.spots_remaining <= 0
         ):
@@ -281,11 +309,18 @@ async def rsvp_to_game(
 
 @router.get("/{game_id}/rsvps", response_model=list[RSVPResponse])
 async def get_game_rsvps(
+    run_id: int,
     game_id: int,
     db: AsyncSession = Depends(get_db),
     _user: User = Depends(get_current_user),
 ):
     """Get all RSVPs for a game."""
+    # Verify game belongs to this run
+    game_result = await db.execute(select(Game).where(Game.id == game_id))
+    game = game_result.scalar_one_or_none()
+    if not game or game.run_id != run_id:
+        raise HTTPException(status_code=404, detail="Game not found in this run")
+
     result = await db.execute(
         select(RSVP)
         .where(RSVP.game_id == game_id)
@@ -301,11 +336,12 @@ async def get_game_rsvps(
 
 @router.post("/{game_id}/teams", response_model=list[TeamAssignmentResponse])
 async def generate_teams(
+    run_id: int,
     game_id: int,
     db: AsyncSession = Depends(get_db),
-    _admin: User = Depends(get_current_admin),
+    _admin: User = Depends(require_run_admin()),
 ):
-    """Generate balanced teams for a game (admin only).
+    """Generate balanced teams for a game (run admin only).
 
     TEACHING NOTE:
         This endpoint triggers the team balancing algorithm. It:
@@ -315,6 +351,8 @@ async def generate_teams(
         4. Assigns random fun team names
         5. Stores team assignments
         6. Updates the game status to TEAMS_SET
+
+        Algorithm weights and custom metrics are loaded per-run.
     """
     result = await db.execute(
         select(Game).where(Game.id == game_id).options(selectinload(Game.rsvps))
@@ -322,6 +360,8 @@ async def generate_teams(
     game = result.scalar_one_or_none()
     if not game:
         raise HTTPException(status_code=404, detail="Game not found")
+    if game.run_id != run_id:
+        raise HTTPException(status_code=404, detail="Game not found in this run")
 
     # Get accepted players
     accepted_rsvps = [r for r in game.rsvps if r.status == RSVPStatus.ACCEPTED]
@@ -343,13 +383,17 @@ async def generate_teams(
     for assignment in existing_teams.scalars().all():
         await db.delete(assignment)
 
-    # Load algorithm weights from DB (falls back to defaults if empty)
-    weights_result = await db.execute(select(AlgorithmWeight))
+    # Load algorithm weights from DB scoped to this run (falls back to defaults if empty)
+    weights_result = await db.execute(
+        select(AlgorithmWeight).where(AlgorithmWeight.run_id == run_id)
+    )
     db_weights = weights_result.scalars().all()
     weights = {w.metric_name: w.weight for w in db_weights} if db_weights else None
 
-    # Load custom metric definitions
-    cm_result = await db.execute(select(CustomMetric))
+    # Load custom metric definitions scoped to this run
+    cm_result = await db.execute(
+        select(CustomMetric).where(CustomMetric.run_id == run_id)
+    )
     custom_metrics_db = cm_result.scalars().all()
     custom_metric_defs = [
         CustomMetricDef(name=cm.name, min_value=cm.min_value, max_value=cm.max_value, default_value=cm.default_value)
@@ -419,11 +463,18 @@ async def generate_teams(
 
 @router.get("/{game_id}/teams", response_model=list[TeamAssignmentResponse])
 async def get_teams(
+    run_id: int,
     game_id: int,
     db: AsyncSession = Depends(get_db),
     _user: User = Depends(get_current_user),
 ):
     """Get team assignments for a game."""
+    # Verify game belongs to this run
+    game_result = await db.execute(select(Game).where(Game.id == game_id))
+    game = game_result.scalar_one_or_none()
+    if not game or game.run_id != run_id:
+        raise HTTPException(status_code=404, detail="Game not found in this run")
+
     result = await db.execute(
         select(TeamAssignment)
         .where(TeamAssignment.game_id == game_id)
@@ -438,12 +489,13 @@ async def get_teams(
 
 @router.post("/{game_id}/result", response_model=GameResultResponse, status_code=status.HTTP_201_CREATED)
 async def record_result(
+    run_id: int,
     game_id: int,
     data: GameResultCreate,
     db: AsyncSession = Depends(get_db),
-    _admin: User = Depends(get_current_admin),
+    _admin: User = Depends(require_run_admin()),
 ):
-    """Record the outcome of a game night with per-team scores (admin only).
+    """Record the outcome of a game night with per-team scores (run admin only).
 
     TEACHING NOTE:
         A game night typically consists of multiple individual games (e.g.,
@@ -456,14 +508,18 @@ async def record_result(
 
         The Jordan Factor (games_won / games_played) is now more granular
         than the old binary system, giving a truer picture of win rate.
+
+        Both global User stats and per-run RunPlayerStats are updated.
     """
-    # Verify game exists
+    # Verify game exists and belongs to this run
     result = await db.execute(
         select(Game).where(Game.id == game_id).options(selectinload(Game.teams))
     )
     game = result.scalar_one_or_none()
     if not game:
         raise HTTPException(status_code=404, detail="Game not found")
+    if game.run_id != run_id:
+        raise HTTPException(status_code=404, detail="Game not found in this run")
 
     # Check for existing result
     existing = await db.execute(select(GameResult).where(GameResult.game_id == game_id))
@@ -505,15 +561,38 @@ async def record_result(
             wins=ts.wins,
         ))
 
-    # Update Jordan Factor for all players
+    # Update Jordan Factor for all players (global User stats + per-run RunPlayerStats)
     for assignment in game.teams:
         player_result = await db.execute(select(User).where(User.id == assignment.user_id))
         player = player_result.scalar_one_or_none()
         if player:
             team_wins = score_map.get(assignment.team, 0)
+
+            # Update global User stats
             player.games_played += total_games
             player.games_won += team_wins
             player.jordan_factor = player.games_won / player.games_played if player.games_played > 0 else 0.5
+
+            # Update per-run RunPlayerStats
+            rps_result = await db.execute(
+                select(RunPlayerStats).where(
+                    RunPlayerStats.run_id == run_id,
+                    RunPlayerStats.user_id == player.id,
+                )
+            )
+            run_stats = rps_result.scalar_one_or_none()
+            if not run_stats:
+                run_stats = RunPlayerStats(
+                    run_id=run_id,
+                    user_id=player.id,
+                    games_played=0,
+                    games_won=0,
+                )
+                db.add(run_stats)
+
+            run_stats.games_played += total_games
+            run_stats.games_won += team_wins
+            run_stats.jordan_factor = run_stats.games_won / run_stats.games_played if run_stats.games_played > 0 else 0.5
 
     game.status = GameStatus.COMPLETED
 

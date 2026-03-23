@@ -1,19 +1,13 @@
-/**
- * Voting API Functions
- * ====================
- * MVP and Shaqtin' a Fool voting endpoints.
- */
-
 import api from "./client";
 
-export const castVote = (gameId, data) =>
-  api.post(`/games/${gameId}/votes`, data);
+export const castVote = (runId, gameId, data) =>
+  api.post(`/runs/${runId}/games/${gameId}/votes`, data);
 
-export const getMyVotes = (gameId) =>
-  api.get(`/games/${gameId}/votes/mine`);
+export const getMyVotes = (runId, gameId) =>
+  api.get(`/runs/${runId}/games/${gameId}/votes/mine`);
 
-export const getGameAwards = (gameId) =>
-  api.get(`/games/${gameId}/awards`);
+export const getGameAwards = (runId, gameId) =>
+  api.get(`/runs/${runId}/games/${gameId}/awards`);
 
-export const getRecentAwards = () =>
-  api.get("/awards/recent");
+export const getRecentAwards = (runId) =>
+  api.get("/awards/recent", { params: runId ? { run_id: runId } : {} });

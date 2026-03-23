@@ -15,6 +15,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import useAuthStore from "../stores/authStore";
+import useRunStore from "../stores/runStore";
 import { getPlayer, updateMyProfile } from "../api/players";
 import { getPlayerRatingSummary, getMyRatingForPlayer, ratePlayer } from "../api/ratings";
 import AvatarPicker, { AvatarBadge } from "../components/AvatarPicker";
@@ -23,6 +24,8 @@ import { getPlayerById } from "../data/legacyPlayers";
 export default function PlayerProfilePage() {
   const { id } = useParams();
   const currentUser = useAuthStore((s) => s.user);
+  const { currentRun } = useRunStore();
+  const runId = currentRun?.id;
   const [player, setPlayer] = useState(null);
   const [summary, setSummary] = useState(null);
   const [myRating, setMyRating] = useState(null);
@@ -39,13 +42,13 @@ export default function PlayerProfilePage() {
       try {
         const [playerRes, summaryRes] = await Promise.all([
           getPlayer(id),
-          getPlayerRatingSummary(id),
+          getPlayerRatingSummary(runId, id),
         ]);
         setPlayer(playerRes.data);
         setSummary(summaryRes.data);
 
         if (!isOwnProfile) {
-          const myRatingRes = await getMyRatingForPlayer(id);
+          const myRatingRes = await getMyRatingForPlayer(runId, id);
           setMyRating(myRatingRes.data);
           if (myRatingRes.data.rating) {
             setRatingForm({
@@ -68,12 +71,12 @@ export default function PlayerProfilePage() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await ratePlayer(id, ratingForm);
+      await ratePlayer(runId, id, ratingForm);
       toast.success("Rating submitted!");
       // Refresh data
       const [summaryRes, myRatingRes] = await Promise.all([
-        getPlayerRatingSummary(id),
-        getMyRatingForPlayer(id),
+        getPlayerRatingSummary(runId, id),
+        getMyRatingForPlayer(runId, id),
       ]);
       setSummary(summaryRes.data);
       setMyRating(myRatingRes.data);

@@ -18,6 +18,7 @@ import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import useAuthStore from "../stores/authStore";
+import useRunStore from "../stores/runStore";
 import { getGame, rsvpToGame, generateTeams, recordResult, cancelGame } from "../api/games";
 import { castVote, getMyVotes, getGameAwards } from "../api/votes";
 import NbaJamTeams from "../components/NbaJamTeams";
@@ -25,6 +26,8 @@ import NbaJamTeams from "../components/NbaJamTeams";
 export default function GameDetailPage() {
   const { id } = useParams();
   const user = useAuthStore((s) => s.user);
+  const { currentRun } = useRunStore();
+  const runId = currentRun?.id;
   const [game, setGame] = useState(null);
   const [scores, setScores] = useState({});
   const [awards, setAwards] = useState(null);
@@ -32,16 +35,17 @@ export default function GameDetailPage() {
   const [loading, setLoading] = useState(true);
 
   const fetchGame = async () => {
+    if (!runId) return;
     try {
-      const { data } = await getGame(id);
+      const { data } = await getGame(runId, id);
       setGame(data);
 
       // Fetch awards and votes if game is completed
       if (data.status === "completed") {
         try {
           const [awardsRes, votesRes] = await Promise.all([
-            getGameAwards(id),
-            getMyVotes(id),
+            getGameAwards(runId, id),
+            getMyVotes(runId, id),
           ]);
           setAwards(awardsRes.data);
           setMyVotes(votesRes.data);
@@ -56,11 +60,17 @@ export default function GameDetailPage() {
     }
   };
 
-  useEffect(() => { fetchGame(); }, [id]);
+  useEffect(() => {
+    if (runId) {
+      fetchGame();
+    } else {
+      setLoading(false);
+    }
+  }, [id, runId]);
 
   const handleRsvp = async (status) => {
     try {
-      await rsvpToGame(id, status);
+      await rsvpToGame(runId, id, status);
       toast.success(status === "accepted" ? "You're in!" : "RSVP updated");
       fetchGame();
     } catch (err) {
@@ -75,7 +85,7 @@ export default function GameDetailPage() {
       : "Generate teams? Players will be notified of their assignments.";
     if (!confirm(msg)) return;
     try {
-      await generateTeams(id);
+      await generateTeams(runId, id);
       toast.success("Teams generated! Players have been notified.");
       fetchGame();
     } catch (err) {
@@ -98,7 +108,7 @@ export default function GameDetailPage() {
         team: t.id,
         wins: parseInt(scores[t.id]) || 0,
       }));
-      await recordResult(id, { team_scores });
+      await recordResult(runId, id, { team_scores });
       toast.success("Results recorded! Players have been notified.");
       fetchGame();
     } catch (err) {
@@ -109,7 +119,7 @@ export default function GameDetailPage() {
   const handleCancelGame = async () => {
     if (!confirm("Cancel this game? All RSVPed players will be notified.")) return;
     try {
-      await cancelGame(id);
+      await cancelGame(runId, id);
       toast.success("Game cancelled. Players have been notified.");
       fetchGame();
     } catch (err) {
@@ -119,12 +129,12 @@ export default function GameDetailPage() {
 
   const handleVote = async (voteType, nomineeId) => {
     try {
-      await castVote(id, { vote_type: voteType, nominee_id: nomineeId });
+      await castVote(runId, id, { vote_type: voteType, nominee_id: nomineeId });
       const labels = { mvp: "MVP", shaqtin: "Shaqtin'", xfactor: "X Factor" };
       toast.success(`${labels[voteType] || voteType} vote recorded!`);
       const [awardsRes, votesRes] = await Promise.all([
-        getGameAwards(id),
-        getMyVotes(id),
+        getGameAwards(runId, id),
+        getMyVotes(runId, id),
       ]);
       setAwards(awardsRes.data);
       setMyVotes(votesRes.data);
@@ -132,6 +142,14 @@ export default function GameDetailPage() {
       toast.error(err.response?.data?.detail || "Vote failed");
     }
   };
+
+  if (!currentRun) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-8 text-center">
+        <p className="text-gray-500">Please select a Run from the dropdown above.</p>
+      </div>
+    );
+  }
 
   if (loading) return <div className="max-w-4xl mx-auto px-4 py-8">Loading...</div>;
   if (!game) return <div className="max-w-4xl mx-auto px-4 py-8">Game not found</div>;
@@ -390,7 +408,7 @@ export default function GameDetailPage() {
       </div>
 
       {/* Admin Actions */}
-      {user?.role === "admin" && (
+      {(user?.role === "super_admin" || user?.role === "admin") && (
         <div className="card">
           <h2 className="text-lg font-semibold mb-3">Admin Actions</h2>
           <div className="flex flex-wrap gap-3">
