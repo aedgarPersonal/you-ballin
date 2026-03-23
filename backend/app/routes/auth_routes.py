@@ -1,0 +1,215 @@
+"""
+Authentication Routes
+=====================
+Handles user registration, login (email/password, Google OAuth, magic links).
+
+TEACHING NOTE:
+    Three auth strategies are supported:
+    1. Email/Password - traditional registration + login
+    2. Google OAuth - "Sign in with Google" flow
+    3. Magic Links - passwordless login via email
+
+    All three ultimately produce a JWT token that the client stores
+    and sends with subsequent requests.
+"""
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.auth.jwt import (
+    create_access_token,
+    create_magic_link_token,
+    verify_magic_link_token,
+)
+from app.auth.password import hash_password, verify_password
+from app.database import get_db
+from app.models.user import PlayerStatus, User, UserRole
+from app.schemas.user import (
+    MagicLinkRequest,
+    TokenResponse,
+    UserLogin,
+    UserRegister,
+    UserResponse,
+)
+
+router = APIRouter(prefix="/api/auth", tags=["Authentication"])
+
+
+# =============================================================================
+# Email/Password Authentication
+# =============================================================================
+
+@router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
+async def register(data: UserRegister, db: AsyncSession = Depends(get_db)):
+    """Register a new user account.
+
+    TEACHING NOTE:
+        New users start with player_status=PENDING. They can log in
+        immediately but can't RSVP to games until an admin approves them.
+    """
+    # Check for existing email or username
+    existing = await db.execute(
+        select(User).where((User.email == data.email) | (User.username == data.username))
+    )
+    if existing.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Email or username already registered",
+        )
+
+    user = User(
+        email=data.email,
+        username=data.username,
+        hashed_password=hash_password(data.password),
+        full_name=data.full_name,
+        phone=data.phone,
+        player_status=PlayerStatus.PENDING,
+        role=UserRole.PLAYER,
+    )
+    db.add(user)
+    await db.flush()  # Assigns the ID without committing
+
+    token = create_access_token(user.id)
+    return TokenResponse(
+        access_token=token,
+        user=UserResponse.model_validate(user),
+    )
+
+
+@router.post("/login", response_model=TokenResponse)
+async def login(data: UserLogin, db: AsyncSession = Depends(get_db)):
+    """Log in with email and password."""
+    result = await db.execute(select(User).where(User.email == data.email))
+    user = result.scalar_one_or_none()
+
+    if not user or not user.hashed_password:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+
+    if not verify_password(data.password, user.hashed_password):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+
+    if not user.is_active:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account is deactivated")
+
+    token = create_access_token(user.id)
+    return TokenResponse(
+        access_token=token,
+        user=UserResponse.model_validate(user),
+    )
+
+
+# =============================================================================
+# Magic Link Authentication
+# =============================================================================
+
+@router.post("/magic-link", status_code=status.HTTP_200_OK)
+async def request_magic_link(data: MagicLinkRequest, db: AsyncSession = Depends(get_db)):
+    """Send a magic link login email.
+
+    TEACHING NOTE:
+        We always return 200 even if the email doesn't exist.
+        This prevents email enumeration attacks (attackers can't use
+        this endpoint to discover which emails are registered).
+    """
+    result = await db.execute(select(User).where(User.email == data.email))
+    user = result.scalar_one_or_none()
+
+    if user:
+        token = create_magic_link_token(user.email)
+        # TODO: Send email with link containing the token
+        # In development, we log the token for testing
+        print(f"[DEV] Magic link for {user.email}: {token}")
+
+    return {"message": "If an account exists with that email, a magic link has been sent."}
+
+
+@router.get("/magic-link/verify", response_model=TokenResponse)
+async def verify_magic_link(token: str, db: AsyncSession = Depends(get_db)):
+    """Verify a magic link token and return a JWT.
+
+    TEACHING NOTE:
+        The user clicks a link like: /auth/magic-link/verify?token=xxx
+        We verify the token, find the user, and return a regular JWT.
+    """
+    email = verify_magic_link_token(token)
+    if not email:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired magic link")
+
+    result = await db.execute(select(User).where(User.email == email))
+    user = result.scalar_one_or_none()
+
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    access_token = create_access_token(user.id)
+    return TokenResponse(
+        access_token=access_token,
+        user=UserResponse.model_validate(user),
+    )
+
+
+# =============================================================================
+# Google OAuth
+# =============================================================================
+
+@router.post("/google", response_model=TokenResponse)
+async def google_auth(google_token: dict, db: AsyncSession = Depends(get_db)):
+    """Authenticate with a Google OAuth token.
+
+    TEACHING NOTE:
+        The frontend handles the Google sign-in popup and sends us the
+        ID token. We verify it with Google's API, extract the user info,
+        and either find or create the user in our database.
+
+        Flow:
+        1. Frontend shows Google sign-in button
+        2. User authorizes, frontend gets an ID token
+        3. Frontend POSTs the token here
+        4. We verify with Google and return our JWT
+    """
+    import httpx
+
+    # Verify the Google token
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(
+            f"https://oauth2.googleapis.com/tokeninfo?id_token={google_token.get('credential', '')}"
+        )
+
+    if resp.status_code != 200:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Google token")
+
+    google_data = resp.json()
+    google_id = google_data.get("sub")
+    email = google_data.get("email")
+    name = google_data.get("name", email)
+
+    # Find existing user by Google ID or email
+    result = await db.execute(
+        select(User).where((User.google_id == google_id) | (User.email == email))
+    )
+    user = result.scalar_one_or_none()
+
+    if user:
+        # Link Google ID if not already linked
+        if not user.google_id:
+            user.google_id = google_id
+    else:
+        # Create new user from Google profile
+        user = User(
+            email=email,
+            username=email.split("@")[0],  # Default username from email
+            full_name=name,
+            google_id=google_id,
+            avatar_url=google_data.get("picture"),
+            player_status=PlayerStatus.PENDING,
+            role=UserRole.PLAYER,
+        )
+        db.add(user)
+        await db.flush()
+
+    access_token = create_access_token(user.id)
+    return TokenResponse(
+        access_token=access_token,
+        user=UserResponse.model_validate(user),
+    )

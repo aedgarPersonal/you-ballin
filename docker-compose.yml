@@ -1,0 +1,72 @@
+# =============================================================================
+# Docker Compose - Development Environment
+# =============================================================================
+# Start everything with: docker-compose up
+#
+# TEACHING NOTE:
+#   Docker Compose orchestrates multiple containers. This file defines:
+#   - PostgreSQL database (persistent data)
+#   - Redis (for Celery task queue in production)
+#   - Backend API server (FastAPI + Uvicorn)
+#   - Frontend dev server (Vite + React)
+#
+#   Services can talk to each other using their service names as hostnames
+#   (e.g., the backend connects to "db" instead of "localhost").
+# =============================================================================
+
+services:
+  # --- Database ---
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: you_ballin
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # --- Redis (for background tasks) ---
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  # --- Backend API ---
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:password@db:5432/you_ballin
+      SECRET_KEY: dev-secret-key-change-in-production
+      FRONTEND_URL: http://localhost:5173
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # --- Frontend ---
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: npm run dev -- --host
+
+volumes:
+  postgres_data:

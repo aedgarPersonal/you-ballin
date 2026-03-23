@@ -1,0 +1,219 @@
+/**
+ * Player Profile Page
+ * ===================
+ * Displays a player's stats, ratings, and the anonymous rating form.
+ *
+ * TEACHING NOTE:
+ *   This page combines public profile data with the anonymous rating
+ *   system. The rating form checks:
+ *   - Can't rate yourself
+ *   - Shows existing rating if already rated
+ *   - Enforces the 30-day cooldown between updates
+ */
+
+import { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
+import toast from "react-hot-toast";
+import useAuthStore from "../stores/authStore";
+import { getPlayer } from "../api/players";
+import { getPlayerRatingSummary, getMyRatingForPlayer, ratePlayer } from "../api/ratings";
+
+export default function PlayerProfilePage() {
+  const { id } = useParams();
+  const currentUser = useAuthStore((s) => s.user);
+  const [player, setPlayer] = useState(null);
+  const [summary, setSummary] = useState(null);
+  const [myRating, setMyRating] = useState(null);
+  const [ratingForm, setRatingForm] = useState({ offense: 3, defense: 3, overall: 3 });
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+
+  const isOwnProfile = currentUser?.id === parseInt(id);
+
+  useEffect(() => {
+    const fetch = async () => {
+      try {
+        const [playerRes, summaryRes] = await Promise.all([
+          getPlayer(id),
+          getPlayerRatingSummary(id),
+        ]);
+        setPlayer(playerRes.data);
+        setSummary(summaryRes.data);
+
+        if (!isOwnProfile) {
+          const myRatingRes = await getMyRatingForPlayer(id);
+          setMyRating(myRatingRes.data);
+          if (myRatingRes.data.rating) {
+            setRatingForm({
+              offense: myRatingRes.data.rating.offense,
+              defense: myRatingRes.data.rating.defense,
+              overall: myRatingRes.data.rating.overall,
+            });
+          }
+        }
+      } catch {
+        toast.error("Failed to load player profile");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetch();
+  }, [id, isOwnProfile]);
+
+  const handleRate = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      await ratePlayer(id, ratingForm);
+      toast.success("Rating submitted!");
+      // Refresh data
+      const [summaryRes, myRatingRes] = await Promise.all([
+        getPlayerRatingSummary(id),
+        getMyRatingForPlayer(id),
+      ]);
+      setSummary(summaryRes.data);
+      setMyRating(myRatingRes.data);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Rating failed");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (loading) return <div className="max-w-4xl mx-auto px-4 py-8">Loading...</div>;
+  if (!player) return <div className="max-w-4xl mx-auto px-4 py-8">Player not found</div>;
+
+  return (
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Profile Header */}
+      <div className="card mb-6">
+        <div className="flex items-center gap-6">
+          <div className="w-20 h-20 rounded-full bg-court-100 flex items-center justify-center text-court-600 font-bold text-3xl">
+            {player.full_name.charAt(0)}
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">{player.full_name}</h1>
+            <p className="text-gray-500">@{player.username}</p>
+            <div className="flex items-center gap-2 mt-2">
+              <span className={`badge-${player.player_status}`}>{player.player_status}</span>
+              {isOwnProfile && <span className="badge bg-court-100 text-court-800">You</span>}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <StatCard label="Offense" value={summary?.avg_offense?.toFixed(1)} max="5.0" />
+        <StatCard label="Defense" value={summary?.avg_defense?.toFixed(1)} max="5.0" />
+        <StatCard label="Overall" value={summary?.avg_overall?.toFixed(1)} max="5.0" highlight />
+        <StatCard label="Win Rate" value={`${((summary?.winner_rating || 0.5) * 100).toFixed(0)}%`} />
+      </div>
+
+      {/* Physical Stats */}
+      <div className="card mb-6">
+        <h2 className="text-lg font-semibold mb-3">Physical Stats</h2>
+        <div className="grid grid-cols-3 gap-4">
+          <div>
+            <p className="text-sm text-gray-500">Height</p>
+            <p className="text-lg font-semibold">
+              {player.height_inches
+                ? `${Math.floor(player.height_inches / 12)}'${player.height_inches % 12}"`
+                : "N/A"}
+            </p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Age</p>
+            <p className="text-lg font-semibold">{player.age || "N/A"}</p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Mobility</p>
+            <p className="text-lg font-semibold">{player.mobility?.toFixed(1) || "N/A"} / 5.0</p>
+          </div>
+        </div>
+        <p className="text-xs text-gray-400 mt-3">Physical stats are maintained by admins.</p>
+      </div>
+
+      {/* Rating Form */}
+      {!isOwnProfile && (
+        <div className="card">
+          <h2 className="text-lg font-semibold mb-1">Rate This Player</h2>
+          <p className="text-sm text-gray-500 mb-4">
+            Ratings are anonymous. {summary?.total_ratings} total ratings.
+            {myRating?.has_rated && !myRating?.can_update && (
+              <span className="text-yellow-600 ml-2">
+                Next update available: {new Date(myRating.next_update_available).toLocaleDateString()}
+              </span>
+            )}
+          </p>
+
+          {(!myRating?.has_rated || myRating?.can_update) ? (
+            <form onSubmit={handleRate} className="space-y-4">
+              <RatingSlider
+                label="Offense"
+                value={ratingForm.offense}
+                onChange={(v) => setRatingForm({ ...ratingForm, offense: v })}
+              />
+              <RatingSlider
+                label="Defense"
+                value={ratingForm.defense}
+                onChange={(v) => setRatingForm({ ...ratingForm, defense: v })}
+              />
+              <RatingSlider
+                label="Overall"
+                value={ratingForm.overall}
+                onChange={(v) => setRatingForm({ ...ratingForm, overall: v })}
+              />
+              <button type="submit" disabled={submitting} className="btn-primary">
+                {submitting ? "Submitting..." : myRating?.has_rated ? "Update Rating" : "Submit Rating"}
+              </button>
+            </form>
+          ) : (
+            <p className="text-gray-500">
+              You've already rated this player. You can update your rating once per month.
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StatCard({ label, value, max, highlight }) {
+  return (
+    <div className={`card text-center ${highlight ? "border-2 border-court-300" : ""}`}>
+      <p className="text-sm text-gray-500">{label}</p>
+      <p className={`text-2xl font-bold ${highlight ? "text-court-600" : "text-gray-900"}`}>
+        {value}
+      </p>
+      {max && <p className="text-xs text-gray-400">/ {max}</p>}
+    </div>
+  );
+}
+
+function RatingSlider({ label, value, onChange }) {
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1">
+        <label className="text-sm font-medium text-gray-700">{label}</label>
+        <span className="text-sm font-bold text-court-600">{value.toFixed(1)}</span>
+      </div>
+      <input
+        type="range"
+        min="1"
+        max="5"
+        step="0.5"
+        value={value}
+        onChange={(e) => onChange(parseFloat(e.target.value))}
+        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-court-500"
+      />
+      <div className="flex justify-between text-xs text-gray-400">
+        <span>1</span>
+        <span>2</span>
+        <span>3</span>
+        <span>4</span>
+        <span>5</span>
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,98 @@
+"""
+User Schemas (Pydantic)
+=======================
+Define the shape of data flowing in and out of the API.
+
+TEACHING NOTE:
+    Pydantic models serve as both validation and documentation:
+    - "Create" schemas validate incoming POST data
+    - "Update" schemas validate PATCH data (all fields optional)
+    - "Response" schemas control what data is sent to the client
+    - "InDB" schemas include private fields only for internal use
+
+    This separation prevents leaking sensitive data (like password hashes)
+    and ensures clients send exactly the data we expect.
+"""
+
+from datetime import datetime
+
+from pydantic import BaseModel, EmailStr, Field
+
+
+# =============================================================================
+# Authentication Schemas
+# =============================================================================
+
+class UserRegister(BaseModel):
+    """Data required to register a new account."""
+    email: EmailStr
+    username: str = Field(min_length=3, max_length=100)
+    password: str = Field(min_length=8, max_length=128)
+    full_name: str = Field(min_length=1, max_length=200)
+    phone: str | None = None
+
+
+class UserLogin(BaseModel):
+    """Email/password login."""
+    email: EmailStr
+    password: str
+
+
+class MagicLinkRequest(BaseModel):
+    """Request a magic link login via email."""
+    email: EmailStr
+
+
+class TokenResponse(BaseModel):
+    """JWT token returned after successful authentication."""
+    access_token: str
+    token_type: str = "bearer"
+    user: "UserResponse"
+
+
+# =============================================================================
+# User CRUD Schemas
+# =============================================================================
+
+class UserUpdate(BaseModel):
+    """Fields a user can update about themselves."""
+    full_name: str | None = None
+    phone: str | None = None
+    avatar_url: str | None = None
+
+
+class AdminUserUpdate(BaseModel):
+    """Fields only an admin can update."""
+    player_status: str | None = None  # regular, dropin, inactive
+    role: str | None = None  # player, admin
+    height_inches: int | None = None
+    age: int | None = None
+    mobility: float | None = Field(None, ge=1.0, le=5.0)
+
+
+class UserResponse(BaseModel):
+    """Public user profile returned by the API."""
+    id: int
+    email: str
+    username: str
+    full_name: str
+    avatar_url: str | None
+    phone: str | None
+    role: str
+    player_status: str
+    height_inches: int | None
+    age: int | None
+    mobility: float | None
+    avg_offense: float
+    avg_defense: float
+    avg_overall: float
+    winner_rating: float
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class UserListResponse(BaseModel):
+    """Paginated list of users."""
+    users: list[UserResponse]
+    total: int

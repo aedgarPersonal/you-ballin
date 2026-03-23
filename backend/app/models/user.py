@@ -1,0 +1,97 @@
+"""
+User Model
+==========
+Represents a player/admin in the system.
+
+TEACHING NOTE:
+    This model handles both authentication data (email, password hash) and
+    player profile data (height, age, mobility). The `role` field determines
+    permissions, and `player_status` determines whether they're a regular
+    player or a drop-in (stand-in).
+
+    Relationships:
+    - A user can RSVP to many games (one-to-many via RSVP model)
+    - A user can rate many players (one-to-many via PlayerRating)
+    - A user can be rated by many players (one-to-many via PlayerRating)
+"""
+
+import enum
+from datetime import datetime
+
+from sqlalchemy import Boolean, DateTime, Enum, Float, Integer, String, func
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from app.database import Base
+
+
+class UserRole(str, enum.Enum):
+    """User permission levels."""
+    PLAYER = "player"
+    ADMIN = "admin"
+
+
+class PlayerStatus(str, enum.Enum):
+    """Determines invitation priority.
+
+    TEACHING NOTE:
+        - PENDING: just registered, waiting for admin approval
+        - REGULAR: gets weekly invitations first
+        - DROPIN: only gets invited if regular spots are unclaimed
+        - INACTIVE: opted out or removed by admin
+    """
+    PENDING = "pending"
+    REGULAR = "regular"
+    DROPIN = "dropin"
+    INACTIVE = "inactive"
+
+
+class User(Base):
+    """Core user model for authentication and player profiles."""
+
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
+    username: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    hashed_password: Mapped[str | None] = mapped_column(String(255), nullable=True)  # Null for OAuth-only users
+    phone: Mapped[str | None] = mapped_column(String(20), nullable=True)
+
+    # --- Profile ---
+    full_name: Mapped[str] = mapped_column(String(200), nullable=False)
+    avatar_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
+    # --- Player Stats (admin-maintained) ---
+    height_inches: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    age: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    mobility: Mapped[float | None] = mapped_column(Float, nullable=True)  # 1.0 - 5.0 scale
+
+    # --- System Fields ---
+    role: Mapped[UserRole] = mapped_column(Enum(UserRole), default=UserRole.PLAYER, nullable=False)
+    player_status: Mapped[PlayerStatus] = mapped_column(
+        Enum(PlayerStatus), default=PlayerStatus.PENDING, nullable=False
+    )
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    google_id: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True)
+
+    # --- Computed Ratings (cached from PlayerRating averages) ---
+    avg_offense: Mapped[float] = mapped_column(Float, default=3.0)
+    avg_defense: Mapped[float] = mapped_column(Float, default=3.0)
+    avg_overall: Mapped[float] = mapped_column(Float, default=3.0)
+    winner_rating: Mapped[float] = mapped_column(Float, default=0.5)  # Win rate 0.0 - 1.0
+
+    # --- Timestamps ---
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    # --- Relationships ---
+    rsvps = relationship("RSVP", back_populates="user", lazy="selectin")
+    ratings_given = relationship(
+        "PlayerRating", foreign_keys="PlayerRating.rater_id", back_populates="rater", lazy="selectin"
+    )
+    ratings_received = relationship(
+        "PlayerRating", foreign_keys="PlayerRating.player_id", back_populates="player", lazy="selectin"
+    )
+    notifications = relationship("Notification", back_populates="user", lazy="selectin")
+
+    def __repr__(self) -> str:
+        return f"<User {self.username} ({self.player_status.value})>"

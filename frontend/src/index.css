@@ -1,0 +1,56 @@
+/*
+ * Global Styles
+ * =============
+ * TEACHING NOTE:
+ *   The @tailwind directives inject Tailwind's base, component, and utility
+ *   classes. Everything else in this file is custom global styles.
+ */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply antialiased;
+  }
+}
+
+@layer components {
+  /* Reusable button styles */
+  .btn-primary {
+    @apply bg-court-500 hover:bg-court-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200;
+  }
+
+  .btn-secondary {
+    @apply bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded-lg transition-colors duration-200;
+  }
+
+  .btn-danger {
+    @apply bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200;
+  }
+
+  /* Card component */
+  .card {
+    @apply bg-white rounded-xl shadow-sm border border-gray-100 p-6;
+  }
+
+  /* Form inputs */
+  .input {
+    @apply w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-court-500 focus:border-transparent outline-none transition-all;
+  }
+
+  /* Badge styles */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  .badge-regular {
+    @apply badge bg-green-100 text-green-800;
+  }
+  .badge-dropin {
+    @apply badge bg-yellow-100 text-yellow-800;
+  }
+  .badge-pending {
+    @apply badge bg-gray-100 text-gray-800;
+  }
+}
