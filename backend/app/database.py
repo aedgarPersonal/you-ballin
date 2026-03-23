@@ -15,10 +15,15 @@ TEACHING NOTE:
       and automatically handles commit/rollback
 """
 
+import logging
+
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
 from app.config import settings
+
+logger = logging.getLogger(__name__)
 
 # Create the async engine with connection pooling
 # SQLite doesn't support pool_size/max_overflow, so we conditionally set them
@@ -70,11 +75,32 @@ async def get_db():
 
 
 async def init_db():
-    """Create all tables on startup (development only).
-
-    TEACHING NOTE:
-        In production, use Alembic migrations instead of create_all().
-        This is a convenience for local development.
-    """
+    """Create all tables on startup and seed the super admin account."""
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+    # Seed super admin if not exists
+    await _seed_super_admin()
+
+
+async def _seed_super_admin():
+    """Create the default super admin account if it doesn't already exist."""
+    from app.auth.password import hash_password
+    from app.models.user import PlayerStatus, User, UserRole
+
+    async with async_session() as session:
+        result = await session.execute(select(User).where(User.username == "super_admin"))
+        if result.scalar_one_or_none() is not None:
+            return
+
+        admin = User(
+            email="admin@youballin.app",
+            username="super_admin",
+            full_name="Super Admin",
+            hashed_password=hash_password("Super123"),
+            role=UserRole.SUPER_ADMIN,
+            player_status=PlayerStatus.REGULAR,
+        )
+        session.add(admin)
+        await session.commit()
+        logger.info("Seeded super admin account (super_admin)")
