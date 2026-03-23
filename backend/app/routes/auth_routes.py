@@ -64,6 +64,7 @@ async def register(data: UserRegister, db: AsyncSession = Depends(get_db)):
         hashed_password=hash_password(data.password),
         full_name=data.full_name,
         phone=data.phone,
+        avatar_url=data.avatar_url,
         player_status=PlayerStatus.PENDING,
         role=UserRole.PLAYER,
     )

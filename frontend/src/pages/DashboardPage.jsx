@@ -12,6 +12,8 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import useAuthStore from "../stores/authStore";
 import { listGames } from "../api/games";
+import { AvatarBadge } from "../components/AvatarPicker";
+import { getPlayerById } from "../data/legacyPlayers";
 
 export default function DashboardPage() {
   const user = useAuthStore((s) => s.user);
@@ -46,11 +48,23 @@ export default function DashboardPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Welcome Section */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">
-          Welcome back, {user?.full_name?.split(" ")[0]}!
-        </h1>
-        <p className="text-gray-600 mt-1">{statusMessage[user?.player_status] || ""}</p>
+      <div className="mb-8 flex items-center gap-4">
+        {user?.avatar_url ? (
+          <Link to={`/players/${user?.id}`}>
+            <AvatarBadge avatarId={user.avatar_url} size="lg" />
+          </Link>
+        ) : null}
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">
+            Welcome back, {user?.full_name?.split(" ")[0]}!
+          </h1>
+          <p className="text-gray-600 mt-1">{statusMessage[user?.player_status] || ""}</p>
+          {user?.avatar_url && getPlayerById(user.avatar_url) && (
+            <p className="text-xs text-gray-400 mt-0.5">
+              Repping {getPlayerById(user.avatar_url).name} — {getPlayerById(user.avatar_url).team}
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Status Cards */}

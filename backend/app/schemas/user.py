@@ -30,6 +30,7 @@ class UserRegister(BaseModel):
     password: str = Field(min_length=8, max_length=128)
     full_name: str = Field(min_length=1, max_length=200)
     phone: str | None = None
+    avatar_url: str | None = None  # Legacy NBA player ID for avatar
 
 
 class UserLogin(BaseModel):

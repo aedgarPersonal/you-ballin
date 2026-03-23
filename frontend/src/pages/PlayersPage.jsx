@@ -7,6 +7,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { listPlayers } from "../api/players";
+import { AvatarBadge } from "../components/AvatarPicker";
 
 export default function PlayersPage() {
   const [players, setPlayers] = useState([]);
@@ -48,9 +49,13 @@ export default function PlayersPage() {
           {players.map((player) => (
             <Link key={player.id} to={`/players/${player.id}`} className="card hover:shadow-md transition-shadow">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-court-100 flex items-center justify-center text-court-600 font-bold text-lg">
-                  {player.full_name.charAt(0)}
-                </div>
+                {player.avatar_url ? (
+                  <AvatarBadge avatarId={player.avatar_url} size="md" />
+                ) : (
+                  <div className="w-12 h-12 rounded-full bg-court-100 flex items-center justify-center text-court-600 font-bold text-lg">
+                    {player.full_name.charAt(0)}
+                  </div>
+                )}
                 <div className="flex-1 min-w-0">
                   <h3 className="font-semibold text-gray-900 truncate">{player.full_name}</h3>
                   <p className="text-sm text-gray-500">@{player.username}</p>

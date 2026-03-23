@@ -9,6 +9,8 @@ import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { registerUser } from "../api/auth";
 import useAuthStore from "../stores/authStore";
+import AvatarPicker, { AvatarBadge } from "../components/AvatarPicker";
+import { getPlayerById } from "../data/legacyPlayers";
 
 export default function RegisterPage() {
   const [form, setForm] = useState({
@@ -19,6 +21,8 @@ export default function RegisterPage() {
     full_name: "",
     phone: "",
   });
+  const [avatarId, setAvatarId] = useState(null);
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [loading, setLoading] = useState(false);
   const login = useAuthStore((s) => s.login);
   const navigate = useNavigate();
@@ -39,6 +43,7 @@ export default function RegisterPage() {
         password: form.password,
         full_name: form.full_name,
         phone: form.phone || null,
+        avatar_url: avatarId || null,
       });
       login(data.access_token, data.user);
       toast.success("Registration submitted! An admin will review your request.");
@@ -61,6 +66,28 @@ export default function RegisterPage() {
 
         <div className="card">
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Avatar Picker */}
+            <div className="text-center">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Choose Your Legend</label>
+              <button
+                type="button"
+                onClick={() => setShowAvatarPicker(true)}
+                className="mx-auto block"
+              >
+                {avatarId ? (
+                  <div className="flex flex-col items-center">
+                    <AvatarBadge avatarId={avatarId} size="lg" />
+                    <span className="text-xs text-gray-500 mt-1">{getPlayerById(avatarId)?.name}</span>
+                    <span className="text-xs text-court-600 mt-0.5">Click to change</span>
+                  </div>
+                ) : (
+                  <div className="w-20 h-20 mx-auto rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 hover:border-court-400 hover:text-court-500 transition-colors">
+                    <span className="text-sm text-center leading-tight">Pick a<br/>legend</span>
+                  </div>
+                )}
+              </button>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
               <input name="full_name" value={form.full_name} onChange={handleChange} className="input" required />
@@ -99,6 +126,14 @@ export default function RegisterPage() {
             <Link to="/login" className="text-court-600 hover:text-court-700 font-medium">Sign In</Link>
           </p>
         </div>
+
+        {showAvatarPicker && (
+          <AvatarPicker
+            value={avatarId}
+            onChange={setAvatarId}
+            onClose={() => setShowAvatarPicker(false)}
+          />
+        )}
       </div>
     </div>
   );

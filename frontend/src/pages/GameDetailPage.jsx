@@ -20,6 +20,7 @@ import toast from "react-hot-toast";
 import useAuthStore from "../stores/authStore";
 import { getGame, rsvpToGame, generateTeams, recordResult } from "../api/games";
 import { castVote, getMyVotes, getGameAwards } from "../api/votes";
+import NbaJamTeams from "../components/NbaJamTeams";
 
 export default function GameDetailPage() {
   const { id } = useParams();
@@ -260,11 +261,10 @@ export default function GameDetailPage() {
         </div>
       )}
 
-      {/* Teams Display */}
+      {/* Teams Display — NBA Jam Style */}
       {game.teams?.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <TeamCard name="Team A" players={teamA} color="orange" />
-          <TeamCard name="Team B" players={teamB} color="blue" />
+        <div className="mb-6">
+          <NbaJamTeams teamA={teamA} teamB={teamB} />
         </div>
       )}
 
@@ -369,29 +369,3 @@ function VotingCard({ title, emoji, description, color, participants, currentUse
   );
 }
 
-function TeamCard({ name, players, color }) {
-  const starters = players.filter((p) => p.is_starter);
-  const subs = players.filter((p) => !p.is_starter);
-
-  return (
-    <div className={`card border-l-4 ${color === "orange" ? "border-l-orange-500" : "border-l-blue-500"}`}>
-      <h3 className={`text-lg font-bold ${color === "orange" ? "text-orange-600" : "text-blue-600"}`}>
-        {name}
-      </h3>
-      <div className="mt-3">
-        <p className="text-xs font-semibold text-gray-400 uppercase mb-2">Starters</p>
-        {starters.map((p) => (
-          <div key={p.id} className="py-1 text-sm font-medium">{p.user?.full_name || `Player #${p.user_id}`}</div>
-        ))}
-        {subs.length > 0 && (
-          <>
-            <p className="text-xs font-semibold text-gray-400 uppercase mt-3 mb-2">Substitutes</p>
-            {subs.map((p) => (
-              <div key={p.id} className="py-1 text-sm text-gray-600">{p.user?.full_name || `Player #${p.user_id}`}</div>
-            ))}
-          </>
-        )}
-      </div>
-    </div>
-  );
-}

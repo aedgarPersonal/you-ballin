@@ -8,6 +8,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import useAuthStore from "../../stores/authStore";
 import useNotificationStore from "../../stores/notificationStore";
+import { AvatarBadge } from "../AvatarPicker";
 
 export default function Navbar() {
   const { user, logout } = useAuthStore();
@@ -69,7 +70,16 @@ export default function Navbar() {
             </Link>
 
             <div className="flex items-center space-x-3">
-              <span className="text-sm font-medium text-gray-700">{user?.full_name}</span>
+              <Link to={`/players/${user?.id}`} className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
+                {user?.avatar_url ? (
+                  <AvatarBadge avatarId={user.avatar_url} size="sm" />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-court-100 flex items-center justify-center text-court-600 font-bold text-sm">
+                    {user?.full_name?.charAt(0)}
+                  </div>
+                )}
+                <span className="text-sm font-medium text-gray-700">{user?.full_name}</span>
+              </Link>
               <span className={user?.player_status === "regular" ? "badge-regular" : "badge-dropin"}>
                 {user?.player_status}
               </span>

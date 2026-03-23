@@ -15,8 +15,10 @@ import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import useAuthStore from "../stores/authStore";
-import { getPlayer } from "../api/players";
+import { getPlayer, updateMyProfile } from "../api/players";
 import { getPlayerRatingSummary, getMyRatingForPlayer, ratePlayer } from "../api/ratings";
+import AvatarPicker, { AvatarBadge } from "../components/AvatarPicker";
+import { getPlayerById } from "../data/legacyPlayers";
 
 export default function PlayerProfilePage() {
   const { id } = useParams();
@@ -27,6 +29,8 @@ export default function PlayerProfilePage() {
   const [ratingForm, setRatingForm] = useState({ offense: 3, defense: 3, overall: 3 });
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+  const updateUser = useAuthStore((s) => s.updateUser);
 
   const isOwnProfile = currentUser?.id === parseInt(id);
 
@@ -80,17 +84,57 @@ export default function PlayerProfilePage() {
     }
   };
 
+  const handleAvatarChange = async (avatarId) => {
+    try {
+      await updateMyProfile({ avatar_url: avatarId });
+      setPlayer({ ...player, avatar_url: avatarId });
+      updateUser({ avatar_url: avatarId });
+      toast.success("Avatar updated!");
+    } catch {
+      toast.error("Failed to update avatar");
+    }
+  };
+
   if (loading) return <div className="max-w-4xl mx-auto px-4 py-8">Loading...</div>;
   if (!player) return <div className="max-w-4xl mx-auto px-4 py-8">Player not found</div>;
+
+  const legacy = getPlayerById(player.avatar_url);
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Profile Header */}
       <div className="card mb-6">
         <div className="flex items-center gap-6">
-          <div className="w-20 h-20 rounded-full bg-court-100 flex items-center justify-center text-court-600 font-bold text-3xl">
-            {player.full_name.charAt(0)}
-          </div>
+          {/* Avatar */}
+          {legacy ? (
+            <div className="flex flex-col items-center">
+              <button
+                onClick={isOwnProfile ? () => setShowAvatarPicker(true) : undefined}
+                className={isOwnProfile ? "cursor-pointer hover:opacity-80 transition-opacity" : ""}
+              >
+                <AvatarBadge avatarId={player.avatar_url} size="lg" />
+              </button>
+              <span className="text-[10px] text-gray-400 mt-1">{legacy.name}</span>
+              {isOwnProfile && (
+                <button
+                  onClick={() => setShowAvatarPicker(true)}
+                  className="text-[10px] text-court-600 hover:text-court-700"
+                >
+                  Change
+                </button>
+              )}
+            </div>
+          ) : (
+            <button
+              onClick={isOwnProfile ? () => setShowAvatarPicker(true) : undefined}
+              className={`w-20 h-20 rounded-full bg-court-100 flex items-center justify-center text-court-600 font-bold text-3xl ${
+                isOwnProfile ? "cursor-pointer hover:opacity-80 transition-opacity" : ""
+              }`}
+            >
+              {player.full_name.charAt(0)}
+            </button>
+          )}
+
           <div>
             <h1 className="text-2xl font-bold text-gray-900">{player.full_name}</h1>
             <p className="text-gray-500">@{player.username}</p>
@@ -101,6 +145,17 @@ export default function PlayerProfilePage() {
           </div>
         </div>
       </div>
+
+      {/* Avatar Picker Modal */}
+      {showAvatarPicker && (
+        <AvatarPicker
+          value={player.avatar_url}
+          onChange={(id) => {
+            handleAvatarChange(id);
+          }}
+          onClose={() => setShowAvatarPicker(false)}
+        />
+      )}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
