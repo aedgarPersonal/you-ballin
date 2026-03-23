@@ -29,6 +29,7 @@ from app.models.game import Game, RSVP  # noqa: F401
 from app.models.team import TeamAssignment, GameResult  # noqa: F401
 from app.models.rating import PlayerRating  # noqa: F401
 from app.models.notification import Notification  # noqa: F401
+from app.models.vote import GameVote  # noqa: F401
 
 config = context.config
 

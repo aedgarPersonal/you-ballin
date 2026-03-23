@@ -14,6 +14,8 @@ const TYPE_ICONS = {
   teams_published: "📋",
   registration_approved: "✅",
   registration_denied: "❌",
+  awards_announced: "🏆",
+  voting_open: "🗳️",
   general: "📢",
 };
 

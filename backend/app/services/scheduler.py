@@ -15,6 +15,10 @@ TEACHING NOTE:
     3. TEAM CREATION (runs evening before game):
        Runs the balancing algorithm and publishes teams.
 
+    4. AWARD ANNOUNCEMENTS (runs every hour):
+       Checks for games whose 24-hour voting window has closed and
+       announces MVP and Shaqtin' a Fool winners.
+
     We use APScheduler for simplicity in development. In production,
     you'd want Celery Beat or a similar distributed scheduler that
     can handle multiple server instances without duplicate jobs.
@@ -34,6 +38,7 @@ from app.models.user import PlayerStatus, User
 from app.services.notification_service import send_bulk_notification, send_notification
 from app.services.team_balancer import create_balanced_teams
 from app.models.team import TeamAssignment, TeamSide
+from app.models.vote import GameVote, VoteType
 
 logger = logging.getLogger(__name__)
 
@@ -85,6 +90,15 @@ def setup_scheduler():
         hour=18,
         minute=0,
         id="generate_teams",
+        replace_existing=True,
+    )
+
+    # Check for closed voting windows and announce awards (every hour)
+    scheduler.add_job(
+        announce_awards,
+        "interval",
+        hours=1,
+        id="announce_awards",
         replace_existing=True,
     )
 
@@ -329,3 +343,116 @@ async def generate_and_publish_teams():
         except Exception as e:
             await db.rollback()
             logger.error(f"Failed to generate teams: {e}")
+
+
+async def announce_awards():
+    """Check for games with closed voting windows and announce winners.
+
+    TEACHING NOTE:
+        This runs every hour. It looks for COMPLETED games where:
+        - The voting window has closed (24h after game time)
+        - Awards haven't been announced yet (no AWARDS_ANNOUNCED notification exists)
+
+        When found, it tallies the votes, determines the MVP and Shaqtin'
+        winners, and notifies all participants.
+    """
+    logger.info("Checking for award announcements...")
+
+    async with async_session() as db:
+        try:
+            from app.models.notification import Notification
+
+            now = datetime.now(timezone.utc)
+
+            # Find completed games where voting window has closed
+            result = await db.execute(
+                select(Game).where(Game.status == GameStatus.COMPLETED)
+            )
+            completed_games = result.scalars().all()
+
+            for game in completed_games:
+                game_time = game.game_date
+                if game_time.tzinfo is None:
+                    game_time = game_time.replace(tzinfo=timezone.utc)
+                voting_deadline = game_time + timedelta(hours=24)
+
+                if now <= voting_deadline:
+                    continue  # Voting still open
+
+                # Check if we already announced awards for this game
+                existing = await db.execute(
+                    select(Notification).where(
+                        Notification.type == NotificationType.AWARDS_ANNOUNCED,
+                        Notification.title.like(f"%Game #{game.id}%"),
+                    ).limit(1)
+                )
+                if existing.scalar_one_or_none():
+                    continue  # Already announced
+
+                # Tally MVP votes
+                mvp_winner = await _tally_votes(db, game.id, VoteType.MVP)
+                shaqtin_winner = await _tally_votes(db, game.id, VoteType.SHAQTIN)
+
+                if not mvp_winner and not shaqtin_winner:
+                    logger.info(f"No votes cast for game {game.id}, skipping announcement")
+                    continue
+
+                # Build announcement message
+                parts = []
+                if mvp_winner:
+                    parts.append(f"MVP: {mvp_winner.full_name} 🏆")
+                if shaqtin_winner:
+                    parts.append(f"Shaqtin' a Fool: {shaqtin_winner.full_name} 🤦")
+                message = " | ".join(parts)
+
+                # Notify all participants
+                participants_result = await db.execute(
+                    select(TeamAssignment).where(TeamAssignment.game_id == game.id)
+                )
+                participant_ids = [ta.user_id for ta in participants_result.scalars().all()]
+                players_result = await db.execute(
+                    select(User).where(User.id.in_(participant_ids))
+                )
+                players = players_result.scalars().all()
+
+                await send_bulk_notification(
+                    db,
+                    list(players),
+                    NotificationType.AWARDS_ANNOUNCED,
+                    f"Awards Announced - Game #{game.id}",
+                    f"The votes are in for {game.title}! {message}",
+                )
+
+                logger.info(f"Awards announced for game {game.id}: {message}")
+
+            await db.commit()
+
+        except Exception as e:
+            await db.rollback()
+            logger.error(f"Failed to announce awards: {e}")
+
+
+async def _tally_votes(db, game_id: int, vote_type: VoteType) -> User | None:
+    """Find the player with the most votes for a category."""
+    from sqlalchemy import func as sqlfunc
+
+    result = await db.execute(
+        select(
+            GameVote.nominee_id,
+            sqlfunc.count(GameVote.id).label("cnt"),
+        )
+        .where(
+            GameVote.game_id == game_id,
+            GameVote.vote_type == vote_type,
+        )
+        .group_by(GameVote.nominee_id)
+        .order_by(sqlfunc.count(GameVote.id).desc())
+        .limit(1)
+    )
+    row = result.one_or_none()
+    if not row:
+        return None
+
+    nominee_id = row[0]
+    user_result = await db.execute(select(User).where(User.id == nominee_id))
+    return user_result.scalar_one_or_none()

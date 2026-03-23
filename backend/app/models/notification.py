@@ -26,6 +26,8 @@ class NotificationType(str, enum.Enum):
     TEAMS_PUBLISHED = "teams_published"  # Teams are set
     REGISTRATION_APPROVED = "registration_approved"
     REGISTRATION_DENIED = "registration_denied"
+    AWARDS_ANNOUNCED = "awards_announced"
+    VOTING_OPEN = "voting_open"
     GENERAL = "general"
 
 

@@ -29,6 +29,7 @@ from app.routes import (
     notification_routes,
     player_routes,
     rating_routes,
+    vote_routes,
 )
 from app.services.scheduler import setup_scheduler
 
@@ -102,6 +103,7 @@ app.include_router(game_routes.router)
 app.include_router(rating_routes.router)
 app.include_router(admin_routes.router)
 app.include_router(notification_routes.router)
+app.include_router(vote_routes.router)
 
 
 # =============================================================================
