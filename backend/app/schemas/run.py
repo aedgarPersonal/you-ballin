@@ -44,6 +44,7 @@ class RunResponse(BaseModel):
     skill_level: int
     needs_players: bool
     created_at: datetime
+    is_admin: bool = False
     model_config = {"from_attributes": True}
 
 

@@ -76,35 +76,51 @@ async def create_run(
 async def list_runs(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
-) -> list[Run]:
+) -> list[RunResponse]:
     """List runs visible to the current user.
 
     Super admins see all runs. Regular users see runs where they hold
-    a RunMembership or are a RunAdmin.
+    a RunMembership or are a RunAdmin. Each run includes an is_admin
+    flag indicating whether the user can administrate that run.
     """
-    if user.role == UserRole.SUPER_ADMIN:
+    is_super = user.role == UserRole.SUPER_ADMIN
+
+    if is_super:
         result = await db.execute(
             select(Run).order_by(Run.created_at.desc())
         )
-        return list(result.scalars().all())
+        runs = list(result.scalars().all())
+    else:
+        member_subq = (
+            select(RunMembership.run_id)
+            .where(RunMembership.user_id == user.id)
+        )
+        admin_subq = (
+            select(RunAdmin.run_id)
+            .where(RunAdmin.user_id == user.id)
+        )
+        result = await db.execute(
+            select(Run)
+            .where(Run.id.in_(member_subq) | Run.id.in_(admin_subq))
+            .order_by(Run.created_at.desc())
+        )
+        runs = list(result.scalars().all())
 
-    # Runs where the user is a member
-    member_subq = (
-        select(RunMembership.run_id)
-        .where(RunMembership.user_id == user.id)
-    )
-    # Runs where the user is an admin
-    admin_subq = (
-        select(RunAdmin.run_id)
-        .where(RunAdmin.user_id == user.id)
-    )
+    # Determine which runs this user is an admin of
+    if is_super:
+        admin_run_ids = {r.id for r in runs}
+    else:
+        admin_result = await db.execute(
+            select(RunAdmin.run_id).where(RunAdmin.user_id == user.id)
+        )
+        admin_run_ids = set(admin_result.scalars().all())
 
-    result = await db.execute(
-        select(Run)
-        .where(Run.id.in_(member_subq) | Run.id.in_(admin_subq))
-        .order_by(Run.created_at.desc())
-    )
-    return list(result.scalars().all())
+    return [
+        RunResponse.model_validate(run, from_attributes=True).model_copy(
+            update={"is_admin": run.id in admin_run_ids}
+        )
+        for run in runs
+    ]
 
 
 @router.get("/needs-players", response_model=list[RunResponse])
