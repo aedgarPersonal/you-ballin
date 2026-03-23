@@ -8,8 +8,8 @@
  *   This is the most complex page, combining:
  *   - Game info display
  *   - RSVP action (accept/decline)
- *   - Team roster (when teams are set)
- *   - Admin actions (generate teams, record results)
+ *   - Team roster (when teams are set) — supports N teams
+ *   - Admin actions (generate teams, record results, cancel game)
  *   - Post-game voting (MVP and Shaqtin' a Fool)
  *   - Award results (after voting closes)
  */
@@ -18,7 +18,7 @@ import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import useAuthStore from "../stores/authStore";
-import { getGame, rsvpToGame, generateTeams, recordResult } from "../api/games";
+import { getGame, rsvpToGame, generateTeams, recordResult, cancelGame } from "../api/games";
 import { castVote, getMyVotes, getGameAwards } from "../api/votes";
 import NbaJamTeams from "../components/NbaJamTeams";
 
@@ -77,9 +77,9 @@ export default function GameDetailPage() {
     }
   };
 
-  const handleRecordResult = async (winner) => {
+  const handleRecordResult = async (winningTeam) => {
     try {
-      await recordResult(id, { winning_team: winner });
+      await recordResult(id, { winning_team: winningTeam });
       toast.success("Result recorded!");
       fetchGame();
     } catch (err) {
@@ -87,11 +87,20 @@ export default function GameDetailPage() {
     }
   };
 
+  const handleCancelGame = async () => {
+    try {
+      await cancelGame(id);
+      toast.success("Game cancelled. Players have been notified.");
+      fetchGame();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Failed to cancel game");
+    }
+  };
+
   const handleVote = async (voteType, nomineeId) => {
     try {
       await castVote(id, { vote_type: voteType, nominee_id: nomineeId });
       toast.success(`${voteType === "mvp" ? "MVP" : "Shaqtin'"} vote recorded!`);
-      // Refresh votes and awards
       const [awardsRes, votesRes] = await Promise.all([
         getGameAwards(id),
         getMyVotes(id),
@@ -107,10 +116,24 @@ export default function GameDetailPage() {
   if (!game) return <div className="max-w-4xl mx-auto px-4 py-8">Game not found</div>;
 
   const myRsvp = game.rsvps?.find((r) => r.user_id === user?.id);
-  const teamA = game.teams?.filter((t) => t.team === "team_a") || [];
-  const teamB = game.teams?.filter((t) => t.team === "team_b") || [];
   const allParticipants = game.teams?.map((t) => t.user).filter(Boolean) || [];
   const isParticipant = game.teams?.some((t) => t.user_id === user?.id);
+
+  // Get unique teams for result recording buttons
+  const uniqueTeams = [];
+  const seenTeams = new Set();
+  for (const t of game.teams || []) {
+    if (!seenTeams.has(t.team)) {
+      seenTeams.add(t.team);
+      uniqueTeams.push({ id: t.team, name: t.team_name || t.team });
+    }
+  }
+
+  // Team panel colors matching NbaJamTeams
+  const TEAM_COLORS = [
+    "#f97316", "#3b82f6", "#10b981", "#a855f7",
+    "#ef4444", "#eab308", "#06b6d4", "#ec4899",
+  ];
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -132,12 +155,26 @@ export default function GameDetailPage() {
           <span className="text-sm font-medium">
             {game.accepted_count}/{game.roster_size} players
           </span>
-          <span className="badge bg-blue-100 text-blue-800">
+          <span className="text-sm text-gray-500">
+            {game.num_teams} teams
+          </span>
+          <span className={`badge ${
+            game.status === "cancelled" ? "bg-red-100 text-red-800" : "bg-blue-100 text-blue-800"
+          }`}>
             {game.status.replace("_", " ")}
           </span>
         </div>
         {game.notes && <p className="text-gray-600 mt-4 italic">{game.notes}</p>}
       </div>
+
+      {/* Cancelled Banner */}
+      {game.status === "cancelled" && (
+        <div className="card mb-6 border-2 border-red-300 bg-red-50">
+          <p className="text-red-700 font-semibold text-center">
+            This game has been cancelled. No game this week.
+          </p>
+        </div>
+      )}
 
       {/* Award Results (shown after voting closes) */}
       {awards && !awards.voting_open && (awards.mvp || awards.shaqtin) && (
@@ -190,7 +227,6 @@ export default function GameDetailPage() {
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* MVP Vote */}
             <VotingCard
               title="MVP"
               emoji="🏆"
@@ -201,8 +237,6 @@ export default function GameDetailPage() {
               currentVoteId={myVotes?.mvp_vote?.nominee_id}
               onVote={(nomineeId) => handleVote("mvp", nomineeId)}
             />
-
-            {/* Shaqtin' Vote */}
             <VotingCard
               title="Shaqtin' a Fool"
               emoji="🤦"
@@ -217,7 +251,7 @@ export default function GameDetailPage() {
         </div>
       )}
 
-      {/* Voting closed message for participants who can no longer vote */}
+      {/* Voting closed message */}
       {game.status === "completed" && awards && !awards.voting_open && isParticipant && (
         <div className="text-center text-sm text-gray-500 mb-6">
           Voting has closed. {awards.votes_cast} of {awards.total_voters} participants voted.
@@ -264,7 +298,7 @@ export default function GameDetailPage() {
       {/* Teams Display — NBA Jam Style */}
       {game.teams?.length > 0 && (
         <div className="mb-6">
-          <NbaJamTeams teamA={teamA} teamB={teamB} />
+          <NbaJamTeams teams={game.teams} />
         </div>
       )}
 
@@ -297,20 +331,38 @@ export default function GameDetailPage() {
         <div className="card">
           <h2 className="text-lg font-semibold mb-3">Admin Actions</h2>
           <div className="flex flex-wrap gap-3">
-            {game.status !== "teams_set" && game.status !== "completed" && (
+            {/* Generate Teams */}
+            {game.status !== "teams_set" && game.status !== "completed" && game.status !== "cancelled" && (
               <button onClick={handleGenerateTeams} className="btn-primary">
                 Generate Teams
               </button>
             )}
-            {game.status === "teams_set" && (
+
+            {/* Record Winner — one button per team */}
+            {game.status === "teams_set" && uniqueTeams.length > 0 && (
               <>
-                <button onClick={() => handleRecordResult("team_a")} className="bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2 px-4 rounded-lg">
-                  Team A Wins
-                </button>
-                <button onClick={() => handleRecordResult("team_b")} className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg">
-                  Team B Wins
-                </button>
+                <span className="text-sm text-gray-500 self-center">Winner:</span>
+                {uniqueTeams.map((team, idx) => (
+                  <button
+                    key={team.id}
+                    onClick={() => handleRecordResult(team.id)}
+                    className="text-white font-semibold py-2 px-4 rounded-lg hover:opacity-90 transition-opacity"
+                    style={{ backgroundColor: TEAM_COLORS[idx % TEAM_COLORS.length] }}
+                  >
+                    {team.name}
+                  </button>
+                ))}
               </>
+            )}
+
+            {/* Cancel Game */}
+            {game.status !== "completed" && game.status !== "cancelled" && (
+              <button
+                onClick={handleCancelGame}
+                className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg"
+              >
+                Cancel Game
+              </button>
             )}
           </div>
         </div>
@@ -321,19 +373,12 @@ export default function GameDetailPage() {
 
 /**
  * VotingCard Component
- * ====================
- * TEACHING NOTE:
- *   A self-contained voting UI for one award category. Displays all
- *   eligible participants (excluding the current user, since you can't
- *   vote for yourself) with radio-button style selection.
- *   The current vote is highlighted so users know what they've picked.
  */
 function VotingCard({ title, emoji, description, color, participants, currentUserId, currentVoteId, onVote }) {
   const borderColor = color === "yellow" ? "border-yellow-300" : "border-purple-300";
   const headerColor = color === "yellow" ? "text-yellow-700" : "text-purple-700";
   const selectedBg = color === "yellow" ? "bg-yellow-100 border-yellow-400" : "bg-purple-100 border-purple-400";
 
-  // Filter out the current user (can't vote for yourself)
   const eligible = participants.filter((p) => p.id !== currentUserId);
 
   return (
@@ -368,4 +413,3 @@ function VotingCard({ title, emoji, description, color, participants, currentUse
     </div>
   );
 }
-

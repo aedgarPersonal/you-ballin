@@ -65,6 +65,7 @@ export default function AdminPage() {
     default_value: 3,
   });
   const [showNewMetricForm, setShowNewMetricForm] = useState(false);
+  const [newGameTeams, setNewGameTeams] = useState(2);
 
   const fetchPending = async () => {
     try {
@@ -147,6 +148,7 @@ export default function AdminPage() {
         title: `Weekly Pickup - ${date.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`,
         game_date: date.toISOString(),
         location: "TBD",
+        num_teams: newGameTeams,
       });
       toast.success("Game created!");
     } catch (err) {
@@ -213,9 +215,23 @@ export default function AdminPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Admin Panel</h1>
-        <button onClick={handleCreateGame} className="btn-primary">
-          + Create Game
-        </button>
+        <div className="flex items-center gap-3">
+          <label className="text-sm text-gray-600 flex items-center gap-1">
+            Teams:
+            <select
+              value={newGameTeams}
+              onChange={(e) => setNewGameTeams(Number(e.target.value))}
+              className="border border-gray-300 rounded px-2 py-1 text-sm"
+            >
+              {[2, 3, 4, 5, 6, 7, 8].map((n) => (
+                <option key={n} value={n}>{n}</option>
+              ))}
+            </select>
+          </label>
+          <button onClick={handleCreateGame} className="btn-primary">
+            + Create Game
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}

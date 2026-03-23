@@ -1,7 +1,7 @@
 """
 Team Balancing Algorithm
 ========================
-Creates two fair teams from a pool of accepted players.
+Creates N fair teams from a pool of accepted players.
 
 TEACHING NOTE:
     This is the heart of the application. The algorithm must balance teams
@@ -11,9 +11,9 @@ TEACHING NOTE:
     1. SCORING: Each player gets a composite score based on weighted factors
     2. SORTING: Players are sorted by composite score (best to worst)
     3. SNAKE DRAFT: Teams alternate picks in a serpentine pattern
-       (A, B, B, A, A, B, B, A, ...) to distribute talent evenly
+       to distribute talent evenly across N teams
     4. OPTIMIZATION: After the draft, we do swap-based refinement to
-       minimize the score difference between teams
+       minimize the score variance between teams
 
     Default Weight Configuration:
     - Overall rating (peer-rated):  35% - highest weight as requested
@@ -163,47 +163,36 @@ def compute_player_score(
 # Team Creation Algorithm
 # =============================================================================
 
-def snake_draft(scored_players: list[PlayerScore]) -> tuple[list[PlayerScore], list[PlayerScore]]:
-    """Distribute players using a serpentine (snake) draft.
+def snake_draft(scored_players: list[PlayerScore], num_teams: int) -> list[list[PlayerScore]]:
+    """Distribute players using a serpentine (snake) draft across N teams.
 
     TEACHING NOTE:
         A snake draft alternates direction each round:
-        Round 1: Team A picks 1st, Team B picks 2nd
-        Round 2: Team B picks 3rd, Team A picks 4th
-        Round 3: Team A picks 5th, Team B picks 6th
+        Round 1 (forward):  Team 1, Team 2, Team 3, ... Team N
+        Round 2 (reverse):  Team N, ... Team 3, Team 2, Team 1
+        Round 3 (forward):  Team 1, Team 2, Team 3, ... Team N
         ...and so on.
 
-        This is fairer than a straight draft because the team that picks
-        first in one round picks last in the next, preventing one team
-        from always getting the better player in each pair.
-
-        Players are sorted best-to-worst, so the snake draft naturally
-        distributes talent:
-        - Team A gets: 1st, 4th, 5th, 8th, 9th...
-        - Team B gets: 2nd, 3rd, 6th, 7th, 10th...
+        This distributes talent evenly across any number of teams.
+        With 3 teams and players ranked 1-9:
+        - Team 1 gets: 1st, 6th, 7th
+        - Team 2 gets: 2nd, 5th, 8th
+        - Team 3 gets: 3rd, 4th, 9th
     """
-    team_a: list[PlayerScore] = []
-    team_b: list[PlayerScore] = []
+    teams: list[list[PlayerScore]] = [[] for _ in range(num_teams)]
 
     for i, player in enumerate(scored_players):
-        # Determine which "round" we're in
-        round_num = i // 2
-        pick_in_round = i % 2
+        round_num = i // num_teams
+        pick_in_round = i % num_teams
 
         if round_num % 2 == 0:
-            # Even rounds: A picks first
-            if pick_in_round == 0:
-                team_a.append(player)
-            else:
-                team_b.append(player)
+            # Forward round
+            teams[pick_in_round].append(player)
         else:
-            # Odd rounds: B picks first (snake back)
-            if pick_in_round == 0:
-                team_b.append(player)
-            else:
-                team_a.append(player)
+            # Reverse round (snake back)
+            teams[num_teams - 1 - pick_in_round].append(player)
 
-    return team_a, team_b
+    return teams
 
 
 def team_total(team: list[PlayerScore]) -> float:
@@ -211,66 +200,75 @@ def team_total(team: list[PlayerScore]) -> float:
     return sum(p.composite for p in team)
 
 
+def team_score_variance(teams: list[list[PlayerScore]]) -> float:
+    """Calculate the variance of team totals — lower is more balanced."""
+    totals = [team_total(t) for t in teams]
+    mean = sum(totals) / len(totals) if totals else 0
+    return sum((t - mean) ** 2 for t in totals) / len(totals) if totals else 0
+
+
 def optimize_teams(
-    team_a: list[PlayerScore],
-    team_b: list[PlayerScore],
+    teams: list[list[PlayerScore]],
     max_iterations: int = 100,
-) -> tuple[list[PlayerScore], list[PlayerScore]]:
-    """Refine teams by swapping players to minimize score difference.
+) -> list[list[PlayerScore]]:
+    """Refine teams by swapping players to minimize score variance.
 
     TEACHING NOTE:
         After the snake draft, we do greedy optimization:
-        1. For every pair of players (one from each team), consider swapping
-        2. If a swap reduces the score difference, make it
+        1. For every pair of teams, try swapping each pair of players
+        2. If a swap reduces the score variance across all teams, keep it
         3. Repeat until no improving swaps exist or we hit max iterations
 
         This is a local search / hill climbing approach. It's not guaranteed
-        to find the global optimum, but it's fast and produces good results
-        in practice.
+        to find the global optimum, but it's fast and produces good results.
     """
-    best_diff = abs(team_total(team_a) - team_total(team_b))
+    best_variance = team_score_variance(teams)
+    num_teams = len(teams)
 
     for _ in range(max_iterations):
         improved = False
 
-        for i in range(len(team_a)):
-            for j in range(len(team_b)):
-                # Try swapping player i from A with player j from B
-                team_a[i], team_b[j] = team_b[j], team_a[i]
-                new_diff = abs(team_total(team_a) - team_total(team_b))
+        for a in range(num_teams):
+            for b in range(a + 1, num_teams):
+                for i in range(len(teams[a])):
+                    for j in range(len(teams[b])):
+                        # Try swapping player i from team a with player j from team b
+                        teams[a][i], teams[b][j] = teams[b][j], teams[a][i]
+                        new_variance = team_score_variance(teams)
 
-                if new_diff < best_diff:
-                    # Swap improved balance - keep it
-                    best_diff = new_diff
-                    improved = True
-                else:
-                    # Swap made things worse - undo it
-                    team_a[i], team_b[j] = team_b[j], team_a[i]
+                        if new_variance < best_variance:
+                            best_variance = new_variance
+                            improved = True
+                        else:
+                            # Undo swap
+                            teams[a][i], teams[b][j] = teams[b][j], teams[a][i]
 
         if not improved:
-            break  # No more improving swaps possible
+            break
 
-    return team_a, team_b
+    return teams
 
 
 def create_balanced_teams(
     players: list[User],
+    num_teams: int = 2,
     weights: dict[str, float] | None = None,
     custom_metrics: list[CustomMetricDef] | None = None,
     player_custom_values: dict[int, dict[str, float]] | None = None,
-) -> tuple[list[User], list[User]]:
-    """Main entry point: create two balanced teams from a player pool.
+) -> list[list[User]]:
+    """Main entry point: create N balanced teams from a player pool.
 
     TEACHING NOTE:
         The full pipeline:
         1. Score each player (multi-factor composite with dynamic weights)
         2. Sort by score (best first)
-        3. Snake draft for initial distribution
-        4. Optimize via player swaps
-        5. Sort each team: starters first (top 5), then subs
+        3. Snake draft for initial distribution across N teams
+        4. Optimize via player swaps to minimize variance
+        5. Sort each team by score (highest rated first)
 
     Args:
         players: List of User objects (accepted RSVPs).
+        num_teams: Number of teams to create (default 2).
         weights: Optional dict of metric_name -> weight. Falls back to
                  DEFAULT_WEIGHTS if None (for backward compatibility).
         custom_metrics: Optional list of custom metric definitions.
@@ -278,11 +276,11 @@ def create_balanced_teams(
                               for custom metric values per player.
 
     Returns:
-        Tuple of (team_a_players, team_b_players) as User objects.
+        List of lists — each inner list contains User objects for one team.
     """
-    if len(players) < 2:
-        # Edge case: not enough players
-        return players, []
+    if len(players) < num_teams:
+        # Not enough players for the requested number of teams
+        return [players] + [[] for _ in range(num_teams - 1)]
 
     active_weights = weights or DEFAULT_WEIGHTS
     custom_metrics = custom_metrics or []
@@ -300,18 +298,15 @@ def create_balanced_teams(
     ]
     scored.sort(key=lambda s: s.composite, reverse=True)
 
-    # Step 3: Snake draft
-    team_a, team_b = snake_draft(scored)
+    # Step 3: Snake draft across N teams
+    teams = snake_draft(scored, num_teams)
 
     # Step 4: Optimize
-    team_a, team_b = optimize_teams(team_a, team_b)
+    teams = optimize_teams(teams)
 
-    # Step 5: Sort within teams (highest rated = starters)
-    team_a.sort(key=lambda s: s.composite, reverse=True)
-    team_b.sort(key=lambda s: s.composite, reverse=True)
+    # Step 5: Sort within each team (highest rated first)
+    for team in teams:
+        team.sort(key=lambda s: s.composite, reverse=True)
 
     # Return User objects only
-    return (
-        [ps.user for ps in team_a],
-        [ps.user for ps in team_b],
-    )
+    return [[ps.user for ps in team] for team in teams]

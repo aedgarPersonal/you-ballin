@@ -28,6 +28,7 @@ class NotificationType(str, enum.Enum):
     REGISTRATION_DENIED = "registration_denied"
     AWARDS_ANNOUNCED = "awards_announced"
     VOTING_OPEN = "voting_open"
+    GAME_CANCELLED = "game_cancelled"
     GENERAL = "general"
 
 

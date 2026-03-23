@@ -9,6 +9,7 @@ TEACHING NOTE:
     2. Players RSVP (POST /games/{id}/rsvp)
     3. Admin (or scheduler) triggers team creation (POST /games/{id}/teams)
     4. Admin records results (POST /games/{id}/result)
+    5. Admin can cancel a game (POST /games/{id}/cancel)
 """
 
 from datetime import datetime, timezone
@@ -21,8 +22,9 @@ from sqlalchemy.orm import selectinload
 from app.auth.dependencies import get_current_admin, get_current_user
 from app.database import get_db
 from app.models.game import Game, GameStatus, RSVP, RSVPStatus
-from app.models.team import GameResult, TeamAssignment, TeamSide
+from app.models.team import GameResult, TeamAssignment, pick_team_names
 from app.models.user import PlayerStatus, User
+from app.models.notification import NotificationType
 from app.schemas.game import (
     GameCreate,
     GameDetailResponse,
@@ -36,6 +38,7 @@ from app.schemas.game import (
 )
 from app.models.algorithm_config import AlgorithmWeight, CustomMetric, PlayerCustomMetric
 from app.services.team_balancer import CustomMetricDef, create_balanced_teams
+from app.services.notification_service import send_bulk_notification
 
 router = APIRouter(prefix="/api/games", tags=["Games"])
 
@@ -108,6 +111,62 @@ async def update_game(
 
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(game, field, value)
+    await db.flush()
+    return game
+
+
+# =============================================================================
+# Cancel Game
+# =============================================================================
+
+@router.post("/{game_id}/cancel", response_model=GameResponse)
+async def cancel_game(
+    game_id: int,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(get_current_admin),
+):
+    """Cancel a game and notify all RSVPed players (admin only).
+
+    TEACHING NOTE:
+        This lets an admin declare "no game this week." It:
+        1. Sets the game status to CANCELLED
+        2. Finds all players who accepted (or are on waitlist)
+        3. Sends them a notification that the game is cancelled
+    """
+    result = await db.execute(
+        select(Game).where(Game.id == game_id).options(selectinload(Game.rsvps))
+    )
+    game = result.scalar_one_or_none()
+    if not game:
+        raise HTTPException(status_code=404, detail="Game not found")
+
+    if game.status == GameStatus.CANCELLED:
+        raise HTTPException(status_code=400, detail="Game is already cancelled")
+    if game.status == GameStatus.COMPLETED:
+        raise HTTPException(status_code=400, detail="Cannot cancel a completed game")
+
+    game.status = GameStatus.CANCELLED
+
+    # Notify all players who accepted or are on waitlist
+    notifiable_rsvps = [
+        r for r in game.rsvps
+        if r.status in (RSVPStatus.ACCEPTED, RSVPStatus.WAITLIST, RSVPStatus.PENDING)
+    ]
+    if notifiable_rsvps:
+        player_ids = [r.user_id for r in notifiable_rsvps]
+        players_result = await db.execute(select(User).where(User.id.in_(player_ids)))
+        players = list(players_result.scalars().all())
+
+        await send_bulk_notification(
+            db,
+            players,
+            NotificationType.GAME_CANCELLED,
+            f"Game Cancelled: {game.title}",
+            f"The game scheduled for "
+            f"{game.game_date.strftime('%A, %B %d at %I:%M %p')} "
+            f"has been cancelled. No game this week.",
+        )
+
     await db.flush()
     return game
 
@@ -215,9 +274,10 @@ async def generate_teams(
         This endpoint triggers the team balancing algorithm. It:
         1. Gets all accepted RSVPs
         2. Fetches each player's ratings and stats
-        3. Runs the balancing algorithm
-        4. Stores team assignments
-        5. Updates the game status to TEAMS_SET
+        3. Runs the balancing algorithm for N teams
+        4. Assigns random fun team names
+        5. Stores team assignments
+        6. Updates the game status to TEAMS_SET
     """
     result = await db.execute(
         select(Game).where(Game.id == game_id).options(selectinload(Game.rsvps))
@@ -228,8 +288,11 @@ async def generate_teams(
 
     # Get accepted players
     accepted_rsvps = [r for r in game.rsvps if r.status == RSVPStatus.ACCEPTED]
-    if len(accepted_rsvps) < 2:
-        raise HTTPException(status_code=400, detail="Need at least 2 players to create teams")
+    if len(accepted_rsvps) < game.num_teams:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Need at least {game.num_teams} players to create {game.num_teams} teams",
+        )
 
     # Fetch full player data
     player_ids = [r.user_id for r in accepted_rsvps]
@@ -262,40 +325,33 @@ async def generate_teams(
     )
     player_custom_values = {}
     for pcm in pcm_result.scalars().all():
-        # Map metric_id -> metric_name
         metric = next((cm for cm in custom_metrics_db if cm.id == pcm.metric_id), None)
         if metric:
             player_custom_values.setdefault(pcm.user_id, {})[metric.name] = pcm.value
 
-    # Run the balancing algorithm
-    team_a, team_b = create_balanced_teams(
+    # Run the balancing algorithm for N teams
+    balanced_teams = create_balanced_teams(
         list(players),
+        num_teams=game.num_teams,
         weights=weights,
         custom_metrics=custom_metric_defs,
         player_custom_values=player_custom_values,
     )
 
-    # Create team assignments
-    assignments = []
-    for i, player in enumerate(team_a):
-        assignment = TeamAssignment(
-            game_id=game_id,
-            user_id=player.id,
-            team=TeamSide.TEAM_A,
-            is_starter=i < 5,  # First 5 are starters
-        )
-        db.add(assignment)
-        assignments.append(assignment)
+    # Pick random fun names for each team
+    team_names = pick_team_names(game.num_teams)
 
-    for i, player in enumerate(team_b):
-        assignment = TeamAssignment(
-            game_id=game_id,
-            user_id=player.id,
-            team=TeamSide.TEAM_B,
-            is_starter=i < 5,
-        )
-        db.add(assignment)
-        assignments.append(assignment)
+    # Create team assignments
+    for team_idx, team_players in enumerate(balanced_teams):
+        team_id = f"team_{team_idx + 1}"
+        team_name = team_names[team_idx]
+        for player in team_players:
+            db.add(TeamAssignment(
+                game_id=game_id,
+                user_id=player.id,
+                team=team_id,
+                team_name=team_name,
+            ))
 
     game.status = GameStatus.TEAMS_SET
     await db.flush()
@@ -363,13 +419,14 @@ async def record_result(
     if existing.scalar_one_or_none():
         raise HTTPException(status_code=409, detail="Result already recorded for this game")
 
-    winning_team = TeamSide(data.winning_team)
+    # Validate winning_team exists in assignments
+    valid_teams = set(t.team for t in game.teams)
+    if data.winning_team not in valid_teams:
+        raise HTTPException(status_code=400, detail=f"Invalid team. Valid teams: {', '.join(sorted(valid_teams))}")
 
     game_result = GameResult(
         game_id=game_id,
-        winning_team=winning_team,
-        score_team_a=data.score_team_a,
-        score_team_b=data.score_team_b,
+        winning_team=data.winning_team,
         notes=data.notes,
     )
     db.add(game_result)
@@ -380,7 +437,7 @@ async def record_result(
         player = player_result.scalar_one_or_none()
         if player:
             player.games_played += 1
-            if assignment.team == winning_team:
+            if assignment.team == data.winning_team:
                 player.games_won += 1
             player.jordan_factor = player.games_won / player.games_played
 

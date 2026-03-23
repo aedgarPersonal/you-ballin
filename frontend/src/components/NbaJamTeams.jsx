@@ -2,19 +2,33 @@
  * NBA Jam Style Teams Display
  * ===========================
  * TEACHING NOTE:
- *   Renders the two teams in a retro NBA Jam arcade style:
+ *   Renders N teams in a retro NBA Jam arcade style:
  *   - Dark background with cyan/teal border accents
  *   - Player cards showing their legacy NBA avatar, name, and stat bars
  *   - Stat bars for Offense, Defense, Overall, and Jordan Factor
- *   - Starters shown prominently, subs smaller below
+ *   - Each team has a fun randomly-assigned basketball name
+ *   - Supports any number of teams (2, 3, 4, etc.)
+ *   - All players are starters — no bench distinction
  *
- *   The component maps each user's `avatar_url` field to a legacy
- *   NBA player's team colors and jersey number for the visual display.
+ *   The component groups team assignments by their `team` field and
+ *   displays each group as a panel with the team's fun name.
  */
 
 import { Link } from "react-router-dom";
 import { getPlayerById } from "../data/legacyPlayers";
 import PixelAvatar from "./PixelAvatar";
+
+// Color palette for team panels — cycles if more teams than colors
+const TEAM_COLORS = [
+  "#f97316", // orange
+  "#3b82f6", // blue
+  "#10b981", // emerald
+  "#a855f7", // purple
+  "#ef4444", // red
+  "#eab308", // yellow
+  "#06b6d4", // cyan
+  "#ec4899", // pink
+];
 
 function StatBar({ label, value, max = 5.0, color = "#22d3ee" }) {
   const pct = Math.min((value / max) * 100, 100);
@@ -33,7 +47,7 @@ function StatBar({ label, value, max = 5.0, color = "#22d3ee" }) {
   );
 }
 
-function JamPlayerCard({ player, isStarter }) {
+function JamPlayerCard({ player }) {
   const legacy = getPlayerById(player.avatar_url);
   const initial = player.full_name?.charAt(0) || "?";
 
@@ -44,9 +58,7 @@ function JamPlayerCard({ player, isStarter }) {
   return (
     <Link
       to={`/players/${player.id}`}
-      className={`block rounded-lg overflow-hidden transition-transform hover:scale-[1.03] ${
-        isStarter ? "" : "opacity-80 scale-95"
-      }`}
+      className="block rounded-lg overflow-hidden transition-transform hover:scale-[1.03]"
     >
       <div className="bg-gray-800 border border-gray-600 rounded-lg overflow-hidden">
         {/* Player visual */}
@@ -54,7 +66,6 @@ function JamPlayerCard({ player, isStarter }) {
           className="relative flex items-center justify-center py-3"
           style={{ background: bgGradient }}
         >
-          {/* 8-bit pixel avatar */}
           {legacy ? (
             <PixelAvatar playerId={player.avatar_url} size={56} />
           ) : (
@@ -62,12 +73,6 @@ function JamPlayerCard({ player, isStarter }) {
               <span className="text-2xl font-black text-white leading-none">
                 {initial}
               </span>
-            </div>
-          )}
-          {/* Starter badge */}
-          {isStarter && (
-            <div className="absolute top-1 right-1 text-[8px] font-bold bg-yellow-400 text-gray-900 px-1.5 py-0.5 rounded">
-              START
             </div>
           )}
         </div>
@@ -101,11 +106,25 @@ function JamPlayerCard({ player, isStarter }) {
   );
 }
 
-export default function NbaJamTeams({ teamA, teamB }) {
-  const startersA = teamA.filter((t) => t.is_starter);
-  const subsA = teamA.filter((t) => !t.is_starter);
-  const startersB = teamB.filter((t) => t.is_starter);
-  const subsB = teamB.filter((t) => !t.is_starter);
+export default function NbaJamTeams({ teams }) {
+  // Group assignments by team identifier and collect team names
+  const teamGroups = {};
+  for (const assignment of teams) {
+    if (!teamGroups[assignment.team]) {
+      teamGroups[assignment.team] = {
+        name: assignment.team_name || assignment.team,
+        players: [],
+      };
+    }
+    teamGroups[assignment.team].players.push(assignment);
+  }
+
+  const teamEntries = Object.entries(teamGroups);
+
+  // Build matchup header
+  const teamCounts = teamEntries.map(
+    ([, group]) => `${group.players.length} Players`
+  );
 
   return (
     <div className="jam-container rounded-2xl p-1 bg-gradient-to-b from-cyan-500 via-cyan-600 to-cyan-700 shadow-2xl shadow-cyan-500/20">
@@ -115,40 +134,38 @@ export default function NbaJamTeams({ teamA, teamB }) {
           <h2 className="text-2xl font-black text-cyan-400 uppercase tracking-[0.3em]">
             Tonight's Matchup
           </h2>
-          <div className="flex items-center justify-center gap-4 mt-1">
-            <span className="text-xs text-gray-500 uppercase tracking-wider">
-              {startersA.length + subsA.length} Players
-            </span>
-            <span className="text-lg font-black text-gray-600">VS</span>
-            <span className="text-xs text-gray-500 uppercase tracking-wider">
-              {startersB.length + subsB.length} Players
-            </span>
+          <div className="flex items-center justify-center gap-3 mt-1 flex-wrap">
+            {teamCounts.map((count, i) => (
+              <span key={i} className="flex items-center gap-3">
+                {i > 0 && <span className="text-lg font-black text-gray-600">VS</span>}
+                <span className="text-xs text-gray-500 uppercase tracking-wider">
+                  {count}
+                </span>
+              </span>
+            ))}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* Team A */}
-          <JamTeamPanel
-            name="Team A"
-            color="#f97316"
-            starters={startersA}
-            subs={subsA}
-          />
-
-          {/* Team B */}
-          <JamTeamPanel
-            name="Team B"
-            color="#3b82f6"
-            starters={startersB}
-            subs={subsB}
-          />
+        <div className={`grid grid-cols-1 ${
+          teamEntries.length === 2 ? "lg:grid-cols-2" :
+          teamEntries.length === 3 ? "lg:grid-cols-3" :
+          "lg:grid-cols-2 xl:grid-cols-4"
+        } gap-4`}>
+          {teamEntries.map(([teamId, group], idx) => (
+            <JamTeamPanel
+              key={teamId}
+              name={group.name}
+              color={TEAM_COLORS[idx % TEAM_COLORS.length]}
+              players={group.players}
+            />
+          ))}
         </div>
       </div>
     </div>
   );
 }
 
-function JamTeamPanel({ name, color, starters, subs }) {
+function JamTeamPanel({ name, color, players }) {
   return (
     <div
       className="rounded-xl overflow-hidden border-2"
@@ -164,30 +181,13 @@ function JamTeamPanel({ name, color, starters, subs }) {
         </h3>
       </div>
 
-      {/* Starters Grid */}
+      {/* Players Grid */}
       <div className="p-3 bg-gray-900">
-        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 text-center">
-          Starters
-        </p>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-          {starters.map((t) => (
-            <JamPlayerCard key={t.id} player={t.user} isStarter={true} />
+          {players.map((t) => (
+            <JamPlayerCard key={t.id} player={t.user} />
           ))}
         </div>
-
-        {/* Subs */}
-        {subs.length > 0 && (
-          <>
-            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-4 mb-2 text-center">
-              Bench
-            </p>
-            <div className="grid grid-cols-3 gap-2">
-              {subs.map((t) => (
-                <JamPlayerCard key={t.id} player={t.user} isStarter={false} />
-              ))}
-            </div>
-          </>
-        )}
       </div>
     </div>
   );

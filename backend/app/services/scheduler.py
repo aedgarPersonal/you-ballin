@@ -37,7 +37,7 @@ from app.models.notification import NotificationType
 from app.models.user import PlayerStatus, User
 from app.services.notification_service import send_bulk_notification, send_notification
 from app.models.algorithm_config import AlgorithmWeight, CustomMetric, PlayerCustomMetric
-from app.models.team import TeamAssignment, TeamSide
+from app.models.team import TeamAssignment, pick_team_names
 from app.services.team_balancer import CustomMetricDef, create_balanced_teams
 from app.models.vote import GameVote, VoteType
 
@@ -83,13 +83,12 @@ def setup_scheduler():
         replace_existing=True,
     )
 
-    # Generate teams the evening before the game (6 PM night before)
+    # Check every 15 minutes for games needing auto team generation
+    # (triggers 1 hour before game time if admin hasn't already set teams)
     scheduler.add_job(
         generate_and_publish_teams,
-        "cron",
-        day_of_week=game_day,
-        hour=18,
-        minute=0,
+        "interval",
+        minutes=15,
         id="generate_teams",
         replace_existing=True,
     )
@@ -252,127 +251,139 @@ async def open_dropin_spots():
 
 
 async def generate_and_publish_teams():
-    """Generate balanced teams and notify all accepted players.
+    """Auto-generate balanced teams 1 hour before game time.
 
     TEACHING NOTE:
-        This runs the evening of game day. It:
-        1. Finds today's game
-        2. Collects all accepted players
-        3. Runs the team balancing algorithm
-        4. Saves team assignments to the database
-        5. Notifies everyone of their team assignment
+        This runs every 15 minutes and checks for upcoming games where:
+        - The game starts within the next hour
+        - Teams haven't been set yet (status is INVITES_SENT or DROPIN_OPEN)
+
+        This means an admin can manually generate teams at any time before
+        the 1-hour window. If they don't, this job handles it automatically.
     """
-    logger.info("Generating teams...")
+    logger.info("Checking for games needing auto team generation...")
 
     async with async_session() as db:
         try:
             now = datetime.now(timezone.utc)
-            today_start = now.replace(hour=0, minute=0, second=0)
-            today_end = now.replace(hour=23, minute=59, second=59)
+            one_hour_from_now = now + timedelta(hours=1)
 
-            # Find today's game
+            # Find games starting within the next hour that still need teams
             result = await db.execute(
                 select(Game).where(
-                    Game.game_date.between(today_start, today_end),
+                    Game.game_date <= one_hour_from_now,
+                    Game.game_date > now,
                     Game.status.in_([GameStatus.INVITES_SENT, GameStatus.DROPIN_OPEN]),
                 )
             )
-            game = result.scalar_one_or_none()
+            games = result.scalars().all()
 
-            if not game:
-                logger.info("No eligible game found for team generation")
+            if not games:
+                logger.info("No games need auto team generation")
                 return
 
-            # Get accepted players
-            rsvp_result = await db.execute(
-                select(RSVP).where(
-                    RSVP.game_id == game.id,
-                    RSVP.status == RSVPStatus.ACCEPTED,
-                )
-            )
-            accepted_rsvps = rsvp_result.scalars().all()
-            player_ids = [r.user_id for r in accepted_rsvps]
-
-            if len(player_ids) < 2:
-                logger.info(f"Not enough players for game {game.id}")
-                return
-
-            # Fetch full player data
-            players_result = await db.execute(select(User).where(User.id.in_(player_ids)))
-            players = list(players_result.scalars().all())
-
-            # Load algorithm config from DB
-            weights_result = await db.execute(select(AlgorithmWeight))
-            db_weights = weights_result.scalars().all()
-            weights = {w.metric_name: w.weight for w in db_weights} if db_weights else None
-
-            cm_result = await db.execute(select(CustomMetric))
-            custom_metrics_db = cm_result.scalars().all()
-            custom_metric_defs = [
-                CustomMetricDef(
-                    name=cm.name, min_value=cm.min_value,
-                    max_value=cm.max_value, default_value=cm.default_value,
-                )
-                for cm in custom_metrics_db
-            ]
-
-            pcm_result = await db.execute(
-                select(PlayerCustomMetric).where(PlayerCustomMetric.user_id.in_(player_ids))
-            )
-            player_custom_values = {}
-            for pcm in pcm_result.scalars().all():
-                metric = next((cm for cm in custom_metrics_db if cm.id == pcm.metric_id), None)
-                if metric:
-                    player_custom_values.setdefault(pcm.user_id, {})[metric.name] = pcm.value
-
-            # Generate teams
-            team_a_players, team_b_players = create_balanced_teams(
-                players,
-                weights=weights,
-                custom_metrics=custom_metric_defs,
-                player_custom_values=player_custom_values,
-            )
-
-            # Save assignments
-            for i, player in enumerate(team_a_players):
-                db.add(TeamAssignment(
-                    game_id=game.id,
-                    user_id=player.id,
-                    team=TeamSide.TEAM_A,
-                    is_starter=i < 5,
-                ))
-
-            for i, player in enumerate(team_b_players):
-                db.add(TeamAssignment(
-                    game_id=game.id,
-                    user_id=player.id,
-                    team=TeamSide.TEAM_B,
-                    is_starter=i < 5,
-                ))
-
-            game.status = GameStatus.TEAMS_SET
-
-            # Notify all players
-            all_players = team_a_players + team_b_players
-            for player in all_players:
-                team_name = "Team A" if player in team_a_players else "Team B"
-                await send_notification(
-                    db,
-                    player,
-                    NotificationType.TEAMS_PUBLISHED,
-                    "Teams Are Set!",
-                    f"You're on {team_name} for tonight's game. See you on the court!",
-                )
+            for game in games:
+                await _generate_teams_for_game(db, game)
 
             await db.commit()
-            logger.info(
-                f"Teams generated for game {game.id}: "
-                f"Team A ({len(team_a_players)}) vs Team B ({len(team_b_players)})"
-            )
 
         except Exception as e:
             await db.rollback()
-            logger.error(f"Failed to generate teams: {e}")
+            logger.error(f"Failed in auto team generation check: {e}")
+
+
+async def _generate_teams_for_game(db, game):
+    """Generate balanced teams for a single game and notify players."""
+    logger.info(f"Auto-generating teams for game {game.id} ({game.title})...")
+
+    try:
+        # Get accepted players
+        rsvp_result = await db.execute(
+            select(RSVP).where(
+                RSVP.game_id == game.id,
+                RSVP.status == RSVPStatus.ACCEPTED,
+            )
+        )
+        accepted_rsvps = rsvp_result.scalars().all()
+        player_ids = [r.user_id for r in accepted_rsvps]
+
+        if len(player_ids) < game.num_teams:
+            logger.info(f"Not enough players for game {game.id}, skipping auto-generation")
+            return
+
+        # Fetch full player data
+        players_result = await db.execute(select(User).where(User.id.in_(player_ids)))
+        players = list(players_result.scalars().all())
+
+        # Load algorithm config from DB
+        weights_result = await db.execute(select(AlgorithmWeight))
+        db_weights = weights_result.scalars().all()
+        weights = {w.metric_name: w.weight for w in db_weights} if db_weights else None
+
+        cm_result = await db.execute(select(CustomMetric))
+        custom_metrics_db = cm_result.scalars().all()
+        custom_metric_defs = [
+            CustomMetricDef(
+                name=cm.name, min_value=cm.min_value,
+                max_value=cm.max_value, default_value=cm.default_value,
+            )
+            for cm in custom_metrics_db
+        ]
+
+        pcm_result = await db.execute(
+            select(PlayerCustomMetric).where(PlayerCustomMetric.user_id.in_(player_ids))
+        )
+        player_custom_values = {}
+        for pcm in pcm_result.scalars().all():
+            metric = next((cm for cm in custom_metrics_db if cm.id == pcm.metric_id), None)
+            if metric:
+                player_custom_values.setdefault(pcm.user_id, {})[metric.name] = pcm.value
+
+        # Generate N balanced teams
+        balanced_teams = create_balanced_teams(
+            players,
+            num_teams=game.num_teams,
+            weights=weights,
+            custom_metrics=custom_metric_defs,
+            player_custom_values=player_custom_values,
+        )
+
+        # Pick random fun team names
+        team_names = pick_team_names(game.num_teams)
+
+        # Save assignments
+        all_players_with_teams = []
+        for team_idx, team_players in enumerate(balanced_teams):
+            team_id = f"team_{team_idx + 1}"
+            team_name = team_names[team_idx]
+            for player in team_players:
+                db.add(TeamAssignment(
+                    game_id=game.id,
+                    user_id=player.id,
+                    team=team_id,
+                    team_name=team_name,
+                ))
+                all_players_with_teams.append((player, team_name))
+
+        game.status = GameStatus.TEAMS_SET
+
+        # Notify all players
+        for player, team_name in all_players_with_teams:
+            await send_notification(
+                db,
+                player,
+                NotificationType.TEAMS_PUBLISHED,
+                "Teams Are Set!",
+                f"You're on {team_name} for tonight's game. See you on the court!",
+            )
+
+        team_summary = " vs ".join(
+            f"{team_names[i]} ({len(balanced_teams[i])})" for i in range(game.num_teams)
+        )
+        logger.info(f"Auto-generated teams for game {game.id}: {team_summary}")
+
+    except Exception as e:
+        logger.error(f"Failed to auto-generate teams for game {game.id}: {e}")
 
 
 async def announce_awards():

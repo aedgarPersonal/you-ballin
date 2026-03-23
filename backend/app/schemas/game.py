@@ -18,6 +18,7 @@ class GameCreate(BaseModel):
     location: str = Field(max_length=300, default="TBD")
     notes: str | None = None
     roster_size: int = Field(default=16, ge=2, le=30)
+    num_teams: int = Field(default=2, ge=2, le=8)
 
 
 class GameUpdate(BaseModel):
@@ -28,6 +29,7 @@ class GameUpdate(BaseModel):
     notes: str | None = None
     status: str | None = None
     roster_size: int | None = Field(None, ge=2, le=30)
+    num_teams: int | None = Field(None, ge=2, le=8)
 
 
 class GameResponse(BaseModel):
@@ -39,6 +41,7 @@ class GameResponse(BaseModel):
     notes: str | None
     status: str
     roster_size: int
+    num_teams: int
     accepted_count: int
     spots_remaining: int
     created_at: datetime
@@ -82,8 +85,8 @@ class TeamAssignmentResponse(BaseModel):
     id: int
     game_id: int
     user_id: int
-    team: str  # team_a or team_b
-    is_starter: bool
+    team: str       # "team_1", "team_2", etc.
+    team_name: str  # Fun display name like "Boomshakalaka"
     user: UserResponse | None = None
 
     model_config = {"from_attributes": True}
@@ -91,9 +94,7 @@ class TeamAssignmentResponse(BaseModel):
 
 class GameResultCreate(BaseModel):
     """Admin records the game outcome."""
-    winning_team: str = Field(description="team_a or team_b")
-    score_team_a: int | None = None
-    score_team_b: int | None = None
+    winning_team: str = Field(description="team identifier, e.g. team_1")
     notes: str | None = None
 
 
@@ -102,8 +103,6 @@ class GameResultResponse(BaseModel):
     id: int
     game_id: int
     winning_team: str
-    score_team_a: int | None
-    score_team_b: int | None
     notes: str | None
 
     model_config = {"from_attributes": True}

@@ -24,3 +24,7 @@ export const getTeams = (gameId) => api.get(`/games/${gameId}/teams`);
 // Results
 export const recordResult = (gameId, data) =>
   api.post(`/games/${gameId}/result`, data);
+
+// Cancel
+export const cancelGame = (gameId) => api.post(`/games/${gameId}/cancel`);
+
