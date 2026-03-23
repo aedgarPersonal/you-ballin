@@ -24,6 +24,7 @@ from app.config import settings
 from app.database import init_db
 from app.routes import (
     admin_routes,
+    algorithm_routes,
     auth_routes,
     game_routes,
     notification_routes,
@@ -104,6 +105,7 @@ app.include_router(rating_routes.router)
 app.include_router(admin_routes.router)
 app.include_router(notification_routes.router)
 app.include_router(vote_routes.router)
+app.include_router(algorithm_routes.router)
 
 
 # =============================================================================

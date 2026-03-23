@@ -36,8 +36,9 @@ from app.models.game import Game, GameStatus, RSVP, RSVPStatus
 from app.models.notification import NotificationType
 from app.models.user import PlayerStatus, User
 from app.services.notification_service import send_bulk_notification, send_notification
-from app.services.team_balancer import create_balanced_teams
+from app.models.algorithm_config import AlgorithmWeight, CustomMetric, PlayerCustomMetric
 from app.models.team import TeamAssignment, TeamSide
+from app.services.team_balancer import CustomMetricDef, create_balanced_teams
 from app.models.vote import GameVote, VoteType
 
 logger = logging.getLogger(__name__)
@@ -300,8 +301,37 @@ async def generate_and_publish_teams():
             players_result = await db.execute(select(User).where(User.id.in_(player_ids)))
             players = list(players_result.scalars().all())
 
+            # Load algorithm config from DB
+            weights_result = await db.execute(select(AlgorithmWeight))
+            db_weights = weights_result.scalars().all()
+            weights = {w.metric_name: w.weight for w in db_weights} if db_weights else None
+
+            cm_result = await db.execute(select(CustomMetric))
+            custom_metrics_db = cm_result.scalars().all()
+            custom_metric_defs = [
+                CustomMetricDef(
+                    name=cm.name, min_value=cm.min_value,
+                    max_value=cm.max_value, default_value=cm.default_value,
+                )
+                for cm in custom_metrics_db
+            ]
+
+            pcm_result = await db.execute(
+                select(PlayerCustomMetric).where(PlayerCustomMetric.user_id.in_(player_ids))
+            )
+            player_custom_values = {}
+            for pcm in pcm_result.scalars().all():
+                metric = next((cm for cm in custom_metrics_db if cm.id == pcm.metric_id), None)
+                if metric:
+                    player_custom_values.setdefault(pcm.user_id, {})[metric.name] = pcm.value
+
             # Generate teams
-            team_a_players, team_b_players = create_balanced_teams(players)
+            team_a_players, team_b_players = create_balanced_teams(
+                players,
+                weights=weights,
+                custom_metrics=custom_metric_defs,
+                player_custom_values=player_custom_values,
+            )
 
             # Save assignments
             for i, player in enumerate(team_a_players):

@@ -34,7 +34,8 @@ from app.schemas.game import (
     RSVPResponse,
     TeamAssignmentResponse,
 )
-from app.services.team_balancer import create_balanced_teams
+from app.models.algorithm_config import AlgorithmWeight, CustomMetric, PlayerCustomMetric
+from app.services.team_balancer import CustomMetricDef, create_balanced_teams
 
 router = APIRouter(prefix="/api/games", tags=["Games"])
 
@@ -241,8 +242,37 @@ async def generate_teams(
     for assignment in existing_teams.scalars().all():
         await db.delete(assignment)
 
+    # Load algorithm weights from DB (falls back to defaults if empty)
+    weights_result = await db.execute(select(AlgorithmWeight))
+    db_weights = weights_result.scalars().all()
+    weights = {w.metric_name: w.weight for w in db_weights} if db_weights else None
+
+    # Load custom metric definitions
+    cm_result = await db.execute(select(CustomMetric))
+    custom_metrics_db = cm_result.scalars().all()
+    custom_metric_defs = [
+        CustomMetricDef(name=cm.name, min_value=cm.min_value, max_value=cm.max_value, default_value=cm.default_value)
+        for cm in custom_metrics_db
+    ]
+
+    # Load custom metric values for accepted players
+    pcm_result = await db.execute(
+        select(PlayerCustomMetric).where(PlayerCustomMetric.user_id.in_(player_ids))
+    )
+    player_custom_values = {}
+    for pcm in pcm_result.scalars().all():
+        # Map metric_id -> metric_name
+        metric = next((cm for cm in custom_metrics_db if cm.id == pcm.metric_id), None)
+        if metric:
+            player_custom_values.setdefault(pcm.user_id, {})[metric.name] = pcm.value
+
     # Run the balancing algorithm
-    team_a, team_b = create_balanced_teams(list(players))
+    team_a, team_b = create_balanced_teams(
+        list(players),
+        weights=weights,
+        custom_metrics=custom_metric_defs,
+        player_custom_values=player_custom_values,
+    )
 
     # Create team assignments
     assignments = []

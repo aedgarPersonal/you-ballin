@@ -5,8 +5,8 @@ Creates two fair teams from a pool of accepted players.
 
 TEACHING NOTE:
     This is the heart of the application. The algorithm must balance teams
-    across multiple dimensions: skill ratings, physical attributes, and
-    historical win rates. Here's how it works:
+    across multiple dimensions: skill ratings, physical attributes,
+    historical win rates, and any custom metrics defined by admins.
 
     1. SCORING: Each player gets a composite score based on weighted factors
     2. SORTING: Players are sorted by composite score (best to worst)
@@ -15,7 +15,7 @@ TEACHING NOTE:
     4. OPTIMIZATION: After the draft, we do swap-based refinement to
        minimize the score difference between teams
 
-    Weight Configuration:
+    Default Weight Configuration:
     - Overall rating (peer-rated):  35% - highest weight as requested
     - Jordan Factor (win history):  20% - rewards consistent winners
     - Offense rating:               15%
@@ -24,26 +24,26 @@ TEACHING NOTE:
     - Age (normalized, inverse):     5% - younger slightly favored
     - Mobility:                      5%
 
-    The Jordan Factor is named after the GOAT - it's a player's career
-    win percentage (games_won / games_played). A high Jordan Factor
-    means you tend to be on the winning team. The algorithm uses this
-    to balance teams so that consistent winners are spread evenly.
+    Admins can override these weights and add custom metrics via the UI.
+    Weights are loaded from the database at runtime. If no database config
+    exists, the defaults above are used. Weights are automatically
+    normalized so they don't need to sum to 1.0 — admins can think in
+    relative terms ("offense should matter twice as much as height").
 
     The algorithm is deterministic given the same inputs, which makes
     it testable and debuggable.
 """
 
-import itertools
 from dataclasses import dataclass
 
 from app.models.user import User
 
 
 # =============================================================================
-# Weight Configuration
+# Default Weight Configuration (used when no DB config exists)
 # =============================================================================
 
-WEIGHTS = {
+DEFAULT_WEIGHTS = {
     "overall": 0.35,         # Peer-rated overall skill (highest weight)
     "jordan_factor": 0.20,   # Historical win percentage (the Jordan Factor)
     "offense": 0.15,         # Peer-rated offensive skill
@@ -52,6 +52,21 @@ WEIGHTS = {
     "age": 0.05,             # Age factor (younger = slightly higher)
     "mobility": 0.05,        # Admin-rated mobility
 }
+
+
+@dataclass
+class CustomMetricDef:
+    """Definition of a custom metric for scoring purposes.
+
+    TEACHING NOTE:
+        Passed into the scoring function so it knows the scale
+        (min/max) for normalization and the default value for
+        players who haven't been rated on this metric.
+    """
+    name: str
+    min_value: float
+    max_value: float
+    default_value: float
 
 
 @dataclass
@@ -79,7 +94,7 @@ def normalize(value: float, min_val: float, max_val: float) -> float:
         - Ratings: 1-5
         - Height: 60-84 inches
         - Age: 18-65 years
-        - Mobility: 1-5
+        - Custom metrics: admin-defined ranges
 
         By normalizing everything to 0-1, the weights work as intended.
     """
@@ -88,18 +103,40 @@ def normalize(value: float, min_val: float, max_val: float) -> float:
     return (value - min_val) / (max_val - min_val)
 
 
-def compute_player_score(player: User) -> PlayerScore:
+def compute_player_score(
+    player: User,
+    weights: dict[str, float],
+    custom_metrics: list[CustomMetricDef] | None = None,
+    player_custom_values: dict[str, float] | None = None,
+) -> PlayerScore:
     """Calculate a player's composite score from all their attributes.
 
     TEACHING NOTE:
-        Default values are used for missing data (e.g., a new player
-        with no ratings gets the middle score of 3.0). This prevents
-        new players from being unfairly penalized or advantaged.
+        This function now accepts dynamic weights and custom metrics.
+        The weights dict is normalized so they sum to 1.0, meaning
+        admins don't need to worry about exact math — they just need
+        to set relative importance.
+
+    Args:
+        player: The User object with built-in attributes.
+        weights: Dict of metric_name -> weight (from DB or defaults).
+        custom_metrics: Definitions of custom metrics (name, scale, default).
+        player_custom_values: This player's values for custom metrics
+                              (metric_name -> value).
     """
-    # Normalize each factor to 0.0-1.0 range
+    custom_metrics = custom_metrics or []
+    player_custom_values = player_custom_values or {}
+
+    # Normalize weights so they sum to 1.0
+    total_weight = sum(weights.values())
+    if total_weight == 0:
+        total_weight = 1.0
+    normalized_weights = {k: v / total_weight for k, v in weights.items()}
+
+    # Calculate built-in factors (normalized to 0.0-1.0)
     factors = {
         "overall": normalize(player.avg_overall or 3.0, 1.0, 5.0),
-        "jordan_factor": player.jordan_factor if player.jordan_factor is not None else 0.5,  # Already 0-1
+        "jordan_factor": player.jordan_factor if player.jordan_factor is not None else 0.5,
         "offense": normalize(player.avg_offense or 3.0, 1.0, 5.0),
         "defense": normalize(player.avg_defense or 3.0, 1.0, 5.0),
         "height": normalize(player.height_inches or 70, 60, 84),
@@ -107,8 +144,17 @@ def compute_player_score(player: User) -> PlayerScore:
         "mobility": normalize(player.mobility or 3.0, 1.0, 5.0),
     }
 
-    # Weighted sum
-    composite = sum(WEIGHTS[k] * factors[k] for k in WEIGHTS)
+    # Add custom metric factors
+    for cm in custom_metrics:
+        value = player_custom_values.get(cm.name, cm.default_value)
+        factors[cm.name] = normalize(value, cm.min_value, cm.max_value)
+
+    # Weighted sum (only include factors that have a weight)
+    composite = sum(
+        normalized_weights.get(k, 0.0) * factors[k]
+        for k in factors
+        if k in normalized_weights
+    )
 
     return PlayerScore(user=player, composite=composite, breakdown=factors)
 
@@ -207,12 +253,17 @@ def optimize_teams(
     return team_a, team_b
 
 
-def create_balanced_teams(players: list[User]) -> tuple[list[User], list[User]]:
+def create_balanced_teams(
+    players: list[User],
+    weights: dict[str, float] | None = None,
+    custom_metrics: list[CustomMetricDef] | None = None,
+    player_custom_values: dict[int, dict[str, float]] | None = None,
+) -> tuple[list[User], list[User]]:
     """Main entry point: create two balanced teams from a player pool.
 
     TEACHING NOTE:
         The full pipeline:
-        1. Score each player (multi-factor composite)
+        1. Score each player (multi-factor composite with dynamic weights)
         2. Sort by score (best first)
         3. Snake draft for initial distribution
         4. Optimize via player swaps
@@ -220,6 +271,11 @@ def create_balanced_teams(players: list[User]) -> tuple[list[User], list[User]]:
 
     Args:
         players: List of User objects (accepted RSVPs).
+        weights: Optional dict of metric_name -> weight. Falls back to
+                 DEFAULT_WEIGHTS if None (for backward compatibility).
+        custom_metrics: Optional list of custom metric definitions.
+        player_custom_values: Optional dict of user_id -> {metric_name: value}
+                              for custom metric values per player.
 
     Returns:
         Tuple of (team_a_players, team_b_players) as User objects.
@@ -228,8 +284,20 @@ def create_balanced_teams(players: list[User]) -> tuple[list[User], list[User]]:
         # Edge case: not enough players
         return players, []
 
+    active_weights = weights or DEFAULT_WEIGHTS
+    custom_metrics = custom_metrics or []
+    player_custom_values = player_custom_values or {}
+
     # Step 1 & 2: Score and sort
-    scored = [compute_player_score(p) for p in players]
+    scored = [
+        compute_player_score(
+            p,
+            active_weights,
+            custom_metrics,
+            player_custom_values.get(p.id, {}),
+        )
+        for p in players
+    ]
     scored.sort(key=lambda s: s.composite, reverse=True)
 
     # Step 3: Snake draft
