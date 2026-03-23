@@ -33,6 +33,7 @@ class GameStatus(str, enum.Enum):
     TEAMS_SET = "teams_set"        # Teams have been created
     COMPLETED = "completed"        # Game has been played
     CANCELLED = "cancelled"
+    SKIPPED = "skipped"            # Game skipped (e.g., holiday, weather)
 
 
 class RSVPStatus(str, enum.Enum):

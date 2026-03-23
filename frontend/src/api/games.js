@@ -18,3 +18,6 @@ export const recordResult = (runId, gameId, data) =>
   api.post(`/runs/${runId}/games/${gameId}/result`, data);
 
 export const cancelGame = (runId, gameId) => api.post(`/runs/${runId}/games/${gameId}/cancel`);
+export const skipGame = (runId, gameId, notes) =>
+  api.post(`/runs/${runId}/games/${gameId}/skip`, null, { params: notes ? { notes } : {} });
+export const deleteGame = (runId, gameId) => api.delete(`/runs/${runId}/games/${gameId}`);

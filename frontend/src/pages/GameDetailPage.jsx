@@ -15,11 +15,11 @@
  */
 
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import useAuthStore from "../stores/authStore";
 import useRunStore from "../stores/runStore";
-import { getGame, rsvpToGame, generateTeams, recordResult, cancelGame } from "../api/games";
+import { getGame, updateGame, rsvpToGame, generateTeams, recordResult, cancelGame, skipGame, deleteGame } from "../api/games";
 import { castVote, getMyVotes, getGameAwards } from "../api/votes";
 import NbaJamTeams from "../components/NbaJamTeams";
 
@@ -28,11 +28,15 @@ export default function GameDetailPage() {
   const user = useAuthStore((s) => s.user);
   const { currentRun } = useRunStore();
   const runId = currentRun?.id;
+  const navigate = useNavigate();
   const [game, setGame] = useState(null);
   const [scores, setScores] = useState({});
   const [awards, setAwards] = useState(null);
   const [myVotes, setMyVotes] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const [editForm, setEditForm] = useState({});
+  const [skipReason, setSkipReason] = useState("");
 
   const fetchGame = async () => {
     if (!runId) return;
@@ -124,6 +128,61 @@ export default function GameDetailPage() {
       fetchGame();
     } catch (err) {
       toast.error(err.response?.data?.detail || "Failed to cancel game");
+    }
+  };
+
+  const handleStartEdit = () => {
+    setEditForm({
+      title: game.title,
+      game_date: game.game_date ? new Date(game.game_date).toISOString().slice(0, 16) : "",
+      location: game.location,
+      notes: game.notes || "",
+    });
+    setEditing(true);
+  };
+
+  const handleSaveEdit = async () => {
+    try {
+      const payload = {};
+      if (editForm.title !== game.title) payload.title = editForm.title;
+      if (editForm.location !== game.location) payload.location = editForm.location;
+      if (editForm.notes !== (game.notes || "")) payload.notes = editForm.notes || null;
+      if (editForm.game_date) {
+        const newDate = new Date(editForm.game_date).toISOString();
+        if (newDate !== game.game_date) payload.game_date = newDate;
+      }
+      if (Object.keys(payload).length === 0) {
+        setEditing(false);
+        return;
+      }
+      await updateGame(runId, id, payload);
+      toast.success("Game updated!");
+      setEditing(false);
+      fetchGame();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Failed to update game");
+    }
+  };
+
+  const handleSkipGame = async () => {
+    if (!confirm("Skip this game? All RSVPed players will be notified.")) return;
+    try {
+      await skipGame(runId, id, skipReason || null);
+      toast.success("Game marked as skipped.");
+      fetchGame();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Failed to skip game");
+    }
+  };
+
+  const handleDeleteGame = async () => {
+    if (!confirm("Permanently delete this game? This cannot be undone.")) return;
+    try {
+      await deleteGame(runId, id);
+      toast.success("Game deleted.");
+      navigate("/games");
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Failed to delete game");
     }
   };
 
@@ -228,8 +287,18 @@ export default function GameDetailPage() {
       {game.status === "cancelled" && (
         <div className="card mb-6 border-2 border-red-300 bg-red-50">
           <p className="text-red-700 font-semibold text-center">
-            This game has been cancelled. No game this week.
+            This game has been cancelled.
           </p>
+        </div>
+      )}
+
+      {/* Skipped Banner */}
+      {game.status === "skipped" && (
+        <div className="card mb-6 border-2 border-yellow-300 bg-yellow-50">
+          <p className="text-yellow-700 font-semibold text-center">
+            This game has been skipped.
+          </p>
+          {game.notes && <p className="text-yellow-600 text-sm text-center mt-1">{game.notes}</p>}
         </div>
       )}
 
@@ -340,7 +409,7 @@ export default function GameDetailPage() {
       )}
 
       {/* RSVP Section */}
-      {game.status !== "completed" && game.status !== "cancelled" && (
+      {game.status !== "completed" && game.status !== "cancelled" && game.status !== "skipped" && (
         <div className="card mb-6">
           <h2 className="text-lg font-semibold mb-3">Your RSVP</h2>
           {myRsvp ? (
@@ -411,9 +480,67 @@ export default function GameDetailPage() {
       {(user?.role === "super_admin" || user?.role === "admin") && (
         <div className="card">
           <h2 className="text-lg font-semibold mb-3">Admin Actions</h2>
+
+          {/* Edit Game Form */}
+          {editing ? (
+            <div className="space-y-3 mb-4 p-4 bg-gray-50 rounded-lg">
+              <h3 className="text-sm font-semibold text-gray-700">Edit Game Details</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Title</label>
+                  <input
+                    type="text"
+                    value={editForm.title}
+                    onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                    className="input text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Date & Time</label>
+                  <input
+                    type="datetime-local"
+                    value={editForm.game_date}
+                    onChange={(e) => setEditForm({ ...editForm, game_date: e.target.value })}
+                    className="input text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Location</label>
+                  <input
+                    type="text"
+                    value={editForm.location}
+                    onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
+                    className="input text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
+                  <input
+                    type="text"
+                    value={editForm.notes}
+                    onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                    className="input text-sm"
+                    placeholder="Optional notes"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={handleSaveEdit} className="btn-primary text-sm py-1.5 px-4">Save Changes</button>
+                <button onClick={() => setEditing(false)} className="btn-secondary text-sm py-1.5 px-4">Cancel</button>
+              </div>
+            </div>
+          ) : null}
+
           <div className="flex flex-wrap gap-3">
+            {/* Edit Game */}
+            {game.status !== "completed" && game.status !== "cancelled" && game.status !== "skipped" && (
+              <button onClick={handleStartEdit} className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2 px-4 rounded-lg">
+                Edit Game
+              </button>
+            )}
+
             {/* Generate / Regenerate Teams */}
-            {game.status !== "completed" && game.status !== "cancelled" && (
+            {game.status !== "completed" && game.status !== "cancelled" && game.status !== "skipped" && (
               <button onClick={handleGenerateTeams} className="btn-primary">
                 {game.status === "teams_set" ? "Regenerate Teams" : "Generate Teams"}
               </button>
@@ -452,13 +579,42 @@ export default function GameDetailPage() {
               </div>
             )}
 
+            {/* Skip Game */}
+            {game.status !== "completed" && game.status !== "cancelled" && game.status !== "skipped" && (
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={skipReason}
+                  onChange={(e) => setSkipReason(e.target.value)}
+                  placeholder="Reason (optional)"
+                  className="text-sm border border-gray-300 rounded-lg px-3 py-2"
+                />
+                <button
+                  onClick={handleSkipGame}
+                  className="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 px-4 rounded-lg"
+                >
+                  Skip Game
+                </button>
+              </div>
+            )}
+
             {/* Cancel Game */}
-            {game.status !== "completed" && game.status !== "cancelled" && (
+            {game.status !== "completed" && game.status !== "cancelled" && game.status !== "skipped" && (
               <button
                 onClick={handleCancelGame}
                 className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg"
               >
                 Cancel Game
+              </button>
+            )}
+
+            {/* Delete Game */}
+            {game.status !== "completed" && (
+              <button
+                onClick={handleDeleteGame}
+                className="bg-red-100 hover:bg-red-200 text-red-700 font-semibold py-2 px-4 rounded-lg"
+              >
+                Delete Game
               </button>
             )}
           </div>

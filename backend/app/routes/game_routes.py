@@ -224,6 +224,109 @@ async def cancel_game(
 
 
 # =============================================================================
+# Skip Game
+# =============================================================================
+
+@router.post("/{game_id}/skip", response_model=GameResponse)
+async def skip_game(
+    run_id: int,
+    game_id: int,
+    notes: str | None = None,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(require_run_admin()),
+):
+    """Mark a game as skipped (e.g., holiday, weather, not enough players).
+
+    Similar to cancel but indicates a temporary skip rather than permanent cancellation.
+    """
+    result = await db.execute(
+        select(Game).where(Game.id == game_id).options(selectinload(Game.rsvps))
+    )
+    game = result.scalar_one_or_none()
+    if not game:
+        raise HTTPException(status_code=404, detail="Game not found")
+    if game.run_id != run_id:
+        raise HTTPException(status_code=404, detail="Game not found in this run")
+
+    if game.status in (GameStatus.COMPLETED, GameStatus.CANCELLED, GameStatus.SKIPPED):
+        raise HTTPException(status_code=400, detail=f"Cannot skip a {game.status.value} game")
+
+    game.status = GameStatus.SKIPPED
+    if notes:
+        game.notes = notes
+
+    # Notify RSVPed players
+    notifiable_rsvps = [
+        r for r in game.rsvps
+        if r.status in (RSVPStatus.ACCEPTED, RSVPStatus.WAITLIST, RSVPStatus.PENDING)
+    ]
+    if notifiable_rsvps:
+        player_ids = [r.user_id for r in notifiable_rsvps]
+        players_result = await db.execute(select(User).where(User.id.in_(player_ids)))
+        players = list(players_result.scalars().all())
+
+        skip_msg = f"This week's game ({game.title}) has been skipped."
+        if notes:
+            skip_msg += f" Reason: {notes}"
+
+        await send_bulk_notification(
+            db,
+            players,
+            NotificationType.GAME_CANCELLED,
+            f"Game Skipped: {game.title}",
+            skip_msg,
+            run_id=run_id,
+        )
+
+    await db.flush()
+    return game
+
+
+# =============================================================================
+# Delete Game
+# =============================================================================
+
+@router.delete("/{game_id}", status_code=204)
+async def delete_game(
+    run_id: int,
+    game_id: int,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(require_run_admin()),
+):
+    """Permanently delete a game (run admin only).
+
+    Only games that haven't been completed can be deleted. Completed games
+    are preserved for historical records.
+    """
+    result = await db.execute(
+        select(Game).where(Game.id == game_id).options(
+            selectinload(Game.rsvps),
+            selectinload(Game.teams),
+            selectinload(Game.result),
+        )
+    )
+    game = result.scalar_one_or_none()
+    if not game:
+        raise HTTPException(status_code=404, detail="Game not found")
+    if game.run_id != run_id:
+        raise HTTPException(status_code=404, detail="Game not found in this run")
+
+    if game.status == GameStatus.COMPLETED:
+        raise HTTPException(status_code=400, detail="Cannot delete a completed game — use cancel instead")
+
+    # Delete related records
+    for rsvp in game.rsvps:
+        await db.delete(rsvp)
+    for team in game.teams:
+        await db.delete(team)
+    if game.result:
+        await db.delete(game.result)
+
+    await db.delete(game)
+    await db.flush()
+
+
+# =============================================================================
 # RSVP Management
 # =============================================================================
 
