@@ -29,6 +29,7 @@ import {
   importPlayers,
 } from "../api/admin";
 import { createGame } from "../api/games";
+import { updateRun } from "../api/runs";
 import {
   getWeights,
   updateWeights,
@@ -50,11 +51,16 @@ const BUILTIN_LABELS = {
 
 export default function AdminPage() {
   const user = useAuthStore((s) => s.user);
-  const { currentRun } = useRunStore();
+  const { currentRun, setCurrentRun } = useRunStore();
   const runId = currentRun?.id;
   const isSuperAdmin = user?.role === "super_admin";
 
   const [tab, setTab] = useState("pending");
+
+  // Run settings state
+  const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+  const [runForm, setRunForm] = useState(null);
+  const [savingRun, setSavingRun] = useState(false);
   const [pending, setPending] = useState([]);
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -125,7 +131,43 @@ export default function AdminPage() {
       fetchWeights();
       fetchCustomMetrics();
     }
-  }, [tab]);
+    if (tab === "settings" && currentRun) {
+      setRunForm({
+        name: currentRun.name || "",
+        description: currentRun.description || "",
+        default_location: currentRun.default_location || "TBD",
+        default_game_day: currentRun.default_game_day ?? 2,
+        default_game_time: currentRun.default_game_time || "19:00",
+        default_roster_size: currentRun.default_roster_size || 16,
+        default_num_teams: currentRun.default_num_teams || 2,
+        dues_amount: currentRun.dues_amount ?? "",
+      });
+    }
+  }, [tab, currentRun]);
+
+  const handleSaveRunSettings = async (e) => {
+    e.preventDefault();
+    setSavingRun(true);
+    try {
+      const payload = { ...runForm };
+      // Convert empty dues to null
+      if (payload.dues_amount === "" || payload.dues_amount === null) {
+        payload.dues_amount = null;
+      } else {
+        payload.dues_amount = parseFloat(payload.dues_amount);
+      }
+      payload.default_game_day = parseInt(payload.default_game_day);
+      payload.default_roster_size = parseInt(payload.default_roster_size);
+      payload.default_num_teams = parseInt(payload.default_num_teams);
+      const { data } = await updateRun(runId, payload);
+      setCurrentRun(data);
+      toast.success("Run settings saved!");
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Failed to save settings");
+    } finally {
+      setSavingRun(false);
+    }
+  };
 
   const handleApprove = async (userId, status) => {
     try {
@@ -283,7 +325,7 @@ export default function AdminPage() {
 
   const totalWeight = weights.reduce((sum, w) => sum + w.weight, 0);
 
-  const tabs = ["pending", "players", "import", "balancer"];
+  const tabs = ["pending", "players", "import", "balancer", "settings"];
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -520,6 +562,112 @@ export default function AdminPage() {
               ))}
             </tbody>
           </table>
+        </div>
+      ) : tab === "settings" ? (
+        /* ===== Run Settings Tab ===== */
+        <div className="card max-w-2xl">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Run Settings</h2>
+          {runForm && (
+            <form onSubmit={handleSaveRunSettings} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Run Name</label>
+                <input
+                  type="text"
+                  required
+                  value={runForm.name}
+                  onChange={(e) => setRunForm({ ...runForm, name: e.target.value })}
+                  className="input"
+                  placeholder="e.g. Monday Madness"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <textarea
+                  rows={2}
+                  value={runForm.description}
+                  onChange={(e) => setRunForm({ ...runForm, description: e.target.value })}
+                  className="input"
+                  placeholder="Brief description of this run"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Default Location</label>
+                <input
+                  type="text"
+                  value={runForm.default_location}
+                  onChange={(e) => setRunForm({ ...runForm, default_location: e.target.value })}
+                  className="input"
+                  placeholder="e.g. Rec Center Gym"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Game Day</label>
+                  <select
+                    value={runForm.default_game_day}
+                    onChange={(e) => setRunForm({ ...runForm, default_game_day: e.target.value })}
+                    className="input"
+                  >
+                    {DAY_NAMES.map((day, i) => (
+                      <option key={i} value={i}>{day}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Game Time</label>
+                  <input
+                    type="time"
+                    value={runForm.default_game_time}
+                    onChange={(e) => setRunForm({ ...runForm, default_game_time: e.target.value })}
+                    className="input"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Roster Size</label>
+                  <input
+                    type="number"
+                    min="2"
+                    max="30"
+                    value={runForm.default_roster_size}
+                    onChange={(e) => setRunForm({ ...runForm, default_roster_size: e.target.value })}
+                    className="input"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Teams</label>
+                  <input
+                    type="number"
+                    min="2"
+                    max="8"
+                    value={runForm.default_num_teams}
+                    onChange={(e) => setRunForm({ ...runForm, default_num_teams: e.target.value })}
+                    className="input"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Dues ($)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={runForm.dues_amount}
+                    onChange={(e) => setRunForm({ ...runForm, dues_amount: e.target.value })}
+                    className="input"
+                    placeholder="Optional"
+                  />
+                </div>
+              </div>
+              <button
+                type="submit"
+                disabled={savingRun}
+                className="btn-primary"
+              >
+                {savingRun ? "Saving..." : "Save Settings"}
+              </button>
+            </form>
+          )}
         </div>
       ) : (
         /* ===== Balancer Tab ===== */
