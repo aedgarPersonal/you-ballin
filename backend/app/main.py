@@ -26,6 +26,7 @@ from app.routes import (
     admin_routes,
     algorithm_routes,
     auth_routes,
+    game_action_routes,
     game_routes,
     notification_routes,
     player_routes,
@@ -111,6 +112,7 @@ app.include_router(notification_routes.router)
 app.include_router(vote_routes.router)
 app.include_router(vote_routes.awards_router)
 app.include_router(algorithm_routes.router)
+app.include_router(game_action_routes.router)
 
 
 # =============================================================================

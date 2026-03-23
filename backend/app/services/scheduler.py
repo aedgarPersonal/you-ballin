@@ -224,16 +224,19 @@ async def create_weekly_game():
                     )
                     db.add(rsvp)
 
-                deadline = game_date - timedelta(hours=24)
-                await send_bulk_notification(
-                    db,
-                    regular_players,
-                    NotificationType.GAME_INVITE,
-                    f"Game Invite: {game.title}",
-                    f"You're invited to play on {game_date.strftime('%A, %B %d at %I:%M %p')}. "
-                    f"Please RSVP by {deadline.strftime('%A at %I:%M %p')}.",
-                    run_id=run.id,
-                )
+                # Send individual notifications with per-player action URLs
+                from app.auth.jwt import create_game_action_token
+
+                for player in regular_players:
+                    action_token = create_game_action_token(player.id, game.id, run.id)
+                    action_url = f"{settings.frontend_url}/game/{action_token}"
+                    await send_notification(
+                        db, player, NotificationType.GAME_INVITE,
+                        f"Game Invite: {game.title}",
+                        f"You're invited to play on {game_date.strftime('%A, %B %d at %I:%M %p')}. "
+                        f"RSVP here: {action_url}",
+                        run_id=run.id,
+                    )
 
                 logger.info(
                     f"Created game {game.id} for run '{run.name}' and "
@@ -307,16 +310,20 @@ async def open_dropin_spots():
                     dropin_players = list(players_result.scalars().all())
 
                     if dropin_players:
-                        await send_bulk_notification(
-                            db,
-                            dropin_players,
-                            NotificationType.DROPIN_AVAILABLE,
-                            f"{spots} Spots Available Today!",
-                            f"There are {spots} open spots for today's game at "
-                            f"{game.game_date.strftime('%I:%M %p')}. "
-                            f"First come, first served - RSVP now!",
-                            run_id=game.run_id,
-                        )
+                        # Send individual notifications with per-player action URLs
+                        from app.auth.jwt import create_game_action_token
+
+                        for player in dropin_players:
+                            action_token = create_game_action_token(player.id, game.id, game.run_id)
+                            action_url = f"{settings.frontend_url}/game/{action_token}"
+                            await send_notification(
+                                db, player, NotificationType.DROPIN_AVAILABLE,
+                                f"{spots} Spots Available Today!",
+                                f"There are {spots} open spots for today's game at "
+                                f"{game.game_date.strftime('%I:%M %p')}. "
+                                f"RSVP here: {action_url}",
+                                run_id=game.run_id,
+                            )
 
                 logger.info(f"Opened {spots} drop-in spots for game {game.id}")
 
@@ -536,15 +543,19 @@ async def send_voting_reminders():
                 )
                 players = list(players_result.scalars().all())
 
-                await send_bulk_notification(
-                    db,
-                    players,
-                    NotificationType.RSVP_REMINDER,
-                    f"Vote Reminder - Game #{game.id}",
-                    f"Don't forget to cast your MVP and Shaqtin' a Fool votes for {game.title}! "
-                    f"Voting closes at noon today. Your voice matters!",
-                    run_id=game.run_id,
-                )
+                # Send individual notifications with per-player action URLs
+                from app.auth.jwt import create_game_action_token
+
+                for player in players:
+                    action_token = create_game_action_token(player.id, game.id, game.run_id)
+                    action_url = f"{settings.frontend_url}/game/{action_token}"
+                    await send_notification(
+                        db, player, NotificationType.RSVP_REMINDER,
+                        f"Vote Reminder - Game #{game.id}",
+                        f"Don't forget to cast your MVP and Shaqtin' a Fool votes for {game.title}! "
+                        f"Voting closes at noon today. Vote here: {action_url}",
+                        run_id=game.run_id,
+                    )
 
                 logger.info(f"Sent voting reminders to {len(players)} players for game {game.id}")
 

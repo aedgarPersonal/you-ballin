@@ -98,3 +98,34 @@ def verify_magic_link_token(token: str) -> str | None:
         return payload.get("sub")
     except (JWTError, ValueError):
         return None
+
+
+def create_game_action_token(user_id: int, game_id: int, run_id: int) -> str:
+    """Create a token for RSVP/voting without login. Expires in 7 days."""
+    now = datetime.now(timezone.utc)
+    payload = {
+        "sub": str(user_id),
+        "game_id": game_id,
+        "run_id": run_id,
+        "exp": now + timedelta(days=7),
+        "iat": now,
+        "type": "game_action",
+    }
+    return jwt.encode(payload, settings.secret_key, algorithm=settings.jwt_algorithm)
+
+
+def verify_game_action_token(token: str) -> dict | None:
+    """Verify a game action token. Returns {user_id, game_id, run_id} or None."""
+    try:
+        payload = jwt.decode(
+            token, settings.secret_key, algorithms=[settings.jwt_algorithm]
+        )
+        if payload.get("type") != "game_action":
+            return None
+        return {
+            "user_id": int(payload["sub"]),
+            "game_id": payload["game_id"],
+            "run_id": payload["run_id"],
+        }
+    except (JWTError, ValueError):
+        return None
