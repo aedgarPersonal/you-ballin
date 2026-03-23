@@ -51,3 +51,13 @@ class GameAwardsResponse(BaseModel):
     mvp: AwardWinner | None = None
     shaqtin: AwardWinner | None = None
     xfactor: AwardWinner | None = None
+
+
+class RecentGameAwards(BaseModel):
+    """Award winners for a single completed game (dashboard view)."""
+    game_id: int
+    game_title: str
+    game_date: datetime
+    mvp: AwardWinner | None = None
+    shaqtin: AwardWinner | None = None
+    xfactor: AwardWinner | None = None

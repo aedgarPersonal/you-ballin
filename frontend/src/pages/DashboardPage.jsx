@@ -12,30 +12,41 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import useAuthStore from "../stores/authStore";
 import { listGames } from "../api/games";
+import { getRecentAwards } from "../api/votes";
 import { AvatarBadge } from "../components/AvatarPicker";
 import { getPlayerById } from "../data/legacyPlayers";
 
 export default function DashboardPage() {
   const user = useAuthStore((s) => s.user);
   const [nextGame, setNextGame] = useState(null);
+  const [recentAwards, setRecentAwards] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchNextGame = async () => {
+    const fetchData = async () => {
       try {
-        const { data } = await listGames();
-        // Find next upcoming game
-        const upcoming = data.find(
-          (g) => g.status !== "completed" && g.status !== "cancelled"
-        );
-        setNextGame(upcoming);
+        const [gamesRes, awardsRes] = await Promise.allSettled([
+          listGames(),
+          getRecentAwards(),
+        ]);
+
+        if (gamesRes.status === "fulfilled") {
+          const upcoming = gamesRes.value.data.find(
+            (g) => g.status !== "completed" && g.status !== "cancelled"
+          );
+          setNextGame(upcoming);
+        }
+
+        if (awardsRes.status === "fulfilled") {
+          setRecentAwards(awardsRes.value.data);
+        }
       } catch {
         // User may be pending, no access yet
       } finally {
         setLoading(false);
       }
     };
-    fetchNextGame();
+    fetchData();
   }, []);
 
   const statusMessage = {
@@ -151,6 +162,64 @@ export default function DashboardPage() {
         )}
       </div>
 
+      {/* Recent Award Winners */}
+      {recentAwards.length > 0 && (
+        <div className="mt-8">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">Recent Award Winners</h2>
+          <div className="space-y-4">
+            {recentAwards.map((game) => (
+              <Link
+                key={game.game_id}
+                to={`/games/${game.game_id}`}
+                className="card hover:shadow-md transition-shadow block"
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-gray-900">{game.game_title}</h3>
+                  <span className="text-xs text-gray-500">
+                    {new Date(game.game_date).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {/* MVP */}
+                  <AwardCard
+                    label="MVP"
+                    emoji="🏆"
+                    winner={game.mvp}
+                    gradient="from-yellow-50 to-amber-50"
+                    border="border-yellow-300"
+                    labelColor="text-yellow-700"
+                    nameColor="text-yellow-900"
+                  />
+                  {/* X Factor */}
+                  <AwardCard
+                    label="X Factor"
+                    emoji="⚡"
+                    winner={game.xfactor}
+                    gradient="from-blue-50 to-indigo-50"
+                    border="border-blue-300"
+                    labelColor="text-blue-700"
+                    nameColor="text-blue-900"
+                  />
+                  {/* Shaqtin' */}
+                  <AwardCard
+                    label="Shaqtin'"
+                    emoji="🤦"
+                    winner={game.shaqtin}
+                    gradient="from-purple-50 to-fuchsia-50"
+                    border="border-purple-300"
+                    labelColor="text-purple-700"
+                    nameColor="text-purple-900"
+                  />
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Quick Links */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-8">
         <Link to="/games" className="card hover:shadow-md transition-shadow text-center">
@@ -170,6 +239,36 @@ export default function DashboardPage() {
           <p className="mt-2 font-medium">My Profile</p>
         </Link>
       </div>
+    </div>
+  );
+}
+
+
+/**
+ * AwardCard — a mini card for displaying a single award winner.
+ */
+function AwardCard({ label, emoji, winner, gradient, border, labelColor, nameColor }) {
+  return (
+    <div className={`bg-gradient-to-br ${gradient} ${border} border rounded-lg p-3 text-center`}>
+      <div className="text-2xl mb-1">{emoji}</div>
+      <div className={`text-[10px] font-bold uppercase tracking-wider ${labelColor} mb-1`}>{label}</div>
+      {winner ? (
+        <>
+          <div className="flex justify-center mb-1">
+            {winner.player.avatar_url ? (
+              <AvatarBadge avatarId={winner.player.avatar_url} size="sm" />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-white/60 flex items-center justify-center text-sm font-bold text-gray-600">
+                {winner.player.full_name.charAt(0)}
+              </div>
+            )}
+          </div>
+          <div className={`text-sm font-bold ${nameColor} truncate`}>{winner.player.full_name}</div>
+          <div className="text-[10px] text-gray-500">{winner.vote_count} vote{winner.vote_count !== 1 ? "s" : ""}</div>
+        </>
+      ) : (
+        <div className="text-xs text-gray-400 italic">No votes</div>
+      )}
     </div>
   );
 }

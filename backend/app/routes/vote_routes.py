@@ -35,11 +35,13 @@ from app.schemas.vote import (
     AwardWinner,
     GameAwardsResponse,
     MyVotesResponse,
+    RecentGameAwards,
     VoteCast,
     VoteResponse,
 )
 
 router = APIRouter(prefix="/api/games", tags=["Voting"])
+awards_router = APIRouter(prefix="/api/awards", tags=["Awards"])
 
 def _get_voting_deadline(game: Game) -> datetime:
     """Calculate when voting closes (noon the day after the game)."""
@@ -287,3 +289,52 @@ async def _get_winner(
         player=UserResponse.model_validate(player),
         vote_count=count,
     )
+
+
+# =============================================================================
+# Recent Award Winners (for Dashboard)
+# =============================================================================
+
+@awards_router.get("/recent", response_model=list[RecentGameAwards])
+async def get_recent_awards(
+    db: AsyncSession = Depends(get_db),
+):
+    """Get award winners from the most recent completed games.
+
+    Returns up to 5 most recent games that have completed voting,
+    with their MVP, Shaqtin', and X Factor winners.
+    """
+    # Find recently completed games where voting has closed
+    result = await db.execute(
+        select(Game)
+        .where(Game.status == GameStatus.COMPLETED)
+        .order_by(Game.game_date.desc())
+        .limit(5)
+    )
+    games = result.scalars().all()
+
+    recent_awards = []
+    now = datetime.now(timezone.utc)
+
+    for game in games:
+        deadline = _get_voting_deadline(game)
+        if now <= deadline:
+            # Voting still open, skip this game
+            continue
+
+        mvp = await _get_winner(db, game.id, VoteType.MVP)
+        shaqtin = await _get_winner(db, game.id, VoteType.SHAQTIN)
+        xfactor = await _get_winner(db, game.id, VoteType.XFACTOR)
+
+        # Only include if at least one award was given
+        if mvp or shaqtin or xfactor:
+            recent_awards.append(RecentGameAwards(
+                game_id=game.id,
+                game_title=game.title,
+                game_date=game.game_date,
+                mvp=mvp,
+                shaqtin=shaqtin,
+                xfactor=xfactor,
+            ))
+
+    return recent_awards

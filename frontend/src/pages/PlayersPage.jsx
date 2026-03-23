@@ -106,23 +106,35 @@ export default function PlayersPage() {
                 </div>
               </div>
 
-              {/* Award Badges */}
+              {/* Award Trophies */}
               {(player.mvp_count > 0 || player.xfactor_count > 0 || player.shaqtin_count > 0) && (
-                <div className="flex gap-2 mt-3 flex-wrap">
+                <div className="flex gap-3 mt-3 flex-wrap">
                   {player.mvp_count > 0 && (
-                    <span className="inline-flex items-center gap-1 text-xs font-semibold bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">
-                      🏆 {player.mvp_count}
-                    </span>
+                    <div className="flex items-center gap-1.5 bg-gradient-to-r from-yellow-50 to-yellow-100 border border-yellow-300 rounded-lg px-3 py-1.5">
+                      <span className="text-lg">🏆</span>
+                      <div className="leading-tight">
+                        <div className="text-sm font-bold text-yellow-800">{player.mvp_count}</div>
+                        <div className="text-[10px] font-medium text-yellow-600 uppercase tracking-wider">MVP</div>
+                      </div>
+                    </div>
                   )}
                   {player.xfactor_count > 0 && (
-                    <span className="inline-flex items-center gap-1 text-xs font-semibold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
-                      ⚡ {player.xfactor_count}
-                    </span>
+                    <div className="flex items-center gap-1.5 bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-300 rounded-lg px-3 py-1.5">
+                      <span className="text-lg">⚡</span>
+                      <div className="leading-tight">
+                        <div className="text-sm font-bold text-blue-800">{player.xfactor_count}</div>
+                        <div className="text-[10px] font-medium text-blue-600 uppercase tracking-wider">X Factor</div>
+                      </div>
+                    </div>
                   )}
                   {player.shaqtin_count > 0 && (
-                    <span className="inline-flex items-center gap-1 text-xs font-semibold bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">
-                      🤦 {player.shaqtin_count}
-                    </span>
+                    <div className="flex items-center gap-1.5 bg-gradient-to-r from-purple-50 to-purple-100 border border-purple-300 rounded-lg px-3 py-1.5">
+                      <span className="text-lg">🤦</span>
+                      <div className="leading-tight">
+                        <div className="text-sm font-bold text-purple-800">{player.shaqtin_count}</div>
+                        <div className="text-[10px] font-medium text-purple-600 uppercase tracking-wider">Shaqtin'</div>
+                      </div>
+                    </div>
                   )}
                 </div>
               )}

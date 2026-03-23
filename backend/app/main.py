@@ -105,6 +105,7 @@ app.include_router(rating_routes.router)
 app.include_router(admin_routes.router)
 app.include_router(notification_routes.router)
 app.include_router(vote_routes.router)
+app.include_router(vote_routes.awards_router)
 app.include_router(algorithm_routes.router)
 
 

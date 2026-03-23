@@ -14,3 +14,6 @@ export const getMyVotes = (gameId) =>
 
 export const getGameAwards = (gameId) =>
   api.get(`/games/${gameId}/awards`);
+
+export const getRecentAwards = () =>
+  api.get("/awards/recent");
