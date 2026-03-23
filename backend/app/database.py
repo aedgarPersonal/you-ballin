@@ -21,12 +21,13 @@ from sqlalchemy.orm import DeclarativeBase
 from app.config import settings
 
 # Create the async engine with connection pooling
-engine = create_async_engine(
-    settings.database_url,
-    echo=False,  # Set True to log all SQL queries (useful for debugging)
-    pool_size=20,
-    max_overflow=10,
-)
+# SQLite doesn't support pool_size/max_overflow, so we conditionally set them
+_is_sqlite = settings.database_url.startswith("sqlite")
+_engine_kwargs = {"echo": False}
+if not _is_sqlite:
+    _engine_kwargs.update(pool_size=20, max_overflow=10)
+
+engine = create_async_engine(settings.database_url, **_engine_kwargs)
 
 # Session factory - creates new sessions on demand
 async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)

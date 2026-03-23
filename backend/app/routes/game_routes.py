@@ -68,6 +68,7 @@ async def create_game(
     game = Game(**data.model_dump())
     db.add(game)
     await db.flush()
+    await db.refresh(game, ["rsvps", "teams", "result"])
     return game
 
 
@@ -298,7 +299,14 @@ async def generate_teams(
 
     game.status = GameStatus.TEAMS_SET
     await db.flush()
-    return assignments
+
+    # Reload assignments with user relationship for response serialization
+    result = await db.execute(
+        select(TeamAssignment)
+        .where(TeamAssignment.game_id == game_id)
+        .options(selectinload(TeamAssignment.user))
+    )
+    return result.scalars().all()
 
 
 @router.get("/{game_id}/teams", response_model=list[TeamAssignmentResponse])
