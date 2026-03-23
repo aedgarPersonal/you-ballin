@@ -1,7 +1,7 @@
 """
 Vote Schemas
 ============
-Request/response shapes for the MVP and Shaqtin' a Fool voting system.
+Request/response shapes for the MVP, Shaqtin' a Fool, and X Factor voting system.
 """
 
 from datetime import datetime
@@ -12,9 +12,9 @@ from app.schemas.user import UserResponse
 
 
 class VoteCast(BaseModel):
-    """Submit a vote for MVP or Shaqtin'."""
+    """Submit a vote for MVP, Shaqtin', or X Factor."""
     nominee_id: int
-    vote_type: str  # "mvp" or "shaqtin"
+    vote_type: str  # "mvp", "shaqtin", or "xfactor"
 
 
 class VoteResponse(BaseModel):
@@ -32,6 +32,7 @@ class MyVotesResponse(BaseModel):
     """The current user's votes for a specific game."""
     mvp_vote: VoteResponse | None = None
     shaqtin_vote: VoteResponse | None = None
+    xfactor_vote: VoteResponse | None = None
 
 
 class AwardWinner(BaseModel):
@@ -41,13 +42,7 @@ class AwardWinner(BaseModel):
 
 
 class GameAwardsResponse(BaseModel):
-    """Public award results for a completed game.
-
-    TEACHING NOTE:
-        This is what gets displayed on the public page after
-        voting closes. It includes the winners and whether
-        voting is still open.
-    """
+    """Public award results for a completed game."""
     game_id: int
     voting_open: bool
     voting_deadline: datetime | None = None
@@ -55,3 +50,4 @@ class GameAwardsResponse(BaseModel):
     votes_cast: int
     mvp: AwardWinner | None = None
     shaqtin: AwardWinner | None = None
+    xfactor: AwardWinner | None = None

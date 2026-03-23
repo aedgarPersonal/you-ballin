@@ -90,6 +90,9 @@ class UserResponse(BaseModel):
     jordan_factor: float
     games_played: int
     games_won: int
+    mvp_count: int = 0
+    shaqtin_count: int = 0
+    xfactor_count: int = 0
     created_at: datetime
 
     model_config = {"from_attributes": True}

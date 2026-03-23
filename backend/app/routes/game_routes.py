@@ -22,7 +22,7 @@ from sqlalchemy.orm import selectinload
 from app.auth.dependencies import get_current_admin, get_current_user
 from app.database import get_db
 from app.models.game import Game, GameStatus, RSVP, RSVPStatus
-from app.models.team import GameResult, TeamAssignment, pick_team_names
+from app.models.team import GameResult, TeamAssignment, TeamScore, pick_team_names
 from app.models.user import PlayerStatus, User
 from app.models.notification import NotificationType
 from app.schemas.game import (
@@ -81,13 +81,14 @@ async def get_game(
     db: AsyncSession = Depends(get_db),
     _user: User = Depends(get_current_user),
 ):
-    """Get game details including RSVPs and team assignments."""
+    """Get game details including RSVPs, team assignments, and result."""
     result = await db.execute(
         select(Game)
         .where(Game.id == game_id)
         .options(
             selectinload(Game.rsvps).selectinload(RSVP.user),
             selectinload(Game.teams).selectinload(TeamAssignment.user),
+            selectinload(Game.result).selectinload(GameResult.team_scores),
         )
     )
     game = result.scalar_one_or_none()
@@ -442,20 +443,19 @@ async def record_result(
     db: AsyncSession = Depends(get_db),
     _admin: User = Depends(get_current_admin),
 ):
-    """Record the outcome of a game (admin only).
+    """Record the outcome of a game night with per-team scores (admin only).
 
     TEACHING NOTE:
-        After recording the result, we update each player's Jordan Factor.
-        The Jordan Factor tracks win percentage (games_won / games_played).
-        Named after the GOAT - a high Jordan Factor means you win a lot.
+        A game night typically consists of multiple individual games (e.g.,
+        best of 5). The admin enters the win count for each team.
 
-        We use explicit games_won and games_played counters instead of
-        recalculating from scratch each time. This is faster and makes
-        the win/loss record directly visible to players.
+        Example: Team A won 3 games, Team B won 2 games.
+        Total individual games = 3 + 2 = 5.
+        Team A players: games_played += 5, games_won += 3
+        Team B players: games_played += 5, games_won += 2
 
-        The Jordan Factor feeds back into the team balancing algorithm,
-        so consistent winners get balanced against each other in future
-        games, creating fairer matchups over time.
+        The Jordan Factor (games_won / games_played) is now more granular
+        than the old binary system, giving a truer picture of win rate.
     """
     # Verify game exists
     result = await db.execute(
@@ -470,35 +470,63 @@ async def record_result(
     if existing.scalar_one_or_none():
         raise HTTPException(status_code=409, detail="Result already recorded for this game")
 
-    # Validate winning_team exists in assignments
+    # Validate all teams have scores and no invalid teams
     valid_teams = set(t.team for t in game.teams)
-    if data.winning_team not in valid_teams:
-        raise HTTPException(status_code=400, detail=f"Invalid team. Valid teams: {', '.join(sorted(valid_teams))}")
+    submitted_teams = set(ts.team for ts in data.team_scores)
+    if submitted_teams != valid_teams:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Must provide scores for all teams. Expected: {', '.join(sorted(valid_teams))}",
+        )
 
-    game_result = GameResult(
-        game_id=game_id,
-        winning_team=data.winning_team,
-        notes=data.notes,
-    )
+    # At least one team must have wins > 0
+    total_games = sum(ts.wins for ts in data.team_scores)
+    if total_games == 0:
+        raise HTTPException(status_code=400, detail="At least one team must have wins > 0")
+
+    # Create game result
+    game_result = GameResult(game_id=game_id, notes=data.notes)
     db.add(game_result)
+    await db.flush()  # Get game_result.id
 
-    # Update Jordan Factor for all players in the game
+    # Build team-name lookup and score map
+    team_name_lookup = {}
+    for t in game.teams:
+        if t.team not in team_name_lookup:
+            team_name_lookup[t.team] = t.team_name
+
+    score_map = {}
+    for ts in data.team_scores:
+        score_map[ts.team] = ts.wins
+        db.add(TeamScore(
+            game_result_id=game_result.id,
+            team=ts.team,
+            team_name=team_name_lookup.get(ts.team, ts.team),
+            wins=ts.wins,
+        ))
+
+    # Update Jordan Factor for all players
     for assignment in game.teams:
         player_result = await db.execute(select(User).where(User.id == assignment.user_id))
         player = player_result.scalar_one_or_none()
         if player:
-            player.games_played += 1
-            if assignment.team == data.winning_team:
-                player.games_won += 1
-            player.jordan_factor = player.games_won / player.games_played
+            team_wins = score_map.get(assignment.team, 0)
+            player.games_played += total_games
+            player.games_won += team_wins
+            player.jordan_factor = player.games_won / player.games_played if player.games_played > 0 else 0.5
 
     game.status = GameStatus.COMPLETED
 
-    # Notify all participants that the game is complete and voting is open
-    winning_team_name = next(
-        (t.team_name for t in game.teams if t.team == data.winning_team),
-        data.winning_team,
+    # Build notification message
+    score_parts = sorted(data.team_scores, key=lambda ts: ts.wins, reverse=True)
+    score_summary = " - ".join(
+        f"{team_name_lookup.get(ts.team, ts.team)} {ts.wins}"
+        for ts in score_parts
     )
+    top_team = score_parts[0]
+    is_tie = len(score_parts) > 1 and score_parts[0].wins == score_parts[1].wins
+    winner_msg = "It's a tie!" if is_tie else f"{team_name_lookup.get(top_team.team, top_team.team)} wins!"
+
     player_ids = list(set(t.user_id for t in game.teams))
     all_players_result = await db.execute(select(User).where(User.id.in_(player_ids)))
     all_players = list(all_players_result.scalars().all())
@@ -508,8 +536,14 @@ async def record_result(
         all_players,
         NotificationType.GAME_COMPLETED,
         f"Game Complete: {game.title}",
-        f"{winning_team_name} wins! Cast your MVP and Shaqtin' a Fool votes now.",
+        f"{winner_msg} Final: {score_summary}. Cast your MVP and Shaqtin' votes before noon tomorrow!",
     )
 
     await db.flush()
-    return game_result
+
+    # Reload to get team_scores relationship populated
+    result = await db.execute(
+        select(GameResult).where(GameResult.id == game_result.id)
+        .options(selectinload(GameResult.team_scores))
+    )
+    return result.scalar_one()

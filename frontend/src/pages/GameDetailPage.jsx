@@ -26,6 +26,7 @@ export default function GameDetailPage() {
   const { id } = useParams();
   const user = useAuthStore((s) => s.user);
   const [game, setGame] = useState(null);
+  const [scores, setScores] = useState({});
   const [awards, setAwards] = useState(null);
   const [myVotes, setMyVotes] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -82,12 +83,23 @@ export default function GameDetailPage() {
     }
   };
 
-  const handleRecordResult = async (winningTeam) => {
-    const teamName = uniqueTeams.find((t) => t.id === winningTeam)?.name || winningTeam;
-    if (!confirm(`Record ${teamName} as the winner? This cannot be undone.`)) return;
+  const handleRecordResult = async () => {
+    const totalGames = Object.values(scores).reduce((sum, v) => sum + (parseInt(v) || 0), 0);
+    if (totalGames === 0) {
+      toast.error("Enter at least one win");
+      return;
+    }
+    const scoreSummary = uniqueTeams
+      .map((t) => `${t.name}: ${scores[t.id] || 0}`)
+      .join(", ");
+    if (!confirm(`Record results? ${scoreSummary}. This cannot be undone.`)) return;
     try {
-      await recordResult(id, { winning_team: winningTeam });
-      toast.success("Result recorded! Players have been notified.");
+      const team_scores = uniqueTeams.map((t) => ({
+        team: t.id,
+        wins: parseInt(scores[t.id]) || 0,
+      }));
+      await recordResult(id, { team_scores });
+      toast.success("Results recorded! Players have been notified.");
       fetchGame();
     } catch (err) {
       toast.error(err.response?.data?.detail || "Failed to record result");
@@ -108,7 +120,8 @@ export default function GameDetailPage() {
   const handleVote = async (voteType, nomineeId) => {
     try {
       await castVote(id, { vote_type: voteType, nominee_id: nomineeId });
-      toast.success(`${voteType === "mvp" ? "MVP" : "Shaqtin'"} vote recorded!`);
+      const labels = { mvp: "MVP", shaqtin: "Shaqtin'", xfactor: "X Factor" };
+      toast.success(`${labels[voteType] || voteType} vote recorded!`);
       const [awardsRes, votesRes] = await Promise.all([
         getGameAwards(id),
         getMyVotes(id),
@@ -175,6 +188,24 @@ export default function GameDetailPage() {
         {game.notes && <p className="text-gray-600 mt-4 italic">{game.notes}</p>}
       </div>
 
+      {/* Final Score Banner */}
+      {game.status === "completed" && game.result?.team_scores?.length > 0 && (
+        <div className="card mb-6 border-2 border-court-300 bg-court-50">
+          <h3 className="text-sm font-semibold text-court-600 uppercase tracking-wide text-center mb-2">Final Score</h3>
+          <div className="flex items-center justify-center gap-4 flex-wrap">
+            {[...game.result.team_scores]
+              .sort((a, b) => b.wins - a.wins)
+              .map((ts, idx) => (
+                <div key={ts.team} className="flex items-center gap-2">
+                  {idx > 0 && <span className="text-gray-400 font-bold">-</span>}
+                  <span className="font-bold text-gray-800">{ts.team_name}</span>
+                  <span className="text-2xl font-black text-court-600">{ts.wins}</span>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
+
       {/* Cancelled Banner */}
       {game.status === "cancelled" && (
         <div className="card mb-6 border-2 border-red-300 bg-red-50">
@@ -185,8 +216,8 @@ export default function GameDetailPage() {
       )}
 
       {/* Award Results (shown after voting closes) */}
-      {awards && !awards.voting_open && (awards.mvp || awards.shaqtin) && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      {awards && !awards.voting_open && (awards.mvp || awards.shaqtin || awards.xfactor) && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
           {awards.mvp && (
             <div className="card border-2 border-yellow-400 bg-yellow-50">
               <div className="flex items-center gap-3 mb-2">
@@ -199,6 +230,20 @@ export default function GameDetailPage() {
                 </div>
               </div>
               <p className="text-sm text-yellow-700">{awards.mvp.vote_count} vote{awards.mvp.vote_count !== 1 ? "s" : ""}</p>
+            </div>
+          )}
+          {awards.xfactor && (
+            <div className="card border-2 border-blue-400 bg-blue-50">
+              <div className="flex items-center gap-3 mb-2">
+                <span className="text-3xl">⚡</span>
+                <div>
+                  <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide">X Factor</p>
+                  <Link to={`/players/${awards.xfactor.player.id}`} className="text-lg font-bold text-gray-900 hover:text-court-600">
+                    {awards.xfactor.player.full_name}
+                  </Link>
+                </div>
+              </div>
+              <p className="text-sm text-blue-700">{awards.xfactor.vote_count} vote{awards.xfactor.vote_count !== 1 ? "s" : ""}</p>
             </div>
           )}
           {awards.shaqtin && (
@@ -234,7 +279,7 @@ export default function GameDetailPage() {
             Results are hidden until voting closes.
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <VotingCard
               title="MVP"
               emoji="🏆"
@@ -244,6 +289,16 @@ export default function GameDetailPage() {
               currentUserId={user?.id}
               currentVoteId={myVotes?.mvp_vote?.nominee_id}
               onVote={(nomineeId) => handleVote("mvp", nomineeId)}
+            />
+            <VotingCard
+              title="X Factor"
+              emoji="⚡"
+              description="Who was the biggest game-changer?"
+              color="blue"
+              participants={allParticipants}
+              currentUserId={user?.id}
+              currentVoteId={myVotes?.xfactor_vote?.nominee_id}
+              onVote={(nomineeId) => handleVote("xfactor", nomineeId)}
             />
             <VotingCard
               title="Shaqtin' a Fool"
@@ -346,21 +401,37 @@ export default function GameDetailPage() {
               </button>
             )}
 
-            {/* Record Winner — one button per team */}
+            {/* Record Scores — input per team */}
             {game.status === "teams_set" && uniqueTeams.length > 0 && (
-              <>
-                <span className="text-sm text-gray-500 self-center">Winner:</span>
-                {uniqueTeams.map((team, idx) => (
+              <div className="w-full mt-2">
+                <p className="text-sm text-gray-500 mb-2">Record wins per team:</p>
+                <div className="flex flex-wrap items-end gap-3">
+                  {uniqueTeams.map((team, idx) => (
+                    <div key={team.id} className="flex flex-col items-center">
+                      <label
+                        className="text-xs font-bold mb-1 px-2 py-0.5 rounded text-white"
+                        style={{ backgroundColor: TEAM_COLORS[idx % TEAM_COLORS.length] }}
+                      >
+                        {team.name}
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={scores[team.id] || ""}
+                        onChange={(e) => setScores({ ...scores, [team.id]: e.target.value })}
+                        placeholder="0"
+                        className="w-16 text-center text-lg font-bold border-2 border-gray-300 rounded-lg py-1 focus:border-court-500 focus:outline-none"
+                      />
+                    </div>
+                  ))}
                   <button
-                    key={team.id}
-                    onClick={() => handleRecordResult(team.id)}
-                    className="text-white font-semibold py-2 px-4 rounded-lg hover:opacity-90 transition-opacity"
-                    style={{ backgroundColor: TEAM_COLORS[idx % TEAM_COLORS.length] }}
+                    onClick={handleRecordResult}
+                    className="btn-primary py-2 px-4"
                   >
-                    {team.name}
+                    Submit Scores
                   </button>
-                ))}
-              </>
+                </div>
+              </div>
             )}
 
             {/* Cancel Game */}
@@ -383,9 +454,15 @@ export default function GameDetailPage() {
  * VotingCard Component
  */
 function VotingCard({ title, emoji, description, color, participants, currentUserId, currentVoteId, onVote }) {
-  const borderColor = color === "yellow" ? "border-yellow-300" : "border-purple-300";
-  const headerColor = color === "yellow" ? "text-yellow-700" : "text-purple-700";
-  const selectedBg = color === "yellow" ? "bg-yellow-100 border-yellow-400" : "bg-purple-100 border-purple-400";
+  const colorMap = {
+    yellow: { border: "border-yellow-300", header: "text-yellow-700", selected: "bg-yellow-100 border-yellow-400" },
+    purple: { border: "border-purple-300", header: "text-purple-700", selected: "bg-purple-100 border-purple-400" },
+    blue: { border: "border-blue-300", header: "text-blue-700", selected: "bg-blue-100 border-blue-400" },
+  };
+  const colors = colorMap[color] || colorMap.yellow;
+  const borderColor = colors.border;
+  const headerColor = colors.header;
+  const selectedBg = colors.selected;
 
   const eligible = participants.filter((p) => p.id !== currentUserId);
 

@@ -82,6 +82,9 @@ class User(Base):
     jordan_factor: Mapped[float] = mapped_column(Float, default=0.5)  # Win percentage 0.0 - 1.0
     games_played: Mapped[int] = mapped_column(Integer, default=0)
     games_won: Mapped[int] = mapped_column(Integer, default=0)
+    mvp_count: Mapped[int] = mapped_column(Integer, default=0)        # Times won MVP award
+    shaqtin_count: Mapped[int] = mapped_column(Integer, default=0)    # Times won Shaqtin' a Fool
+    xfactor_count: Mapped[int] = mapped_column(Integer, default=0)    # Times won X Factor award
 
     # --- Timestamps ---
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())

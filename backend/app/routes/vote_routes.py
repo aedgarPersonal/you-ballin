@@ -6,11 +6,12 @@ MVP and "Shaqtin' a Fool" voting for game participants.
 TEACHING NOTE:
     Voting flow:
     1. Admin records a game result (game status → COMPLETED)
-    2. A 24-hour voting window opens automatically
+    2. Voting opens automatically until noon the next day
     3. Only players who were on a team for that game can vote
     4. Each player casts one MVP vote and one Shaqtin' vote
     5. Players can change their vote until the deadline
-    6. After 24 hours, voting closes and results are published
+    6. At noon the next day, voting closes and results are published
+       with top 10 overall standings and fun commentary
 
     The public results endpoint (/api/games/{id}/awards) does NOT require
     authentication, so it can be displayed on the group's public page.
@@ -40,16 +41,13 @@ from app.schemas.vote import (
 
 router = APIRouter(prefix="/api/games", tags=["Voting"])
 
-# Voting window duration after game time
-VOTING_WINDOW_HOURS = 24
-
-
 def _get_voting_deadline(game: Game) -> datetime:
-    """Calculate when voting closes (24h after game time)."""
+    """Calculate when voting closes (noon the day after the game)."""
     game_time = game.game_date
     if game_time.tzinfo is None:
         game_time = game_time.replace(tzinfo=timezone.utc)
-    return game_time + timedelta(hours=VOTING_WINDOW_HOURS)
+    next_day_noon = (game_time + timedelta(days=1)).replace(hour=12, minute=0, second=0, microsecond=0)
+    return next_day_noon
 
 
 def _is_voting_open(game: Game) -> bool:
@@ -174,10 +172,12 @@ async def get_my_votes(
 
     mvp_vote = next((v for v in votes if v.vote_type == VoteType.MVP), None)
     shaqtin_vote = next((v for v in votes if v.vote_type == VoteType.SHAQTIN), None)
+    xfactor_vote = next((v for v in votes if v.vote_type == VoteType.XFACTOR), None)
 
     return MyVotesResponse(
         mvp_vote=VoteResponse.model_validate(mvp_vote) if mvp_vote else None,
         shaqtin_vote=VoteResponse.model_validate(shaqtin_vote) if shaqtin_vote else None,
+        xfactor_vote=VoteResponse.model_validate(xfactor_vote) if xfactor_vote else None,
     )
 
 
@@ -240,6 +240,7 @@ async def get_game_awards(
     if not voting_open:
         response.mvp = await _get_winner(db, game_id, VoteType.MVP)
         response.shaqtin = await _get_winner(db, game_id, VoteType.SHAQTIN)
+        response.xfactor = await _get_winner(db, game_id, VoteType.XFACTOR)
 
     return response
 
