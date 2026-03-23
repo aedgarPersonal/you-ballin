@@ -5,10 +5,11 @@
  */
 
 import { Link, useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import useAuthStore from "../../stores/authStore";
 import useNotificationStore from "../../stores/notificationStore";
 import useRunStore from "../../stores/runStore";
+import { createRun } from "../../api/runs";
 import { AvatarBadge } from "../AvatarPicker";
 
 export default function Navbar() {
@@ -16,6 +17,28 @@ export default function Navbar() {
   const { unreadCount, fetchNotifications } = useNotificationStore();
   const { runs, currentRun, setCurrentRun, fetchRuns } = useRunStore();
   const navigate = useNavigate();
+  const [showCreateRun, setShowCreateRun] = useState(false);
+  const [newRunName, setNewRunName] = useState("");
+  const [creating, setCreating] = useState(false);
+
+  const isSuperAdmin = user?.role === "super_admin";
+
+  const handleCreateRun = async (e) => {
+    e.preventDefault();
+    if (!newRunName.trim()) return;
+    setCreating(true);
+    try {
+      const { data } = await createRun({ name: newRunName.trim() });
+      await fetchRuns();
+      setCurrentRun(data);
+      setShowCreateRun(false);
+      setNewRunName("");
+    } catch (err) {
+      console.error("Failed to create run:", err);
+    } finally {
+      setCreating(false);
+    }
+  };
 
   useEffect(() => {
     fetchNotifications();
@@ -50,27 +73,38 @@ export default function Navbar() {
               <Link to="/players" className="text-gray-600 hover:text-court-600 transition-colors px-3 py-2 rounded-md text-sm font-medium">
                 Players
               </Link>
-              {user?.role === "super_admin" && (
+              {isSuperAdmin && (
                 <Link to="/admin" className="text-gray-600 hover:text-court-600 transition-colors px-3 py-2 rounded-md text-sm font-medium">
                   Admin
                 </Link>
               )}
 
               {/* Run Switcher */}
-              {runs.length > 0 && (
-                <select
-                  value={currentRun?.id || ""}
-                  onChange={(e) => {
-                    const run = runs.find(r => r.id === parseInt(e.target.value));
-                    if (run) setCurrentRun(run);
-                  }}
-                  className="text-sm border-gray-300 rounded-md px-2 py-1.5 bg-white text-gray-700 focus:ring-court-500 focus:border-court-500"
-                >
-                  {runs.map(run => (
-                    <option key={run.id} value={run.id}>{run.name}</option>
-                  ))}
-                </select>
-              )}
+              <div className="flex items-center space-x-2">
+                {runs.length > 0 && (
+                  <select
+                    value={currentRun?.id || ""}
+                    onChange={(e) => {
+                      const run = runs.find(r => r.id === parseInt(e.target.value));
+                      if (run) setCurrentRun(run);
+                    }}
+                    className="text-sm border-gray-300 rounded-md px-2 py-1.5 bg-white text-gray-700 focus:ring-court-500 focus:border-court-500"
+                  >
+                    {runs.map(run => (
+                      <option key={run.id} value={run.id}>{run.name}</option>
+                    ))}
+                  </select>
+                )}
+                {isSuperAdmin && (
+                  <button
+                    onClick={() => setShowCreateRun(true)}
+                    className="text-sm bg-court-600 text-white rounded-md px-2 py-1.5 hover:bg-court-700 transition-colors"
+                    title="Create new run"
+                  >
+                    + Run
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
@@ -105,6 +139,32 @@ export default function Navbar() {
           </div>
         </div>
       </div>
+      {/* Create Run Modal */}
+      {showCreateRun && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowCreateRun(false)}>
+          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-lg font-bold text-gray-900 mb-4">Create New Run</h2>
+            <form onSubmit={handleCreateRun}>
+              <input
+                type="text"
+                value={newRunName}
+                onChange={(e) => setNewRunName(e.target.value)}
+                placeholder="Run name (e.g. Wednesday Night Hoops)"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-court-500 focus:border-court-500 mb-4"
+                autoFocus
+              />
+              <div className="flex justify-end space-x-3">
+                <button type="button" onClick={() => setShowCreateRun(false)} className="text-sm text-gray-600 hover:text-gray-800 px-4 py-2">
+                  Cancel
+                </button>
+                <button type="submit" disabled={creating || !newRunName.trim()} className="text-sm bg-court-600 text-white rounded-md px-4 py-2 hover:bg-court-700 disabled:opacity-50">
+                  {creating ? "Creating..." : "Create Run"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </nav>
   );
 }
