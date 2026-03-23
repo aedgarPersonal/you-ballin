@@ -61,6 +61,7 @@ export default function AdminPage() {
   const { currentRun, setCurrentRun } = useRunStore();
   const runId = currentRun?.id;
   const isSuperAdmin = user?.role === "super_admin";
+  const { isRunAdmin } = useRunStore();
 
   const [tab, setTab] = useState("pending");
 
@@ -350,8 +351,8 @@ export default function AdminPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Admin Panel</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Admin Panel</h1>
         <div className="flex items-center gap-3">
           <label className="text-sm text-gray-600 flex items-center gap-1">
             Teams:
@@ -365,27 +366,29 @@ export default function AdminPage() {
               ))}
             </select>
           </label>
-          <button onClick={handleCreateGame} className="btn-primary">
+          <button onClick={handleCreateGame} className="btn-primary text-sm">
             + Create Game
           </button>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-gray-200 mb-6">
-        {tabs.map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`pb-3 px-4 text-sm font-medium border-b-2 transition-colors capitalize ${
-              tab === t
-                ? "border-court-500 text-court-600"
-                : "border-transparent text-gray-500 hover:text-gray-700"
-            }`}
-          >
-            {t} {t === "pending" && pending.length > 0 && `(${pending.length})`}
-          </button>
-        ))}
+      {/* Tabs - horizontally scrollable on mobile */}
+      <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 mb-6">
+        <div className="flex border-b border-gray-200 min-w-max">
+          {tabs.map((t) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={`pb-3 px-3 sm:px-4 text-sm font-medium border-b-2 transition-colors capitalize whitespace-nowrap ${
+                tab === t
+                  ? "border-court-500 text-court-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              {t} {t === "pending" && pending.length > 0 && `(${pending.length})`}
+            </button>
+          ))}
+        </div>
       </div>
 
       {loading && tab !== "balancer" ? (
@@ -399,7 +402,7 @@ export default function AdminPage() {
         ) : (
           <div className="space-y-4">
             {pending.map((user) => (
-              <div key={user.id} className="card flex items-center justify-between">
+              <div key={user.id} className="card flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <h3 className="font-semibold">{user.full_name}</h3>
                   <p className="text-sm text-gray-500">{user.email}</p>
@@ -407,7 +410,7 @@ export default function AdminPage() {
                     Registered {new Date(user.created_at).toLocaleDateString()}
                   </p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-shrink-0">
                   <button
                     onClick={() => handleApprove(user.id, "regular")}
                     className="bg-green-500 hover:bg-green-600 text-white text-sm font-medium py-1.5 px-3 rounded-lg"
@@ -595,7 +598,7 @@ export default function AdminPage() {
             ) : (
               <div className="space-y-3">
                 {suggestions.map((s) => (
-                  <div key={s.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div key={s.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-gray-50 rounded-lg">
                     <div>
                       <p className="font-medium text-gray-900">
                         {s.suggested_user?.full_name || `User #${s.suggested_user_id}`}
@@ -605,7 +608,7 @@ export default function AdminPage() {
                       </p>
                       {s.message && <p className="text-sm text-gray-600 mt-1 italic">"{s.message}"</p>}
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-shrink-0">
                       <button
                         onClick={async () => {
                           try {
@@ -752,7 +755,7 @@ export default function AdminPage() {
                   placeholder="e.g. Rec Center Gym"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Game Day</label>
                   <select
@@ -775,7 +778,7 @@ export default function AdminPage() {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Roster Size</label>
                   <input
@@ -811,7 +814,7 @@ export default function AdminPage() {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Skill Level</label>
                   <select
@@ -851,11 +854,11 @@ export default function AdminPage() {
         <div className="space-y-8">
           {/* Weight Sliders */}
           <div className="card">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
               <h2 className="text-lg font-semibold text-gray-900">Algorithm Weights</h2>
               <div className="flex items-center gap-3">
                 <span className="text-sm text-gray-500">
-                  Total: {totalWeight.toFixed(2)} (auto-normalized)
+                  Total: {totalWeight.toFixed(2)}
                 </span>
                 <button
                   onClick={handleSaveWeights}
@@ -883,9 +886,9 @@ export default function AdminPage() {
                 const pct = totalWeight > 0 ? ((w.weight / totalWeight) * 100).toFixed(0) : 0;
 
                 return (
-                  <div key={w.metric_name} className="flex items-center gap-4">
-                    <div className="w-40 flex-shrink-0">
-                      <span className="text-sm font-medium text-gray-700">{label}</span>
+                  <div key={w.metric_name} className="flex items-center gap-2 sm:gap-4">
+                    <div className="w-24 sm:w-40 flex-shrink-0">
+                      <span className="text-xs sm:text-sm font-medium text-gray-700">{label}</span>
                       {!w.is_builtin && (
                         <span className="ml-1 text-xs text-court-500">custom</span>
                       )}
@@ -899,8 +902,8 @@ export default function AdminPage() {
                       onChange={(e) => handleWeightChange(w.metric_name, parseFloat(e.target.value))}
                       className="flex-1 h-2 accent-court-500"
                     />
-                    <div className="w-20 text-right">
-                      <span className="text-sm font-mono text-gray-600">
+                    <div className="w-16 sm:w-20 text-right">
+                      <span className="text-xs sm:text-sm font-mono text-gray-600">
                         {w.weight.toFixed(2)}
                       </span>
                       <span className="text-xs text-gray-400 ml-1">({pct}%)</span>
@@ -934,7 +937,7 @@ export default function AdminPage() {
             {/* New metric form */}
             {showNewMetricForm && (
               <form onSubmit={handleCreateMetric} className="bg-gray-50 rounded-lg p-4 mb-4 space-y-3">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">
                       Internal Name (lowercase, no spaces)
@@ -975,7 +978,7 @@ export default function AdminPage() {
                     placeholder="What this metric measures"
                   />
                 </div>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-3 sm:grid-cols-3 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Min Value</label>
                     <input

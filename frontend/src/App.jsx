@@ -12,6 +12,7 @@
 
 import { Routes, Route, Navigate } from "react-router-dom";
 import useAuthStore from "./stores/authStore";
+import useRunStore from "./stores/runStore";
 
 // Layout
 import Navbar from "./components/layout/Navbar";
@@ -35,7 +36,10 @@ function ProtectedRoute({ children }) {
 
 function AdminRoute({ children }) {
   const user = useAuthStore((s) => s.user);
+  const isRunAdmin = useRunStore((s) => s.isRunAdmin);
   if (!user) return <Navigate to="/login" />;
+  // Allow super admins and run admins; API endpoints enforce fine-grained access
+  if (user.role !== "super_admin" && !isRunAdmin) return <Navigate to="/" />;
   return children;
 }
 

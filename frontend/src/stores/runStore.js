@@ -6,6 +6,9 @@ const useRunStore = create((set, get) => ({
   currentRun: JSON.parse(localStorage.getItem("currentRun") || "null"),
   loading: false,
 
+  /** Whether the current user is an admin of the current run */
+  isRunAdmin: JSON.parse(localStorage.getItem("currentRun") || "null")?.is_admin || false,
+
   fetchRuns: async () => {
     set({ loading: true });
     try {
@@ -30,12 +33,12 @@ const useRunStore = create((set, get) => ({
 
   setCurrentRun: (run) => {
     localStorage.setItem("currentRun", JSON.stringify(run));
-    set({ currentRun: run });
+    set({ currentRun: run, isRunAdmin: run?.is_admin || false });
   },
 
   clearRun: () => {
     localStorage.removeItem("currentRun");
-    set({ currentRun: null });
+    set({ currentRun: null, isRunAdmin: false });
   },
 }));
 
