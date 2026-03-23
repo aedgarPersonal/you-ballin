@@ -31,6 +31,7 @@ import {
 import { createGame } from "../api/games";
 import {
   updateRun,
+  createRun,
   listRunsNeedingPlayers,
   suggestPlayer,
   listSuggestions,
@@ -58,12 +59,15 @@ const BUILTIN_LABELS = {
 
 export default function AdminPage() {
   const user = useAuthStore((s) => s.user);
-  const { currentRun, setCurrentRun } = useRunStore();
+  const { runs, currentRun, setCurrentRun, fetchRuns: refreshRuns } = useRunStore();
   const runId = currentRun?.id;
   const isSuperAdmin = user?.role === "super_admin";
   const { isRunAdmin } = useRunStore();
 
   const [tab, setTab] = useState("pending");
+  const [showCreateRunModal, setShowCreateRunModal] = useState(false);
+  const [createRunName, setCreateRunName] = useState("");
+  const [creatingRun, setCreatingRun] = useState(false);
 
   // Run settings state
   const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -350,7 +354,39 @@ export default function AdminPage() {
   const tabs = ["pending", "players", "import", "balancer", "suggestions", "settings"];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      {/* Mobile Run Switcher Bar */}
+      <div className="md:hidden mb-4">
+        <div className="bg-court-50 border border-court-200 rounded-lg p-3">
+          <label className="block text-xs font-medium text-court-700 uppercase tracking-wide mb-1.5">
+            Managing Run
+          </label>
+          <div className="flex items-center gap-2">
+            <select
+              value={currentRun?.id || ""}
+              onChange={(e) => {
+                const run = runs.find(r => r.id === parseInt(e.target.value));
+                if (run) setCurrentRun(run);
+              }}
+              className="flex-1 text-sm border-court-300 rounded-md px-3 py-2 bg-white text-gray-700 focus:ring-court-500 focus:border-court-500 font-medium"
+            >
+              {runs.map(run => (
+                <option key={run.id} value={run.id}>{run.name}</option>
+              ))}
+            </select>
+            {isSuperAdmin && (
+              <button
+                onClick={() => setShowCreateRunModal(true)}
+                className="flex-shrink-0 bg-court-600 text-white rounded-md px-3 py-2 text-sm font-medium hover:bg-court-700 transition-colors"
+                title="Create new run"
+              >
+                + Run
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Admin Panel</h1>
         <div className="flex items-center gap-3">
@@ -505,59 +541,133 @@ export default function AdminPage() {
         </div>
       ) : tab === "players" ? (
         /* ===== All Players ===== */
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="border-b border-gray-200">
-                <th className="py-3 px-4 text-sm font-medium text-gray-500">Player</th>
-                <th className="py-3 px-4 text-sm font-medium text-gray-500">Status</th>
-                <th className="py-3 px-4 text-sm font-medium text-gray-500">Height</th>
-                <th className="py-3 px-4 text-sm font-medium text-gray-500">Age</th>
-                <th className="py-3 px-4 text-sm font-medium text-gray-500">Mobility</th>
-                {isSuperAdmin && (
-                  <th className="py-3 px-4 text-sm font-medium text-gray-500">Role</th>
-                )}
-              </tr>
-            </thead>
-            <tbody>
-              {players.map((player) => (
-                <tr key={player.id} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="py-3 px-4">
-                    <div>
-                      <p className="font-medium">{player.full_name}</p>
-                      <p className="text-xs text-gray-500">{player.email}</p>
-                    </div>
-                  </td>
-                  <td className="py-3 px-4">
-                    <select
-                      value={player.player_status}
-                      onChange={(e) => handleUpdatePlayer(player.id, "player_status", e.target.value)}
-                      className="text-sm border rounded px-2 py-1"
-                    >
-                      <option value="regular">Regular</option>
-                      <option value="dropin">Drop-in</option>
-                      <option value="inactive">Inactive</option>
-                    </select>
-                  </td>
-                  <td className="py-3 px-4">
+        <>
+          {/* Desktop table view */}
+          <div className="hidden sm:block overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="py-3 px-4 text-sm font-medium text-gray-500">Player</th>
+                  <th className="py-3 px-4 text-sm font-medium text-gray-500">Status</th>
+                  <th className="py-3 px-4 text-sm font-medium text-gray-500">Height</th>
+                  <th className="py-3 px-4 text-sm font-medium text-gray-500">Age</th>
+                  <th className="py-3 px-4 text-sm font-medium text-gray-500">Mobility</th>
+                  {isSuperAdmin && (
+                    <th className="py-3 px-4 text-sm font-medium text-gray-500">Role</th>
+                  )}
+                </tr>
+              </thead>
+              <tbody>
+                {players.map((player) => (
+                  <tr key={player.id} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="py-3 px-4">
+                      <div>
+                        <p className="font-medium">{player.full_name}</p>
+                        <p className="text-xs text-gray-500">{player.email}</p>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <select
+                        value={player.player_status}
+                        onChange={(e) => handleUpdatePlayer(player.id, "player_status", e.target.value)}
+                        className="text-sm border rounded px-2 py-1"
+                      >
+                        <option value="regular">Regular</option>
+                        <option value="dropin">Drop-in</option>
+                        <option value="inactive">Inactive</option>
+                      </select>
+                    </td>
+                    <td className="py-3 px-4">
+                      <input
+                        type="number"
+                        defaultValue={player.height_inches || ""}
+                        onBlur={(e) => e.target.value && handleUpdatePlayer(player.id, "height_inches", parseInt(e.target.value))}
+                        className="w-16 text-sm border rounded px-2 py-1"
+                        placeholder="in"
+                      />
+                    </td>
+                    <td className="py-3 px-4">
+                      <input
+                        type="number"
+                        defaultValue={player.age || ""}
+                        onBlur={(e) => e.target.value && handleUpdatePlayer(player.id, "age", parseInt(e.target.value))}
+                        className="w-16 text-sm border rounded px-2 py-1"
+                        placeholder="yrs"
+                      />
+                    </td>
+                    <td className="py-3 px-4">
+                      <input
+                        type="number"
+                        min="1"
+                        max="5"
+                        step="0.5"
+                        defaultValue={player.mobility || ""}
+                        onBlur={(e) => e.target.value && handleUpdatePlayer(player.id, "mobility", parseFloat(e.target.value))}
+                        className="w-16 text-sm border rounded px-2 py-1"
+                        placeholder="1-5"
+                      />
+                    </td>
+                    {isSuperAdmin && (
+                      <td className="py-3 px-4">
+                        <select
+                          value={player.role}
+                          onChange={(e) => handleUpdatePlayer(player.id, "role", e.target.value)}
+                          className="text-sm border rounded px-2 py-1"
+                        >
+                          <option value="player">Player</option>
+                          <option value="admin">Admin</option>
+                          <option value="super_admin">Super Admin</option>
+                        </select>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile card view */}
+          <div className="sm:hidden space-y-3">
+            {players.map((player) => (
+              <div key={player.id} className="card p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-semibold text-gray-900">{player.full_name}</p>
+                    <p className="text-xs text-gray-500">{player.email}</p>
+                  </div>
+                  <select
+                    value={player.player_status}
+                    onChange={(e) => handleUpdatePlayer(player.id, "player_status", e.target.value)}
+                    className="text-xs border border-gray-300 rounded-md px-2 py-1 bg-white"
+                  >
+                    <option value="regular">Regular</option>
+                    <option value="dropin">Drop-in</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Height (in)</label>
                     <input
                       type="number"
                       defaultValue={player.height_inches || ""}
                       onBlur={(e) => e.target.value && handleUpdatePlayer(player.id, "height_inches", parseInt(e.target.value))}
-                      className="w-16 text-sm border rounded px-2 py-1"
-                      placeholder="in"
+                      className="w-full text-sm border border-gray-300 rounded-md px-2 py-1.5"
+                      placeholder="—"
                     />
-                  </td>
-                  <td className="py-3 px-4">
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Age</label>
                     <input
                       type="number"
                       defaultValue={player.age || ""}
                       onBlur={(e) => e.target.value && handleUpdatePlayer(player.id, "age", parseInt(e.target.value))}
-                      className="w-16 text-sm border rounded px-2 py-1"
-                      placeholder="yrs"
+                      className="w-full text-sm border border-gray-300 rounded-md px-2 py-1.5"
+                      placeholder="—"
                     />
-                  </td>
-                  <td className="py-3 px-4">
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Mobility</label>
                     <input
                       type="number"
                       min="1"
@@ -565,28 +675,29 @@ export default function AdminPage() {
                       step="0.5"
                       defaultValue={player.mobility || ""}
                       onBlur={(e) => e.target.value && handleUpdatePlayer(player.id, "mobility", parseFloat(e.target.value))}
-                      className="w-16 text-sm border rounded px-2 py-1"
+                      className="w-full text-sm border border-gray-300 rounded-md px-2 py-1.5"
                       placeholder="1-5"
                     />
-                  </td>
-                  {isSuperAdmin && (
-                    <td className="py-3 px-4">
-                      <select
-                        value={player.role}
-                        onChange={(e) => handleUpdatePlayer(player.id, "role", e.target.value)}
-                        className="text-sm border rounded px-2 py-1"
-                      >
-                        <option value="player">Player</option>
-                        <option value="admin">Admin</option>
-                        <option value="super_admin">Super Admin</option>
-                      </select>
-                    </td>
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  </div>
+                </div>
+                {isSuperAdmin && (
+                  <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                    <span className="text-xs text-gray-500">Role</span>
+                    <select
+                      value={player.role}
+                      onChange={(e) => handleUpdatePlayer(player.id, "role", e.target.value)}
+                      className="text-xs border border-gray-300 rounded-md px-2 py-1 bg-white"
+                    >
+                      <option value="player">Player</option>
+                      <option value="admin">Admin</option>
+                      <option value="super_admin">Super Admin</option>
+                    </select>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </>
       ) : tab === "suggestions" ? (
         /* ===== Suggestions Tab ===== */
         <div className="space-y-6">
@@ -1047,6 +1158,49 @@ export default function AdminPage() {
                 ))}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Create Run Modal (mobile admin) */}
+      {showCreateRunModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowCreateRunModal(false)}>
+          <div className="bg-white rounded-lg p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-lg font-bold text-gray-900 mb-4">Create New Run</h2>
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              if (!createRunName.trim()) return;
+              setCreatingRun(true);
+              try {
+                const { data } = await createRun({ name: createRunName.trim() });
+                await refreshRuns();
+                setCurrentRun(data);
+                setShowCreateRunModal(false);
+                setCreateRunName("");
+                toast.success(`Run "${data.name}" created!`);
+              } catch (err) {
+                toast.error(err.response?.data?.detail || "Failed to create run");
+              } finally {
+                setCreatingRun(false);
+              }
+            }}>
+              <input
+                type="text"
+                value={createRunName}
+                onChange={(e) => setCreateRunName(e.target.value)}
+                placeholder="Run name (e.g. Wednesday Night Hoops)"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-court-500 focus:border-court-500 mb-4"
+                autoFocus
+              />
+              <div className="flex justify-end space-x-3">
+                <button type="button" onClick={() => setShowCreateRunModal(false)} className="text-sm text-gray-600 hover:text-gray-800 px-4 py-2">
+                  Cancel
+                </button>
+                <button type="submit" disabled={creatingRun || !createRunName.trim()} className="text-sm bg-court-600 text-white rounded-md px-4 py-2 hover:bg-court-700 disabled:opacity-50">
+                  {creatingRun ? "Creating..." : "Create Run"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
