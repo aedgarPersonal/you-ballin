@@ -36,12 +36,15 @@ class Settings(BaseSettings):
     google_client_secret: str = ""
     google_redirect_uri: str = "http://localhost:8000/api/auth/google/callback"
 
-    # --- Email (SMTP) ---
+    # --- Email (Resend) ---
+    resend_api_key: str = ""
+    email_from: str = "You Ballin <noreply@youballin.app>"
+
+    # --- Email (Legacy SMTP - kept for backward compat) ---
     smtp_host: str = "smtp.gmail.com"
     smtp_port: int = 587
     smtp_user: str = ""
     smtp_password: str = ""
-    email_from: str = "noreply@youballin.com"
 
     # --- SMS (Twilio) ---
     twilio_account_sid: str = ""

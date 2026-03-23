@@ -138,14 +138,24 @@ async def send_bulk_notification(
 # =============================================================================
 
 async def _send_email(to_email: str, subject: str, body: str) -> bool:
-    """Send an email via SMTP.
+    """Send an email via Resend (preferred) or SMTP (fallback)."""
+    # Try Resend first
+    if settings.resend_api_key:
+        try:
+            import resend
+            resend.api_key = settings.resend_api_key
+            resend.Emails.send({
+                "from": settings.email_from,
+                "to": [to_email],
+                "subject": f"[You Ballin] {subject}",
+                "text": body,
+            })
+            return True
+        except Exception as e:
+            logger.error(f"Resend email failed: {e}")
+            return False
 
-    TEACHING NOTE:
-        aiosmtplib provides async SMTP so email sending doesn't block
-        the event loop. In production, consider using a background task
-        queue (Celery) for email delivery to avoid slowing down API
-        responses.
-    """
+    # Fallback to SMTP
     if not settings.smtp_user or not settings.smtp_password:
         logger.info(f"[DEV] Email to {to_email}: {subject} - {body}")
         return False
