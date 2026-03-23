@@ -30,7 +30,11 @@ logger = logging.getLogger(__name__)
 _is_sqlite = settings.database_url.startswith("sqlite")
 _engine_kwargs = {"echo": False}
 if not _is_sqlite:
-    _engine_kwargs.update(pool_size=5, max_overflow=10, pool_pre_ping=True)
+    _engine_kwargs.update(
+        pool_size=5, max_overflow=10, pool_pre_ping=True,
+        # Disable prepared statement cache for Supabase transaction pooler (pgbouncer)
+        connect_args={"statement_cache_size": 0},
+    )
 
 engine = create_async_engine(settings.database_url, **_engine_kwargs)
 
