@@ -102,3 +102,27 @@ class UserListResponse(BaseModel):
     """Paginated list of users."""
     users: list[UserResponse]
     total: int
+
+
+# =============================================================================
+# Import Schemas
+# =============================================================================
+
+class ImportPlayerEntry(BaseModel):
+    """A single player to import."""
+    name: str = Field(min_length=1, max_length=200)
+    wins: int = Field(default=0, ge=0)
+    losses: int = Field(default=0, ge=0)
+
+
+class ImportPlayersRequest(BaseModel):
+    """Bulk import request containing a list of players."""
+    players: list[ImportPlayerEntry] = Field(min_length=1)
+
+
+class ImportPlayersResponse(BaseModel):
+    """Result of a bulk import operation."""
+    created_count: int
+    skipped_count: int
+    created_players: list[str]
+    skipped_players: list[str]

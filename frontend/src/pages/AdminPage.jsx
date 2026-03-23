@@ -24,6 +24,7 @@ import {
   denyRegistration,
   listAllPlayers,
   updatePlayerAdmin,
+  importPlayers,
 } from "../api/admin";
 import { createGame } from "../api/games";
 import {
@@ -66,6 +67,11 @@ export default function AdminPage() {
   });
   const [showNewMetricForm, setShowNewMetricForm] = useState(false);
   const [newGameTeams, setNewGameTeams] = useState(2);
+
+  // Import state
+  const [importText, setImportText] = useState("");
+  const [importResult, setImportResult] = useState(null);
+  const [importing, setImporting] = useState(false);
 
   const fetchPending = async () => {
     try {
@@ -213,9 +219,50 @@ export default function AdminPage() {
     }
   };
 
+  // --- Import handler ---
+
+  const parseImportText = (text) => {
+    const lines = text.trim().split("\n").filter((l) => l.trim());
+    const players = [];
+    for (const line of lines) {
+      // Support tab-separated or comma-separated: "Name\tWins\tLosses" or "Name,Wins,Losses"
+      const parts = line.includes("\t") ? line.split("\t") : line.split(",");
+      const name = parts[0]?.trim();
+      if (!name) continue;
+      const wins = parseInt(parts[1]?.trim()) || 0;
+      const losses = parseInt(parts[2]?.trim()) || 0;
+      players.push({ name, wins, losses });
+    }
+    return players;
+  };
+
+  const handleImport = async () => {
+    const players = parseImportText(importText);
+    if (players.length === 0) {
+      toast.error("No valid player data found. Use format: Name, Wins, Losses (one per line)");
+      return;
+    }
+    if (!confirm(`Import ${players.length} player(s) with default password "Password123"?`)) return;
+
+    setImporting(true);
+    setImportResult(null);
+    try {
+      const { data } = await importPlayers({ players });
+      setImportResult(data);
+      toast.success(`Imported ${data.created_count} player(s)`);
+      if (data.created_count > 0) {
+        fetchPlayers();
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Import failed");
+    } finally {
+      setImporting(false);
+    }
+  };
+
   const totalWeight = weights.reduce((sum, w) => sum + w.weight, 0);
 
-  const tabs = ["pending", "players", "balancer"];
+  const tabs = ["pending", "players", "import", "balancer"];
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -300,6 +347,75 @@ export default function AdminPage() {
             ))}
           </div>
         )
+      ) : tab === "import" ? (
+        /* ===== Import Players ===== */
+        <div className="space-y-6">
+          <div className="card">
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">Import Players</h2>
+            <p className="text-sm text-gray-500 mb-4">
+              Paste player data below (one player per line). Accepted formats:
+            </p>
+            <div className="bg-gray-50 rounded-lg p-3 mb-4 text-xs font-mono text-gray-600 space-y-1">
+              <p>Name, Wins, Losses</p>
+              <p>Name{"\t"}Wins{"\t"}Losses</p>
+            </div>
+            <p className="text-xs text-gray-400 mb-4">
+              Imported players get a random NBA legend avatar (changeable later), default password <code className="bg-gray-100 px-1 rounded">Password123</code>, and status set to Regular.
+            </p>
+            <textarea
+              rows={12}
+              value={importText}
+              onChange={(e) => setImportText(e.target.value)}
+              className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 font-mono focus:ring-2 focus:ring-court-500 focus:border-court-500"
+              placeholder={`Bryan, 26, 14\nJulien, 23, 12\nDenis, 23, 17\n...`}
+            />
+            <div className="flex items-center justify-between mt-4">
+              <span className="text-sm text-gray-500">
+                {parseImportText(importText).length} player(s) detected
+              </span>
+              <button
+                onClick={handleImport}
+                disabled={importing || !importText.trim()}
+                className={`font-medium py-2 px-6 rounded-lg transition-colors ${
+                  importing || !importText.trim()
+                    ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                    : "bg-court-500 hover:bg-court-600 text-white"
+                }`}
+              >
+                {importing ? "Importing..." : "Import Players"}
+              </button>
+            </div>
+          </div>
+
+          {/* Import Results */}
+          {importResult && (
+            <div className="card">
+              <h3 className="font-semibold text-gray-900 mb-3">Import Results</h3>
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
+                  <div className="text-2xl font-bold text-green-700">{importResult.created_count}</div>
+                  <div className="text-xs text-green-600 font-medium">Created</div>
+                </div>
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-center">
+                  <div className="text-2xl font-bold text-yellow-700">{importResult.skipped_count}</div>
+                  <div className="text-xs text-yellow-600 font-medium">Skipped</div>
+                </div>
+              </div>
+              {importResult.created_players.length > 0 && (
+                <div className="mb-3">
+                  <p className="text-xs font-medium text-green-700 mb-1">Created:</p>
+                  <p className="text-sm text-gray-600">{importResult.created_players.join(", ")}</p>
+                </div>
+              )}
+              {importResult.skipped_players.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-yellow-700 mb-1">Skipped (already exist):</p>
+                  <p className="text-sm text-gray-600">{importResult.skipped_players.join(", ")}</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       ) : tab === "players" ? (
         /* ===== All Players ===== */
         <div className="overflow-x-auto">

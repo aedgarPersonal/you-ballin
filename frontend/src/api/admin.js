@@ -13,3 +13,5 @@ export const updatePlayerAdmin = (userId, data) =>
   api.patch(`/admin/players/${userId}`, data);
 export const listAllPlayers = (params) =>
   api.get("/admin/players", { params });
+export const importPlayers = (data) =>
+  api.post("/admin/import-players", data);
