@@ -27,5 +27,5 @@ COPY . .
 # Expose the API port
 EXPOSE 8000
 
-# Start the server (override in docker-compose for dev)
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Start the server - use PORT env var for Render, default 8000 for local dev
+CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
