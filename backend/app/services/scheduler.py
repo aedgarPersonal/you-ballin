@@ -534,18 +534,27 @@ async def announce_awards():
                 if existing.scalar_one_or_none():
                     continue  # Already announced
 
-                # Tally MVP votes
+                # Tally all award votes
                 mvp_winner = await _tally_votes(db, game.id, VoteType.MVP)
                 shaqtin_winner = await _tally_votes(db, game.id, VoteType.SHAQTIN)
+                xfactor_winner = await _tally_votes(db, game.id, VoteType.XFACTOR)
 
-                if not mvp_winner and not shaqtin_winner:
+                if not mvp_winner and not shaqtin_winner and not xfactor_winner:
                     logger.info(f"No votes cast for game {game.id}, skipping announcement")
                     continue
+
+                # Increment award counts on winner profiles
+                if mvp_winner:
+                    mvp_winner.mvp_count += 1
+                if shaqtin_winner:
+                    shaqtin_winner.shaqtin_count += 1
+                if xfactor_winner:
+                    xfactor_winner.xfactor_count += 1
 
                 # Get team names and scores from last night's game
                 team_names = await _get_game_team_names(db, game.id)
                 commentary = _generate_game_commentary(
-                    mvp_winner, shaqtin_winner, team_names
+                    mvp_winner, shaqtin_winner, xfactor_winner, team_names
                 )
 
                 # Build award results
@@ -554,6 +563,8 @@ async def announce_awards():
                     parts.append(f"MVP: {mvp_winner.full_name}")
                 if shaqtin_winner:
                     parts.append(f"Shaqtin' a Fool: {shaqtin_winner.full_name}")
+                if xfactor_winner:
+                    parts.append(f"X Factor: {xfactor_winner.full_name}")
                 awards_line = " | ".join(parts)
 
                 # Get top 10 overall standings
@@ -661,27 +672,19 @@ async def _get_top10_standings(db) -> list[User]:
 
 # Commentary templates referencing team names and players
 _COMMENTARY_TEMPLATES = [
-    "What a night! {winner_team} showed up and showed out. {mvp} was absolutely unstoppable — someone check if they're secretly a pro. Meanwhile {shaqtin} provided the comedy relief we didn't know we needed.",
-    "Last night's battle between {teams} was one for the books. {mvp} put on a clinic that had everyone's jaws on the floor. As for {shaqtin}... let's just say the highlights and lowlights were equally entertaining.",
-    "The dust has settled from last night's showdown. {mvp} carried {winner_team} like they had a personal vendetta against losing. And {shaqtin}? Well, at least they made everyone else feel better about their game.",
-    "{teams} went toe-to-toe last night and the basketball gods were watching. {mvp} earned that MVP playing like they had something to prove. {shaqtin} earned their award by... well, you had to be there.",
-    "Another legendary night in the books! {mvp} was cooking with gas out there — absolutely could not be stopped. {shaqtin} on the other hand? More like Shaqtin' a WHOLE fool. {winner_team} takes the bragging rights!",
-    "If last night was a movie, {mvp} would be the main character and {shaqtin} would be the comic sidekick. {teams} brought the energy and {winner_team} brought the wins. See you next week!",
-]
-
-_NO_SHAQTIN_TEMPLATES = [
-    "What a night! {mvp} was absolutely unstoppable for {winner_team}. Nobody wanted the Shaqtin' crown this time — everyone brought their A-game!",
-    "Hats off to {mvp} who put on a show for {winner_team} last night. {teams} battled hard and the crowd was loving every minute.",
-]
-
-_NO_MVP_TEMPLATES = [
-    "Last night's game between {teams} was wild. Nobody stood out enough for MVP but {shaqtin} definitely earned their Shaqtin' award. You know who you are.",
+    "What a night! {winner_team} showed up and showed out. {mvp} was absolutely unstoppable — someone check if they're secretly a pro. {xfactor_line}Meanwhile {shaqtin} provided the comedy relief we didn't know we needed.",
+    "Last night's battle between {teams} was one for the books. {mvp} put on a clinic that had everyone's jaws on the floor. {xfactor_line}As for {shaqtin}... let's just say the highlights and lowlights were equally entertaining.",
+    "The dust has settled from last night's showdown. {mvp} carried {winner_team} like they had a personal vendetta against losing. {xfactor_line}And {shaqtin}? Well, at least they made everyone else feel better about their game.",
+    "{teams} went toe-to-toe last night and the basketball gods were watching. {mvp} earned that MVP playing like they had something to prove. {xfactor_line}{shaqtin} earned their award by... well, you had to be there.",
+    "Another legendary night in the books! {mvp} was cooking with gas out there — absolutely could not be stopped. {xfactor_line}{shaqtin} on the other hand? More like Shaqtin' a WHOLE fool. {winner_team} takes the bragging rights!",
+    "If last night was a movie, {mvp} would be the main character and {shaqtin} would be the comic sidekick. {xfactor_line}{teams} brought the energy and {winner_team} brought the wins. See you next week!",
 ]
 
 
 def _generate_game_commentary(
     mvp: User | None,
     shaqtin: User | None,
+    xfactor: User | None,
     team_scores: dict[str, str],
 ) -> str:
     """Generate fun commentary referencing teams and award winners."""
@@ -693,6 +696,10 @@ def _generate_game_commentary(
     if team_scores:
         winner_team = max(team_scores, key=lambda t: int(team_scores[t]))
 
+    xfactor_line = ""
+    if xfactor:
+        xfactor_line = f"{xfactor.full_name} was the X Factor — a true game-changer that shifted the momentum. "
+
     if mvp and shaqtin:
         template = random.choice(_COMMENTARY_TEMPLATES)
         return template.format(
@@ -700,16 +707,19 @@ def _generate_game_commentary(
             shaqtin=shaqtin.full_name,
             teams=teams_str,
             winner_team=winner_team,
-        )
-    elif mvp:
-        template = random.choice(_NO_SHAQTIN_TEMPLATES)
-        return template.format(
-            mvp=mvp.full_name, teams=teams_str, winner_team=winner_team,
-        )
-    elif shaqtin:
-        template = random.choice(_NO_MVP_TEMPLATES)
-        return template.format(
-            shaqtin=shaqtin.full_name, teams=teams_str,
+            xfactor_line=xfactor_line,
         )
     else:
-        return f"Last night's game between {teams_str} is in the books!"
+        # Build a simpler message when not all awards have winners
+        parts = []
+        if mvp:
+            parts.append(f"{mvp.full_name} took home the MVP for {winner_team}.")
+        if xfactor:
+            parts.append(f"{xfactor.full_name} was the X Factor — a true game-changer.")
+        if shaqtin:
+            parts.append(f"{shaqtin.full_name} earned the Shaqtin' a Fool award. You know what you did.")
+        if not parts:
+            parts.append(f"Last night's game between {teams_str} is in the books!")
+        else:
+            parts.insert(0, f"What a night for {teams_str}!")
+        return " ".join(parts)

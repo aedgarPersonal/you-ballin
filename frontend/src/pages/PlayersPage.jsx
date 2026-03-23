@@ -15,6 +15,8 @@ const SORT_OPTIONS = [
   { value: "games_won", label: "Total Wins" },
   { value: "games_played", label: "Games Played" },
   { value: "avg_overall", label: "Overall Rating" },
+  { value: "mvp_count", label: "MVP Awards" },
+  { value: "xfactor_count", label: "X Factor Awards" },
 ];
 
 export default function PlayersPage() {
@@ -104,8 +106,29 @@ export default function PlayersPage() {
                 </div>
               </div>
 
+              {/* Award Badges */}
+              {(player.mvp_count > 0 || player.xfactor_count > 0 || player.shaqtin_count > 0) && (
+                <div className="flex gap-2 mt-3 flex-wrap">
+                  {player.mvp_count > 0 && (
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">
+                      🏆 {player.mvp_count}
+                    </span>
+                  )}
+                  {player.xfactor_count > 0 && (
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                      ⚡ {player.xfactor_count}
+                    </span>
+                  )}
+                  {player.shaqtin_count > 0 && (
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">
+                      🤦 {player.shaqtin_count}
+                    </span>
+                  )}
+                </div>
+              )}
+
               {/* Stats Grid */}
-              <div className="grid grid-cols-5 gap-2 mt-4 text-center">
+              <div className="grid grid-cols-5 gap-2 mt-3 text-center">
                 <div>
                   <div className="text-sm font-bold text-court-600">{player.avg_offense?.toFixed(1)}</div>
                   <div className="text-xs text-gray-400">OFF</div>

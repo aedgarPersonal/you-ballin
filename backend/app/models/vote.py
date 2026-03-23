@@ -7,10 +7,11 @@ TEACHING NOTE:
     After each game, players who participated can vote for:
     - MVP: The player who had the best overall performance
     - Shaqtin' a Fool: The player who made the single worst play
+    - X Factor: The player who made the biggest impact / game-changer
 
     Rules:
     - Only players who were on a team for that game can vote
-    - Each player gets one MVP vote and one Shaqtin' vote per game
+    - Each player gets one vote per category per game
     - Players cannot vote for themselves
     - Voting closes 24 hours after game time
     - Results are published on the public page after voting closes
@@ -29,9 +30,10 @@ from app.database import Base
 
 
 class VoteType(str, enum.Enum):
-    """The two award categories."""
+    """The three award categories."""
     MVP = "mvp"
     SHAQTIN = "shaqtin"
+    XFACTOR = "xfactor"
 
 
 class GameVote(Base):

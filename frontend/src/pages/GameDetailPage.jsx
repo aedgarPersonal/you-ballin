@@ -120,7 +120,8 @@ export default function GameDetailPage() {
   const handleVote = async (voteType, nomineeId) => {
     try {
       await castVote(id, { vote_type: voteType, nominee_id: nomineeId });
-      toast.success(`${voteType === "mvp" ? "MVP" : "Shaqtin'"} vote recorded!`);
+      const labels = { mvp: "MVP", shaqtin: "Shaqtin'", xfactor: "X Factor" };
+      toast.success(`${labels[voteType] || voteType} vote recorded!`);
       const [awardsRes, votesRes] = await Promise.all([
         getGameAwards(id),
         getMyVotes(id),
@@ -215,8 +216,8 @@ export default function GameDetailPage() {
       )}
 
       {/* Award Results (shown after voting closes) */}
-      {awards && !awards.voting_open && (awards.mvp || awards.shaqtin) && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      {awards && !awards.voting_open && (awards.mvp || awards.shaqtin || awards.xfactor) && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
           {awards.mvp && (
             <div className="card border-2 border-yellow-400 bg-yellow-50">
               <div className="flex items-center gap-3 mb-2">
@@ -229,6 +230,20 @@ export default function GameDetailPage() {
                 </div>
               </div>
               <p className="text-sm text-yellow-700">{awards.mvp.vote_count} vote{awards.mvp.vote_count !== 1 ? "s" : ""}</p>
+            </div>
+          )}
+          {awards.xfactor && (
+            <div className="card border-2 border-blue-400 bg-blue-50">
+              <div className="flex items-center gap-3 mb-2">
+                <span className="text-3xl">⚡</span>
+                <div>
+                  <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide">X Factor</p>
+                  <Link to={`/players/${awards.xfactor.player.id}`} className="text-lg font-bold text-gray-900 hover:text-court-600">
+                    {awards.xfactor.player.full_name}
+                  </Link>
+                </div>
+              </div>
+              <p className="text-sm text-blue-700">{awards.xfactor.vote_count} vote{awards.xfactor.vote_count !== 1 ? "s" : ""}</p>
             </div>
           )}
           {awards.shaqtin && (
@@ -264,7 +279,7 @@ export default function GameDetailPage() {
             Results are hidden until voting closes.
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <VotingCard
               title="MVP"
               emoji="🏆"
@@ -274,6 +289,16 @@ export default function GameDetailPage() {
               currentUserId={user?.id}
               currentVoteId={myVotes?.mvp_vote?.nominee_id}
               onVote={(nomineeId) => handleVote("mvp", nomineeId)}
+            />
+            <VotingCard
+              title="X Factor"
+              emoji="⚡"
+              description="Who was the biggest game-changer?"
+              color="blue"
+              participants={allParticipants}
+              currentUserId={user?.id}
+              currentVoteId={myVotes?.xfactor_vote?.nominee_id}
+              onVote={(nomineeId) => handleVote("xfactor", nomineeId)}
             />
             <VotingCard
               title="Shaqtin' a Fool"
@@ -429,9 +454,15 @@ export default function GameDetailPage() {
  * VotingCard Component
  */
 function VotingCard({ title, emoji, description, color, participants, currentUserId, currentVoteId, onVote }) {
-  const borderColor = color === "yellow" ? "border-yellow-300" : "border-purple-300";
-  const headerColor = color === "yellow" ? "text-yellow-700" : "text-purple-700";
-  const selectedBg = color === "yellow" ? "bg-yellow-100 border-yellow-400" : "bg-purple-100 border-purple-400";
+  const colorMap = {
+    yellow: { border: "border-yellow-300", header: "text-yellow-700", selected: "bg-yellow-100 border-yellow-400" },
+    purple: { border: "border-purple-300", header: "text-purple-700", selected: "bg-purple-100 border-purple-400" },
+    blue: { border: "border-blue-300", header: "text-blue-700", selected: "bg-blue-100 border-blue-400" },
+  };
+  const colors = colorMap[color] || colorMap.yellow;
+  const borderColor = colors.border;
+  const headerColor = colors.header;
+  const selectedBg = colors.selected;
 
   const eligible = participants.filter((p) => p.id !== currentUserId);
 

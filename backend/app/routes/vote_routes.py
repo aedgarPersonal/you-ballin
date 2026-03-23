@@ -172,10 +172,12 @@ async def get_my_votes(
 
     mvp_vote = next((v for v in votes if v.vote_type == VoteType.MVP), None)
     shaqtin_vote = next((v for v in votes if v.vote_type == VoteType.SHAQTIN), None)
+    xfactor_vote = next((v for v in votes if v.vote_type == VoteType.XFACTOR), None)
 
     return MyVotesResponse(
         mvp_vote=VoteResponse.model_validate(mvp_vote) if mvp_vote else None,
         shaqtin_vote=VoteResponse.model_validate(shaqtin_vote) if shaqtin_vote else None,
+        xfactor_vote=VoteResponse.model_validate(xfactor_vote) if xfactor_vote else None,
     )
 
 
@@ -238,6 +240,7 @@ async def get_game_awards(
     if not voting_open:
         response.mvp = await _get_winner(db, game_id, VoteType.MVP)
         response.shaqtin = await _get_winner(db, game_id, VoteType.SHAQTIN)
+        response.xfactor = await _get_winner(db, game_id, VoteType.XFACTOR)
 
     return response
 
