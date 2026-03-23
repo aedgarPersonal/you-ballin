@@ -103,14 +103,50 @@ async def update_game(
     db: AsyncSession = Depends(get_db),
     _admin: User = Depends(get_current_admin),
 ):
-    """Update game details (admin only)."""
-    result = await db.execute(select(Game).where(Game.id == game_id))
+    """Update game details (admin only).
+
+    Notifies all RSVPed players when time, date, or location changes.
+    """
+    result = await db.execute(
+        select(Game).where(Game.id == game_id).options(selectinload(Game.rsvps))
+    )
     game = result.scalar_one_or_none()
     if not game:
         raise HTTPException(status_code=404, detail="Game not found")
 
-    for field, value in data.model_dump(exclude_unset=True).items():
+    update_fields = data.model_dump(exclude_unset=True)
+
+    # Track meaningful changes that players should know about
+    changes = []
+    if "game_date" in update_fields and str(update_fields["game_date"]) != str(game.game_date):
+        changes.append("date/time")
+    if "location" in update_fields and update_fields["location"] != game.location:
+        changes.append("location")
+
+    for field, value in update_fields.items():
         setattr(game, field, value)
+
+    # Notify RSVPed players about time/location changes
+    if changes and game.rsvps:
+        notifiable = [
+            r for r in game.rsvps
+            if r.status in (RSVPStatus.ACCEPTED, RSVPStatus.WAITLIST, RSVPStatus.PENDING)
+        ]
+        if notifiable:
+            player_ids = [r.user_id for r in notifiable]
+            players_result = await db.execute(select(User).where(User.id.in_(player_ids)))
+            players = list(players_result.scalars().all())
+
+            change_desc = " and ".join(changes)
+            await send_bulk_notification(
+                db,
+                players,
+                NotificationType.GAME_UPDATED,
+                f"Game Updated: {game.title}",
+                f"The {change_desc} for {game.title} has changed. "
+                f"New details: {game.game_date.strftime('%A, %B %d at %I:%M %p')} at {game.location}.",
+            )
+
     await db.flush()
     return game
 
@@ -354,6 +390,21 @@ async def generate_teams(
             ))
 
     game.status = GameStatus.TEAMS_SET
+
+    # Notify all players about their team assignments
+    team_lookup = {}
+    for team_idx, team_players in enumerate(balanced_teams):
+        for player in team_players:
+            team_lookup[player.id] = team_names[team_idx]
+
+    await send_bulk_notification(
+        db,
+        list(players),
+        NotificationType.TEAMS_PUBLISHED,
+        f"Teams Are Set: {game.title}",
+        f"Teams have been published for {game.title}. Check the app to see your team!",
+    )
+
     await db.flush()
 
     # Reload assignments with user relationship for response serialization
@@ -442,5 +493,23 @@ async def record_result(
             player.jordan_factor = player.games_won / player.games_played
 
     game.status = GameStatus.COMPLETED
+
+    # Notify all participants that the game is complete and voting is open
+    winning_team_name = next(
+        (t.team_name for t in game.teams if t.team == data.winning_team),
+        data.winning_team,
+    )
+    player_ids = list(set(t.user_id for t in game.teams))
+    all_players_result = await db.execute(select(User).where(User.id.in_(player_ids)))
+    all_players = list(all_players_result.scalars().all())
+
+    await send_bulk_notification(
+        db,
+        all_players,
+        NotificationType.GAME_COMPLETED,
+        f"Game Complete: {game.title}",
+        f"{winning_team_name} wins! Cast your MVP and Shaqtin' a Fool votes now.",
+    )
+
     await db.flush()
     return game_result

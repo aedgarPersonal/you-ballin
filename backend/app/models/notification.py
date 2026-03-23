@@ -29,6 +29,9 @@ class NotificationType(str, enum.Enum):
     AWARDS_ANNOUNCED = "awards_announced"
     VOTING_OPEN = "voting_open"
     GAME_CANCELLED = "game_cancelled"
+    GAME_UPDATED = "game_updated"
+    GAME_COMPLETED = "game_completed"
+    STATUS_CHANGED = "status_changed"
     GENERAL = "general"
 
 

@@ -120,6 +120,7 @@ export default function AdminPage() {
   };
 
   const handleDeny = async (userId) => {
+    if (!confirm("Deny this registration? The user will be notified and their account deactivated.")) return;
     try {
       await denyRegistration(userId);
       toast.success("Registration denied");
@@ -130,6 +131,11 @@ export default function AdminPage() {
   };
 
   const handleUpdatePlayer = async (userId, field, value) => {
+    // Confirm status changes since they affect what games a player is invited to
+    if (field === "player_status") {
+      const labels = { regular: "Regular", dropin: "Drop-in", inactive: "Inactive" };
+      if (!confirm(`Change this player's status to ${labels[value] || value}? They will be notified.`)) return;
+    }
     try {
       await updatePlayerAdmin(userId, { [field]: value });
       toast.success("Player updated");

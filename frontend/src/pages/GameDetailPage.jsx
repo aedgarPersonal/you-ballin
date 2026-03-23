@@ -68,9 +68,14 @@ export default function GameDetailPage() {
   };
 
   const handleGenerateTeams = async () => {
+    const isRegen = game.status === "teams_set";
+    const msg = isRegen
+      ? "Regenerate teams? Current assignments will be replaced and players will be notified."
+      : "Generate teams? Players will be notified of their assignments.";
+    if (!confirm(msg)) return;
     try {
       await generateTeams(id);
-      toast.success("Teams generated!");
+      toast.success("Teams generated! Players have been notified.");
       fetchGame();
     } catch (err) {
       toast.error(err.response?.data?.detail || "Failed to generate teams");
@@ -78,9 +83,11 @@ export default function GameDetailPage() {
   };
 
   const handleRecordResult = async (winningTeam) => {
+    const teamName = uniqueTeams.find((t) => t.id === winningTeam)?.name || winningTeam;
+    if (!confirm(`Record ${teamName} as the winner? This cannot be undone.`)) return;
     try {
       await recordResult(id, { winning_team: winningTeam });
-      toast.success("Result recorded!");
+      toast.success("Result recorded! Players have been notified.");
       fetchGame();
     } catch (err) {
       toast.error(err.response?.data?.detail || "Failed to record result");
@@ -88,6 +95,7 @@ export default function GameDetailPage() {
   };
 
   const handleCancelGame = async () => {
+    if (!confirm("Cancel this game? All RSVPed players will be notified.")) return;
     try {
       await cancelGame(id);
       toast.success("Game cancelled. Players have been notified.");

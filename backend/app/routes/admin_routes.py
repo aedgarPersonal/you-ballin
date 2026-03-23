@@ -128,6 +128,9 @@ async def update_player_admin(
 
     update_data = data.model_dump(exclude_unset=True)
 
+    # Track status change before applying updates
+    old_status = user.player_status
+
     # Convert string enums to proper types
     if "player_status" in update_data:
         update_data["player_status"] = PlayerStatus(update_data["player_status"])
@@ -136,6 +139,21 @@ async def update_player_admin(
 
     for field, value in update_data.items():
         setattr(user, field, value)
+
+    # Notify the player if their status changed
+    if "player_status" in data.model_dump(exclude_unset=True) and user.player_status != old_status:
+        status_labels = {
+            PlayerStatus.REGULAR: "regular",
+            PlayerStatus.DROPIN: "drop-in",
+            PlayerStatus.INACTIVE: "inactive",
+        }
+        new_label = status_labels.get(user.player_status, str(user.player_status.value))
+        db.add(Notification(
+            user_id=user.id,
+            type=NotificationType.STATUS_CHANGED,
+            title="Player Status Updated",
+            message=f"Your player status has been changed to {new_label}.",
+        ))
 
     await db.flush()
     return user
