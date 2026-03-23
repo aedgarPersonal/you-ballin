@@ -331,10 +331,10 @@ export default function GameDetailPage() {
         <div className="card">
           <h2 className="text-lg font-semibold mb-3">Admin Actions</h2>
           <div className="flex flex-wrap gap-3">
-            {/* Generate Teams */}
-            {game.status !== "teams_set" && game.status !== "completed" && game.status !== "cancelled" && (
+            {/* Generate / Regenerate Teams */}
+            {game.status !== "completed" && game.status !== "cancelled" && (
               <button onClick={handleGenerateTeams} className="btn-primary">
-                Generate Teams
+                {game.status === "teams_set" ? "Regenerate Teams" : "Generate Teams"}
               </button>
             )}
 
