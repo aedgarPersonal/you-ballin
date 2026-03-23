@@ -26,6 +26,7 @@ export default function GameDetailPage() {
   const { id } = useParams();
   const user = useAuthStore((s) => s.user);
   const [game, setGame] = useState(null);
+  const [scores, setScores] = useState({});
   const [awards, setAwards] = useState(null);
   const [myVotes, setMyVotes] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -82,12 +83,23 @@ export default function GameDetailPage() {
     }
   };
 
-  const handleRecordResult = async (winningTeam) => {
-    const teamName = uniqueTeams.find((t) => t.id === winningTeam)?.name || winningTeam;
-    if (!confirm(`Record ${teamName} as the winner? This cannot be undone.`)) return;
+  const handleRecordResult = async () => {
+    const totalGames = Object.values(scores).reduce((sum, v) => sum + (parseInt(v) || 0), 0);
+    if (totalGames === 0) {
+      toast.error("Enter at least one win");
+      return;
+    }
+    const scoreSummary = uniqueTeams
+      .map((t) => `${t.name}: ${scores[t.id] || 0}`)
+      .join(", ");
+    if (!confirm(`Record results? ${scoreSummary}. This cannot be undone.`)) return;
     try {
-      await recordResult(id, { winning_team: winningTeam });
-      toast.success("Result recorded! Players have been notified.");
+      const team_scores = uniqueTeams.map((t) => ({
+        team: t.id,
+        wins: parseInt(scores[t.id]) || 0,
+      }));
+      await recordResult(id, { team_scores });
+      toast.success("Results recorded! Players have been notified.");
       fetchGame();
     } catch (err) {
       toast.error(err.response?.data?.detail || "Failed to record result");
@@ -174,6 +186,24 @@ export default function GameDetailPage() {
         </div>
         {game.notes && <p className="text-gray-600 mt-4 italic">{game.notes}</p>}
       </div>
+
+      {/* Final Score Banner */}
+      {game.status === "completed" && game.result?.team_scores?.length > 0 && (
+        <div className="card mb-6 border-2 border-court-300 bg-court-50">
+          <h3 className="text-sm font-semibold text-court-600 uppercase tracking-wide text-center mb-2">Final Score</h3>
+          <div className="flex items-center justify-center gap-4 flex-wrap">
+            {[...game.result.team_scores]
+              .sort((a, b) => b.wins - a.wins)
+              .map((ts, idx) => (
+                <div key={ts.team} className="flex items-center gap-2">
+                  {idx > 0 && <span className="text-gray-400 font-bold">-</span>}
+                  <span className="font-bold text-gray-800">{ts.team_name}</span>
+                  <span className="text-2xl font-black text-court-600">{ts.wins}</span>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
 
       {/* Cancelled Banner */}
       {game.status === "cancelled" && (
@@ -346,21 +376,37 @@ export default function GameDetailPage() {
               </button>
             )}
 
-            {/* Record Winner — one button per team */}
+            {/* Record Scores — input per team */}
             {game.status === "teams_set" && uniqueTeams.length > 0 && (
-              <>
-                <span className="text-sm text-gray-500 self-center">Winner:</span>
-                {uniqueTeams.map((team, idx) => (
+              <div className="w-full mt-2">
+                <p className="text-sm text-gray-500 mb-2">Record wins per team:</p>
+                <div className="flex flex-wrap items-end gap-3">
+                  {uniqueTeams.map((team, idx) => (
+                    <div key={team.id} className="flex flex-col items-center">
+                      <label
+                        className="text-xs font-bold mb-1 px-2 py-0.5 rounded text-white"
+                        style={{ backgroundColor: TEAM_COLORS[idx % TEAM_COLORS.length] }}
+                      >
+                        {team.name}
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={scores[team.id] || ""}
+                        onChange={(e) => setScores({ ...scores, [team.id]: e.target.value })}
+                        placeholder="0"
+                        className="w-16 text-center text-lg font-bold border-2 border-gray-300 rounded-lg py-1 focus:border-court-500 focus:outline-none"
+                      />
+                    </div>
+                  ))}
                   <button
-                    key={team.id}
-                    onClick={() => handleRecordResult(team.id)}
-                    className="text-white font-semibold py-2 px-4 rounded-lg hover:opacity-90 transition-opacity"
-                    style={{ backgroundColor: TEAM_COLORS[idx % TEAM_COLORS.length] }}
+                    onClick={handleRecordResult}
+                    className="btn-primary py-2 px-4"
                   >
-                    {team.name}
+                    Submit Scores
                   </button>
-                ))}
-              </>
+                </div>
+              </div>
             )}
 
             {/* Cancel Game */}

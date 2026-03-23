@@ -50,9 +50,10 @@ class GameResponse(BaseModel):
 
 
 class GameDetailResponse(GameResponse):
-    """Game with full RSVP and team details."""
+    """Game with full RSVP, team, and result details."""
     rsvps: list["RSVPResponse"]
     teams: list["TeamAssignmentResponse"]
+    result: "GameResultResponse | None" = None
 
 
 # =============================================================================
@@ -92,17 +93,32 @@ class TeamAssignmentResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class TeamScoreInput(BaseModel):
+    """Per-team score for recording game results."""
+    team: str = Field(description="team identifier, e.g. team_1")
+    wins: int = Field(ge=0, description="number of games this team won")
+
+
 class GameResultCreate(BaseModel):
-    """Admin records the game outcome."""
-    winning_team: str = Field(description="team identifier, e.g. team_1")
+    """Admin records the game outcome with per-team scores."""
+    team_scores: list[TeamScoreInput] = Field(min_length=2)
     notes: str | None = None
 
 
+class TeamScoreResponse(BaseModel):
+    """Per-team score data returned by the API."""
+    team: str
+    team_name: str
+    wins: int
+
+    model_config = {"from_attributes": True}
+
+
 class GameResultResponse(BaseModel):
-    """Game outcome data."""
+    """Game outcome data with per-team scores."""
     id: int
     game_id: int
-    winning_team: str
+    team_scores: list[TeamScoreResponse]
     notes: str | None
 
     model_config = {"from_attributes": True}
