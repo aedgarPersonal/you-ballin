@@ -31,9 +31,9 @@ export default function NotificationsPage() {
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Notifications</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Notifications</h1>
           {unreadCount > 0 && (
-            <p className="text-sm text-gray-500">{unreadCount} unread</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{unreadCount} unread</p>
           )}
         </div>
         {unreadCount > 0 && (
@@ -44,10 +44,10 @@ export default function NotificationsPage() {
       </div>
 
       {loading ? (
-        <p className="text-gray-500">Loading...</p>
+        <p className="text-gray-500 dark:text-gray-400">Loading...</p>
       ) : notifications.length === 0 ? (
         <div className="card text-center py-12">
-          <p className="text-gray-500">No notifications yet.</p>
+          <p className="text-gray-500 dark:text-gray-400">No notifications yet.</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -63,17 +63,17 @@ export default function NotificationsPage() {
                 <span className="text-2xl">{TYPE_ICONS[notif.type] || "📢"}</span>
                 <div className="flex-1">
                   <div className="flex items-center justify-between">
-                    <h3 className={`font-semibold ${!notif.read ? "text-gray-900" : "text-gray-600"}`}>
+                    <h3 className={`font-semibold ${!notif.read ? "text-gray-900 dark:text-gray-100" : "text-gray-600 dark:text-gray-400"}`}>
                       {notif.title}
                     </h3>
-                    <span className="text-xs text-gray-400">
+                    <span className="text-xs text-gray-400 dark:text-gray-500">
                       {new Date(notif.created_at).toLocaleDateString()}
                     </span>
                   </div>
-                  <p className="text-sm text-gray-600 mt-1">{notif.message}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{notif.message}</p>
                   <div className="flex gap-2 mt-2">
-                    {notif.email_sent && <span className="text-xs text-gray-400">📧 Email sent</span>}
-                    {notif.sms_sent && <span className="text-xs text-gray-400">📱 SMS sent</span>}
+                    {notif.email_sent && <span className="text-xs text-gray-400 dark:text-gray-500">📧 Email sent</span>}
+                    {notif.sms_sent && <span className="text-xs text-gray-400 dark:text-gray-500">📱 SMS sent</span>}
                   </div>
                 </div>
                 {!notif.read && (

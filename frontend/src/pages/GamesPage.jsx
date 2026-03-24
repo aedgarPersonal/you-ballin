@@ -19,12 +19,12 @@ const STATUS_LABELS = {
 };
 
 const STATUS_COLORS = {
-  scheduled: "bg-gray-100 text-gray-800",
-  invites_sent: "bg-blue-100 text-blue-800",
-  dropin_open: "bg-yellow-100 text-yellow-800",
-  teams_set: "bg-green-100 text-green-800",
-  completed: "bg-purple-100 text-purple-800",
-  cancelled: "bg-red-100 text-red-800",
+  scheduled: "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300",
+  invites_sent: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+  dropin_open: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
+  teams_set: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+  completed: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400",
+  cancelled: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
 };
 
 export default function GamesPage() {
@@ -56,7 +56,7 @@ export default function GamesPage() {
   if (!currentRun) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-8 text-center">
-        <p className="text-gray-500">Please select a Run from the dropdown above.</p>
+        <p className="text-gray-500 dark:text-gray-400">Please select a Run from the dropdown above.</p>
       </div>
     );
   }
@@ -64,7 +64,7 @@ export default function GamesPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Games</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Games</h1>
 
         {/* Filter */}
         <select
@@ -80,10 +80,10 @@ export default function GamesPage() {
       </div>
 
       {loading ? (
-        <p className="text-gray-500">Loading games...</p>
+        <p className="text-gray-500 dark:text-gray-400">Loading games...</p>
       ) : games.length === 0 ? (
         <div className="card text-center py-12">
-          <p className="text-gray-500">No games found.</p>
+          <p className="text-gray-500 dark:text-gray-400">No games found.</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -91,8 +91,8 @@ export default function GamesPage() {
             <Link key={game.id} to={`/games/${game.id}`} className="card block hover:shadow-md transition-shadow">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">{game.title}</h3>
-                  <p className="text-gray-600">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{game.title}</h3>
+                  <p className="text-gray-600 dark:text-gray-400">
                     {new Date(game.game_date).toLocaleDateString("en-US", {
                       weekday: "long",
                       month: "long",
@@ -101,10 +101,10 @@ export default function GamesPage() {
                       minute: "2-digit",
                     })}
                   </p>
-                  <p className="text-sm text-gray-500">{game.location}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">{game.location}</p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-sm text-gray-600">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
                     {game.accepted_count}/{game.roster_size} players
                   </span>
                   <span className={`badge ${STATUS_COLORS[game.status]}`}>

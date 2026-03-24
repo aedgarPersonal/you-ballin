@@ -61,7 +61,6 @@ export default function AdminPage() {
   const { currentRun, setCurrentRun } = useRunStore();
   const runId = currentRun?.id;
   const isSuperAdmin = user?.role === "super_admin";
-  const { isRunAdmin } = useRunStore();
 
   const [tab, setTab] = useState("pending");
 
@@ -340,7 +339,7 @@ export default function AdminPage() {
   if (!currentRun) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-8 text-center">
-        <p className="text-gray-500">Please select a Run from the dropdown above.</p>
+        <p className="text-gray-500 dark:text-gray-400">Please select a Run from the dropdown above.</p>
       </div>
     );
   }
@@ -351,66 +350,64 @@ export default function AdminPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Admin Panel</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Admin Panel</h1>
         <div className="flex items-center gap-3">
-          <label className="text-sm text-gray-600 flex items-center gap-1">
+          <label className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1">
             Teams:
             <select
               value={newGameTeams}
               onChange={(e) => setNewGameTeams(Number(e.target.value))}
-              className="border border-gray-300 rounded px-2 py-1 text-sm"
+              className="border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm dark:bg-gray-700 dark:text-gray-200"
             >
               {[2, 3, 4, 5, 6, 7, 8].map((n) => (
                 <option key={n} value={n}>{n}</option>
               ))}
             </select>
           </label>
-          <button onClick={handleCreateGame} className="btn-primary text-sm">
+          <button onClick={handleCreateGame} className="btn-primary">
             + Create Game
           </button>
         </div>
       </div>
 
-      {/* Tabs - horizontally scrollable on mobile */}
-      <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 mb-6">
-        <div className="flex border-b border-gray-200 min-w-max">
-          {tabs.map((t) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={`pb-3 px-3 sm:px-4 text-sm font-medium border-b-2 transition-colors capitalize whitespace-nowrap ${
-                tab === t
-                  ? "border-court-500 text-court-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              {t} {t === "pending" && pending.length > 0 && `(${pending.length})`}
-            </button>
-          ))}
-        </div>
+      {/* Tabs */}
+      <div className="flex border-b border-gray-200 dark:border-gray-700 mb-6">
+        {tabs.map((t) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={`pb-3 px-4 text-sm font-medium border-b-2 transition-colors capitalize ${
+              tab === t
+                ? "border-court-500 text-court-600"
+                : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+            }`}
+          >
+            {t} {t === "pending" && pending.length > 0 && `(${pending.length})`}
+          </button>
+        ))}
       </div>
 
       {loading && tab !== "balancer" ? (
-        <p className="text-gray-500">Loading...</p>
+        <p className="text-gray-500 dark:text-gray-400">Loading...</p>
       ) : tab === "pending" ? (
         /* ===== Pending Registrations ===== */
         pending.length === 0 ? (
           <div className="card text-center py-8">
-            <p className="text-gray-500">No pending registrations.</p>
+            <p className="text-gray-500 dark:text-gray-400">No pending registrations.</p>
           </div>
         ) : (
           <div className="space-y-4">
             {pending.map((user) => (
-              <div key={user.id} className="card flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div key={user.id} className="card flex items-center justify-between">
                 <div>
                   <h3 className="font-semibold">{user.full_name}</h3>
-                  <p className="text-sm text-gray-500">{user.email}</p>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">{user.email}</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500">
                     Registered {new Date(user.created_at).toLocaleDateString()}
                   </p>
                 </div>
-                <div className="flex gap-2 flex-shrink-0">
+                <div className="flex gap-2">
                   <button
                     onClick={() => handleApprove(user.id, "regular")}
                     className="bg-green-500 hover:bg-green-600 text-white text-sm font-medium py-1.5 px-3 rounded-lg"
@@ -438,26 +435,26 @@ export default function AdminPage() {
         /* ===== Import Players ===== */
         <div className="space-y-6">
           <div className="card">
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">Import Players</h2>
-            <p className="text-sm text-gray-500 mb-4">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Import Players</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
               Paste player data below (one player per line). Accepted formats:
             </p>
-            <div className="bg-gray-50 rounded-lg p-3 mb-4 text-xs font-mono text-gray-600 space-y-1">
+            <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-3 mb-4 text-xs font-mono text-gray-600 dark:text-gray-400 space-y-1">
               <p>Name, Wins, Losses</p>
               <p>Name{"\t"}Wins{"\t"}Losses</p>
             </div>
-            <p className="text-xs text-gray-400 mb-4">
-              Imported players get a random NBA legend avatar (changeable later), default password <code className="bg-gray-100 px-1 rounded">Password123</code>, and status set to Regular.
+            <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">
+              Imported players get a random NBA legend avatar (changeable later), default password <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">Password123</code>, and status set to Regular.
             </p>
             <textarea
               rows={12}
               value={importText}
               onChange={(e) => setImportText(e.target.value)}
-              className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 font-mono focus:ring-2 focus:ring-court-500 focus:border-court-500"
+              className="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 font-mono focus:ring-2 focus:ring-court-500 focus:border-court-500 dark:bg-gray-700 dark:text-gray-200"
               placeholder={`Bryan, 26, 14\nJulien, 23, 12\nDenis, 23, 17\n...`}
             />
             <div className="flex items-center justify-between mt-4">
-              <span className="text-sm text-gray-500">
+              <span className="text-sm text-gray-500 dark:text-gray-400">
                 {parseImportText(importText).length} player(s) detected
               </span>
               <button
@@ -465,7 +462,7 @@ export default function AdminPage() {
                 disabled={importing || !importText.trim()}
                 className={`font-medium py-2 px-6 rounded-lg transition-colors ${
                   importing || !importText.trim()
-                    ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                    ? "bg-gray-200 dark:bg-gray-600 text-gray-400 dark:text-gray-500 cursor-not-allowed"
                     : "bg-court-500 hover:bg-court-600 text-white"
                 }`}
               >
@@ -477,7 +474,7 @@ export default function AdminPage() {
           {/* Import Results */}
           {importResult && (
             <div className="card">
-              <h3 className="font-semibold text-gray-900 mb-3">Import Results</h3>
+              <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">Import Results</h3>
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
                   <div className="text-2xl font-bold text-green-700">{importResult.created_count}</div>
@@ -491,13 +488,13 @@ export default function AdminPage() {
               {importResult.created_players.length > 0 && (
                 <div className="mb-3">
                   <p className="text-xs font-medium text-green-700 mb-1">Created:</p>
-                  <p className="text-sm text-gray-600">{importResult.created_players.join(", ")}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">{importResult.created_players.join(", ")}</p>
                 </div>
               )}
               {importResult.skipped_players.length > 0 && (
                 <div>
                   <p className="text-xs font-medium text-yellow-700 mb-1">Skipped (already exist):</p>
-                  <p className="text-sm text-gray-600">{importResult.skipped_players.join(", ")}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">{importResult.skipped_players.join(", ")}</p>
                 </div>
               )}
             </div>
@@ -508,31 +505,31 @@ export default function AdminPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
-              <tr className="border-b border-gray-200">
-                <th className="py-3 px-4 text-sm font-medium text-gray-500">Player</th>
-                <th className="py-3 px-4 text-sm font-medium text-gray-500">Status</th>
-                <th className="py-3 px-4 text-sm font-medium text-gray-500">Height</th>
-                <th className="py-3 px-4 text-sm font-medium text-gray-500">Age</th>
-                <th className="py-3 px-4 text-sm font-medium text-gray-500">Mobility</th>
+              <tr className="border-b border-gray-200 dark:border-gray-700">
+                <th className="py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Player</th>
+                <th className="py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Status</th>
+                <th className="py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Height</th>
+                <th className="py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Age</th>
+                <th className="py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Mobility</th>
                 {isSuperAdmin && (
-                  <th className="py-3 px-4 text-sm font-medium text-gray-500">Role</th>
+                  <th className="py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Role</th>
                 )}
               </tr>
             </thead>
             <tbody>
               {players.map((player) => (
-                <tr key={player.id} className="border-b border-gray-100 hover:bg-gray-50">
+                <tr key={player.id} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
                   <td className="py-3 px-4">
                     <div>
                       <p className="font-medium">{player.full_name}</p>
-                      <p className="text-xs text-gray-500">{player.email}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{player.email}</p>
                     </div>
                   </td>
                   <td className="py-3 px-4">
                     <select
                       value={player.player_status}
                       onChange={(e) => handleUpdatePlayer(player.id, "player_status", e.target.value)}
-                      className="text-sm border rounded px-2 py-1"
+                      className="text-sm border rounded px-2 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
                     >
                       <option value="regular">Regular</option>
                       <option value="dropin">Drop-in</option>
@@ -544,7 +541,7 @@ export default function AdminPage() {
                       type="number"
                       defaultValue={player.height_inches || ""}
                       onBlur={(e) => e.target.value && handleUpdatePlayer(player.id, "height_inches", parseInt(e.target.value))}
-                      className="w-16 text-sm border rounded px-2 py-1"
+                      className="w-16 text-sm border rounded px-2 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
                       placeholder="in"
                     />
                   </td>
@@ -553,7 +550,7 @@ export default function AdminPage() {
                       type="number"
                       defaultValue={player.age || ""}
                       onBlur={(e) => e.target.value && handleUpdatePlayer(player.id, "age", parseInt(e.target.value))}
-                      className="w-16 text-sm border rounded px-2 py-1"
+                      className="w-16 text-sm border rounded px-2 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
                       placeholder="yrs"
                     />
                   </td>
@@ -565,7 +562,7 @@ export default function AdminPage() {
                       step="0.5"
                       defaultValue={player.mobility || ""}
                       onBlur={(e) => e.target.value && handleUpdatePlayer(player.id, "mobility", parseFloat(e.target.value))}
-                      className="w-16 text-sm border rounded px-2 py-1"
+                      className="w-16 text-sm border rounded px-2 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
                       placeholder="1-5"
                     />
                   </td>
@@ -574,7 +571,7 @@ export default function AdminPage() {
                       <select
                         value={player.role}
                         onChange={(e) => handleUpdatePlayer(player.id, "role", e.target.value)}
-                        className="text-sm border rounded px-2 py-1"
+                        className="text-sm border rounded px-2 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
                       >
                         <option value="player">Player</option>
                         <option value="admin">Admin</option>
@@ -592,23 +589,23 @@ export default function AdminPage() {
         <div className="space-y-6">
           {/* Incoming Suggestions for this run */}
           <div className="card">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Incoming Suggestions</h2>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Incoming Suggestions</h2>
             {suggestions.length === 0 ? (
-              <p className="text-sm text-gray-400">No pending suggestions for this run.</p>
+              <p className="text-sm text-gray-400 dark:text-gray-500">No pending suggestions for this run.</p>
             ) : (
               <div className="space-y-3">
                 {suggestions.map((s) => (
-                  <div key={s.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-gray-50 rounded-lg">
+                  <div key={s.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
                     <div>
-                      <p className="font-medium text-gray-900">
+                      <p className="font-medium text-gray-900 dark:text-gray-100">
                         {s.suggested_user?.full_name || `User #${s.suggested_user_id}`}
                       </p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
                         Suggested by {s.suggested_by?.full_name || `User #${s.suggested_by_user_id}`}
                       </p>
-                      {s.message && <p className="text-sm text-gray-600 mt-1 italic">"{s.message}"</p>}
+                      {s.message && <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 italic">"{s.message}"</p>}
                     </div>
-                    <div className="flex gap-2 flex-shrink-0">
+                    <div className="flex gap-2">
                       <button
                         onClick={async () => {
                           try {
@@ -633,7 +630,7 @@ export default function AdminPage() {
                             toast.error(err.response?.data?.detail || "Failed");
                           }
                         }}
-                        className="bg-gray-300 hover:bg-gray-400 text-gray-700 text-sm font-medium py-1.5 px-3 rounded-lg"
+                        className="bg-gray-300 hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-300 text-sm font-medium py-1.5 px-3 rounded-lg"
                       >
                         Decline
                       </button>
@@ -646,13 +643,13 @@ export default function AdminPage() {
 
           {/* Suggest a player to another run */}
           <div className="card">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Suggest a Player to Another Run</h2>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Suggest a Player to Another Run</h2>
             {runsNeedingPlayers.filter((r) => r.id !== runId).length === 0 ? (
-              <p className="text-sm text-gray-400">No other runs currently need players.</p>
+              <p className="text-sm text-gray-400 dark:text-gray-500">No other runs currently need players.</p>
             ) : (
               <div className="space-y-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Target Run</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Target Run</label>
                   <select
                     value={suggestForm.targetRunId}
                     onChange={(e) => setSuggestForm({ ...suggestForm, targetRunId: e.target.value })}
@@ -669,7 +666,7 @@ export default function AdminPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Player to Suggest</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Player to Suggest</label>
                   <select
                     value={suggestForm.userId}
                     onChange={(e) => setSuggestForm({ ...suggestForm, userId: e.target.value })}
@@ -684,7 +681,7 @@ export default function AdminPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Note (optional)</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Note (optional)</label>
                   <input
                     type="text"
                     value={suggestForm.message}
@@ -721,11 +718,11 @@ export default function AdminPage() {
       ) : tab === "settings" ? (
         /* ===== Run Settings Tab ===== */
         <div className="card max-w-2xl">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Run Settings</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Run Settings</h2>
           {runForm && (
             <form onSubmit={handleSaveRunSettings} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Run Name</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Run Name</label>
                 <input
                   type="text"
                   required
@@ -736,7 +733,7 @@ export default function AdminPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
                 <textarea
                   rows={2}
                   value={runForm.description}
@@ -746,7 +743,7 @@ export default function AdminPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Default Location</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Default Location</label>
                 <input
                   type="text"
                   value={runForm.default_location}
@@ -755,9 +752,9 @@ export default function AdminPage() {
                   placeholder="e.g. Rec Center Gym"
                 />
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Game Day</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Game Day</label>
                   <select
                     value={runForm.default_game_day}
                     onChange={(e) => setRunForm({ ...runForm, default_game_day: e.target.value })}
@@ -769,7 +766,7 @@ export default function AdminPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Game Time</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Game Time</label>
                   <input
                     type="time"
                     value={runForm.default_game_time}
@@ -778,9 +775,9 @@ export default function AdminPage() {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Roster Size</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Roster Size</label>
                   <input
                     type="number"
                     min="2"
@@ -791,7 +788,7 @@ export default function AdminPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Teams</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Teams</label>
                   <input
                     type="number"
                     min="2"
@@ -802,7 +799,7 @@ export default function AdminPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Dues ($)</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Dues ($)</label>
                   <input
                     type="number"
                     min="0"
@@ -814,9 +811,9 @@ export default function AdminPage() {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Skill Level</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Skill Level</label>
                   <select
                     value={runForm.skill_level}
                     onChange={(e) => setRunForm({ ...runForm, skill_level: e.target.value })}
@@ -835,7 +832,7 @@ export default function AdminPage() {
                       onChange={(e) => setRunForm({ ...runForm, needs_players: e.target.checked })}
                       className="w-4 h-4 text-court-500 rounded focus:ring-court-500"
                     />
-                    <span className="text-sm font-medium text-gray-700">This run needs players</span>
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">This run needs players</span>
                   </label>
                 </div>
               </div>
@@ -854,11 +851,11 @@ export default function AdminPage() {
         <div className="space-y-8">
           {/* Weight Sliders */}
           <div className="card">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">Algorithm Weights</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Algorithm Weights</h2>
               <div className="flex items-center gap-3">
-                <span className="text-sm text-gray-500">
-                  Total: {totalWeight.toFixed(2)}
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                  Total: {totalWeight.toFixed(2)} (auto-normalized)
                 </span>
                 <button
                   onClick={handleSaveWeights}
@@ -866,14 +863,14 @@ export default function AdminPage() {
                   className={`text-sm font-medium py-1.5 px-4 rounded-lg transition-colors ${
                     weightsDirty
                       ? "bg-court-500 hover:bg-court-600 text-white"
-                      : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                      : "bg-gray-200 dark:bg-gray-600 text-gray-400 dark:text-gray-500 cursor-not-allowed"
                   }`}
                 >
                   {savingWeights ? "Saving..." : "Save Weights"}
                 </button>
               </div>
             </div>
-            <p className="text-sm text-gray-500 mb-6">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
               Adjust how much each factor matters when balancing teams.
               Weights are relative — the algorithm normalizes them automatically.
             </p>
@@ -886,9 +883,9 @@ export default function AdminPage() {
                 const pct = totalWeight > 0 ? ((w.weight / totalWeight) * 100).toFixed(0) : 0;
 
                 return (
-                  <div key={w.metric_name} className="flex items-center gap-2 sm:gap-4">
-                    <div className="w-24 sm:w-40 flex-shrink-0">
-                      <span className="text-xs sm:text-sm font-medium text-gray-700">{label}</span>
+                  <div key={w.metric_name} className="flex items-center gap-4">
+                    <div className="w-40 flex-shrink-0">
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{label}</span>
                       {!w.is_builtin && (
                         <span className="ml-1 text-xs text-court-500">custom</span>
                       )}
@@ -902,11 +899,11 @@ export default function AdminPage() {
                       onChange={(e) => handleWeightChange(w.metric_name, parseFloat(e.target.value))}
                       className="flex-1 h-2 accent-court-500"
                     />
-                    <div className="w-16 sm:w-20 text-right">
-                      <span className="text-xs sm:text-sm font-mono text-gray-600">
+                    <div className="w-20 text-right">
+                      <span className="text-sm font-mono text-gray-600 dark:text-gray-400">
                         {w.weight.toFixed(2)}
                       </span>
-                      <span className="text-xs text-gray-400 ml-1">({pct}%)</span>
+                      <span className="text-xs text-gray-400 dark:text-gray-500 ml-1">({pct}%)</span>
                     </div>
                   </div>
                 );
@@ -914,14 +911,14 @@ export default function AdminPage() {
             </div>
 
             {weights.length === 0 && (
-              <p className="text-gray-400 text-sm">Loading weights...</p>
+              <p className="text-gray-400 dark:text-gray-500 text-sm">Loading weights...</p>
             )}
           </div>
 
           {/* Custom Metrics Management */}
           <div className="card">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">Custom Metrics</h2>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Custom Metrics</h2>
               <button
                 onClick={() => setShowNewMetricForm(!showNewMetricForm)}
                 className="text-sm font-medium text-court-600 hover:text-court-700"
@@ -929,17 +926,17 @@ export default function AdminPage() {
                 {showNewMetricForm ? "Cancel" : "+ Add Metric"}
               </button>
             </div>
-            <p className="text-sm text-gray-500 mb-4">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
               Create custom player attributes that feed into team balancing.
               New metrics start with weight 0 — adjust the slider above to activate them.
             </p>
 
             {/* New metric form */}
             {showNewMetricForm && (
-              <form onSubmit={handleCreateMetric} className="bg-gray-50 rounded-lg p-4 mb-4 space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <form onSubmit={handleCreateMetric} className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 mb-4 space-y-3">
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
                       Internal Name (lowercase, no spaces)
                     </label>
                     <input
@@ -948,12 +945,12 @@ export default function AdminPage() {
                       pattern="^[a-z][a-z0-9_]*$"
                       value={newMetric.name}
                       onChange={(e) => setNewMetric({ ...newMetric, name: e.target.value })}
-                      className="w-full text-sm border rounded px-3 py-1.5"
+                      className="w-full text-sm border rounded px-3 py-1.5 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
                       placeholder="e.g. shooting"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
                       Display Name
                     </label>
                     <input
@@ -961,52 +958,52 @@ export default function AdminPage() {
                       required
                       value={newMetric.display_name}
                       onChange={(e) => setNewMetric({ ...newMetric, display_name: e.target.value })}
-                      className="w-full text-sm border rounded px-3 py-1.5"
+                      className="w-full text-sm border rounded px-3 py-1.5 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
                       placeholder="e.g. Shooting Ability"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
                     Description (optional)
                   </label>
                   <input
                     type="text"
                     value={newMetric.description}
                     onChange={(e) => setNewMetric({ ...newMetric, description: e.target.value })}
-                    className="w-full text-sm border rounded px-3 py-1.5"
+                    className="w-full text-sm border rounded px-3 py-1.5 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
                     placeholder="What this metric measures"
                   />
                 </div>
-                <div className="grid grid-cols-3 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Min Value</label>
+                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Min Value</label>
                     <input
                       type="number"
                       step="any"
                       value={newMetric.min_value}
                       onChange={(e) => setNewMetric({ ...newMetric, min_value: parseFloat(e.target.value) })}
-                      className="w-full text-sm border rounded px-3 py-1.5"
+                      className="w-full text-sm border rounded px-3 py-1.5 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Max Value</label>
+                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Max Value</label>
                     <input
                       type="number"
                       step="any"
                       value={newMetric.max_value}
                       onChange={(e) => setNewMetric({ ...newMetric, max_value: parseFloat(e.target.value) })}
-                      className="w-full text-sm border rounded px-3 py-1.5"
+                      className="w-full text-sm border rounded px-3 py-1.5 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Default</label>
+                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Default</label>
                     <input
                       type="number"
                       step="any"
                       value={newMetric.default_value}
                       onChange={(e) => setNewMetric({ ...newMetric, default_value: parseFloat(e.target.value) })}
-                      className="w-full text-sm border rounded px-3 py-1.5"
+                      className="w-full text-sm border rounded px-3 py-1.5 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
                     />
                   </div>
                 </div>
@@ -1018,23 +1015,23 @@ export default function AdminPage() {
 
             {/* Existing custom metrics */}
             {customMetrics.length === 0 ? (
-              <p className="text-sm text-gray-400">No custom metrics yet.</p>
+              <p className="text-sm text-gray-400 dark:text-gray-500">No custom metrics yet.</p>
             ) : (
               <div className="space-y-2">
                 {customMetrics.map((metric) => (
                   <div
                     key={metric.id}
-                    className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg"
+                    className="flex items-center justify-between py-2 px-3 bg-gray-50 dark:bg-gray-900 rounded-lg"
                   >
                     <div>
-                      <span className="text-sm font-medium text-gray-800">
+                      <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
                         {metric.display_name}
                       </span>
-                      <span className="text-xs text-gray-400 ml-2">
+                      <span className="text-xs text-gray-400 dark:text-gray-500 ml-2">
                         ({metric.name}) &middot; {metric.min_value}–{metric.max_value}, default {metric.default_value}
                       </span>
                       {metric.description && (
-                        <p className="text-xs text-gray-500">{metric.description}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{metric.description}</p>
                       )}
                     </div>
                     <button

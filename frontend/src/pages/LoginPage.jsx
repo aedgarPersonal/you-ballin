@@ -72,15 +72,15 @@ export default function LoginPage() {
         </div>
 
         {/* Card */}
-        <div className="card bg-white/95 backdrop-blur-md">
+        <div className="card bg-white/95 dark:bg-gray-800/95 backdrop-blur-md">
           {/* Tabs */}
-          <div className="flex border-b border-gray-200 mb-6">
+          <div className="flex border-b border-gray-200 dark:border-gray-700 mb-6">
             <button
               onClick={() => setTab("password")}
               className={`flex-1 pb-3 text-sm font-medium border-b-2 transition-colors ${
                 tab === "password"
                   ? "border-court-500 text-court-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
+                  : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
               }`}
             >
               Email & Password
@@ -90,7 +90,7 @@ export default function LoginPage() {
               className={`flex-1 pb-3 text-sm font-medium border-b-2 transition-colors ${
                 tab === "magic"
                   ? "border-court-500 text-court-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
+                  : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
               }`}
             >
               Magic Link
@@ -101,7 +101,7 @@ export default function LoginPage() {
           {tab === "password" && (
             <form onSubmit={handlePasswordLogin} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
                 <input
                   type="email"
                   value={email}
@@ -111,7 +111,7 @@ export default function LoginPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
                 <input
                   type="password"
                   value={password}
@@ -130,7 +130,7 @@ export default function LoginPage() {
           {tab === "magic" && (
             <form onSubmit={handleMagicLink} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
                 <input
                   type="email"
                   value={email}
@@ -143,7 +143,7 @@ export default function LoginPage() {
               <button type="submit" disabled={loading} className="btn-primary w-full">
                 {loading ? "Sending..." : "Send Magic Link"}
               </button>
-              <p className="text-xs text-gray-500 text-center">
+              <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
                 We'll email you a one-time login link. No password needed!
               </p>
             </form>
@@ -152,15 +152,15 @@ export default function LoginPage() {
           {/* Divider */}
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200"></div>
+              <div className="w-full border-t border-gray-200 dark:border-gray-700"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">or</span>
+              <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">or</span>
             </div>
           </div>
 
           {/* Google Sign In */}
-          <button className="w-full flex items-center justify-center gap-3 border border-gray-300 rounded-lg px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+          <button className="w-full flex items-center justify-center gap-3 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
               <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -171,7 +171,7 @@ export default function LoginPage() {
           </button>
 
           {/* Register link */}
-          <p className="text-center text-sm text-gray-600 mt-6">
+          <p className="text-center text-sm text-gray-600 dark:text-gray-400 mt-6">
             Don't have an account?{" "}
             <Link to="/register" className="text-court-600 hover:text-court-700 font-medium">
               Register

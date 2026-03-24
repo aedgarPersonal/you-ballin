@@ -27,6 +27,7 @@ import PlayersPage from "./pages/PlayersPage";
 import PlayerProfilePage from "./pages/PlayerProfilePage";
 import AdminPage from "./pages/AdminPage";
 import NotificationsPage from "./pages/NotificationsPage";
+import StatsPage from "./pages/StatsPage";
 import GameActionPage from "./pages/GameActionPage";
 
 function ProtectedRoute({ children }) {
@@ -47,7 +48,7 @@ export default function App() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {isAuthenticated && <Navbar />}
       <main className={isAuthenticated ? "pt-16" : ""}>
         <Routes>
@@ -63,6 +64,7 @@ export default function App() {
           <Route path="/players" element={<ProtectedRoute><PlayersPage /></ProtectedRoute>} />
           <Route path="/players/:id" element={<ProtectedRoute><PlayerProfilePage /></ProtectedRoute>} />
           <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
+          <Route path="/stats" element={<ProtectedRoute><StatsPage /></ProtectedRoute>} />
 
           {/* Admin routes */}
           <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />

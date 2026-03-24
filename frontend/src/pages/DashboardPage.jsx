@@ -59,7 +59,7 @@ export default function DashboardPage() {
   if (!currentRun) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-8 text-center">
-        <p className="text-gray-500">Please select a Run from the dropdown above.</p>
+        <p className="text-gray-500 dark:text-gray-400">Please select a Run from the dropdown above.</p>
       </div>
     );
   }
@@ -81,12 +81,12 @@ export default function DashboardPage() {
           </Link>
         ) : null}
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
             Welcome back, {user?.full_name?.split(" ")[0]}!
           </h1>
-          <p className="text-gray-600 mt-1">{statusMessage[user?.player_status] || ""}</p>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">{statusMessage[user?.player_status] || ""}</p>
           {user?.avatar_url && getPlayerById(user.avatar_url) && (
-            <p className="text-xs text-gray-400 mt-0.5">
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
               Repping {getPlayerById(user.avatar_url).name} — {getPlayerById(user.avatar_url).team}
             </p>
           )}
@@ -97,10 +97,10 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         {/* Player Status */}
         <div className="card">
-          <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">Your Status</h3>
+          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Your Status</h3>
           <div className="mt-2 flex items-center gap-2">
             <span className={`badge-${user?.player_status}`}>{user?.player_status}</span>
-            <span className="text-sm text-gray-500">
+            <span className="text-sm text-gray-500 dark:text-gray-400">
               {user?.role === "super_admin" && "(Super Admin)"}
             </span>
           </div>
@@ -108,31 +108,31 @@ export default function DashboardPage() {
 
         {/* Your Ratings */}
         <div className="card">
-          <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">Your Ratings</h3>
+          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Your Ratings</h3>
           <div className="mt-2 grid grid-cols-3 gap-2 text-center">
             <div>
               <div className="text-lg font-bold text-court-600">{user?.avg_offense?.toFixed(1)}</div>
-              <div className="text-xs text-gray-500">Offense</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">Offense</div>
             </div>
             <div>
               <div className="text-lg font-bold text-court-600">{user?.avg_defense?.toFixed(1)}</div>
-              <div className="text-xs text-gray-500">Defense</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">Defense</div>
             </div>
             <div>
               <div className="text-lg font-bold text-court-600">{user?.avg_overall?.toFixed(1)}</div>
-              <div className="text-xs text-gray-500">Overall</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">Overall</div>
             </div>
           </div>
         </div>
 
         {/* Jordan Factor */}
         <div className="card">
-          <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">Jordan Factor</h3>
+          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Jordan Factor</h3>
           <div className="mt-2">
             <div className="text-3xl font-bold text-court-600">
               {((user?.jordan_factor || 0.5) * 100).toFixed(0)}%
             </div>
-            <div className="text-xs text-gray-500">
+            <div className="text-xs text-gray-500 dark:text-gray-400">
               {user?.games_won || 0}W - {(user?.games_played || 0) - (user?.games_won || 0)}L
             </div>
           </div>
@@ -141,14 +141,14 @@ export default function DashboardPage() {
 
       {/* Next Game */}
       <div className="card">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Next Game</h2>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Next Game</h2>
         {loading ? (
-          <p className="text-gray-500">Loading...</p>
+          <p className="text-gray-500 dark:text-gray-400">Loading...</p>
         ) : nextGame ? (
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
               <h3 className="text-lg font-semibold">{nextGame.title}</h3>
-              <p className="text-gray-600">
+              <p className="text-gray-600 dark:text-gray-400">
                 {new Date(nextGame.game_date).toLocaleDateString("en-US", {
                   weekday: "long",
                   month: "long",
@@ -157,13 +157,13 @@ export default function DashboardPage() {
                   minute: "2-digit",
                 })}
               </p>
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                 {nextGame.location} &middot; {nextGame.accepted_count}/{nextGame.roster_size} players
               </p>
               <span className={`badge mt-2 ${
-                nextGame.status === "teams_set" ? "bg-green-100 text-green-800" :
-                nextGame.status === "dropin_open" ? "bg-yellow-100 text-yellow-800" :
-                "bg-blue-100 text-blue-800"
+                nextGame.status === "teams_set" ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" :
+                nextGame.status === "dropin_open" ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400" :
+                "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
               }`}>
                 {nextGame.status.replace("_", " ")}
               </span>
@@ -173,14 +173,14 @@ export default function DashboardPage() {
             </Link>
           </div>
         ) : (
-          <p className="text-gray-500">No upcoming games scheduled.</p>
+          <p className="text-gray-500 dark:text-gray-400">No upcoming games scheduled.</p>
         )}
       </div>
 
       {/* Recent Award Winners */}
       {recentAwards.length > 0 && (
         <div className="mt-8">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Recent Award Winners</h2>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Recent Award Winners</h2>
           <div className="space-y-4">
             {recentAwards.map((game) => (
               <Link
@@ -189,8 +189,8 @@ export default function DashboardPage() {
                 className="card hover:shadow-md transition-shadow block"
               >
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-semibold text-gray-900">{game.game_title}</h3>
-                  <span className="text-xs text-gray-500">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100">{game.game_title}</h3>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
                     {new Date(game.game_date).toLocaleDateString("en-US", {
                       month: "short",
                       day: "numeric",
@@ -236,7 +236,7 @@ export default function DashboardPage() {
       )}
 
       {/* Quick Links */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-8">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mt-8">
         <Link to="/games" className="card hover:shadow-md transition-shadow text-center">
           <span className="text-3xl">📅</span>
           <p className="mt-2 font-medium">All Games</p>
@@ -244,6 +244,10 @@ export default function DashboardPage() {
         <Link to="/players" className="card hover:shadow-md transition-shadow text-center">
           <span className="text-3xl">👥</span>
           <p className="mt-2 font-medium">Players</p>
+        </Link>
+        <Link to="/stats" className="card hover:shadow-md transition-shadow text-center">
+          <span className="text-3xl">📊</span>
+          <p className="mt-2 font-medium">Stats</p>
         </Link>
         <Link to="/notifications" className="card hover:shadow-md transition-shadow text-center">
           <span className="text-3xl">🔔</span>
@@ -264,7 +268,7 @@ export default function DashboardPage() {
  */
 function AwardCard({ label, emoji, winner, gradient, border, labelColor, nameColor }) {
   return (
-    <div className={`bg-gradient-to-br ${gradient} ${border} border rounded-lg p-3 text-center`}>
+    <div className={`bg-gradient-to-br ${gradient} ${border} dark:border-gray-600 dark:from-gray-700 dark:to-gray-700 border rounded-lg p-3 text-center`}>
       <div className="text-2xl mb-1">{emoji}</div>
       <div className={`text-[10px] font-bold uppercase tracking-wider ${labelColor} mb-1`}>{label}</div>
       {winner ? (
@@ -273,16 +277,16 @@ function AwardCard({ label, emoji, winner, gradient, border, labelColor, nameCol
             {winner.player.avatar_url ? (
               <AvatarBadge avatarId={winner.player.avatar_url} size="sm" />
             ) : (
-              <div className="w-8 h-8 rounded-full bg-white/60 flex items-center justify-center text-sm font-bold text-gray-600">
+              <div className="w-8 h-8 rounded-full bg-white/60 flex items-center justify-center text-sm font-bold text-gray-600 dark:text-gray-400">
                 {winner.player.full_name.charAt(0)}
               </div>
             )}
           </div>
           <div className={`text-sm font-bold ${nameColor} truncate`}>{winner.player.full_name}</div>
-          <div className="text-[10px] text-gray-500">{winner.vote_count} vote{winner.vote_count !== 1 ? "s" : ""}</div>
+          <div className="text-[10px] text-gray-500 dark:text-gray-400">{winner.vote_count} vote{winner.vote_count !== 1 ? "s" : ""}</div>
         </>
       ) : (
-        <div className="text-xs text-gray-400 italic">No votes</div>
+        <div className="text-xs text-gray-400 dark:text-gray-500 italic">No votes</div>
       )}
     </div>
   );

@@ -205,7 +205,7 @@ export default function GameDetailPage() {
   if (!currentRun) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-8 text-center">
-        <p className="text-gray-500">Please select a Run from the dropdown above.</p>
+        <p className="text-gray-500 dark:text-gray-400">Please select a Run from the dropdown above.</p>
       </div>
     );
   }
@@ -237,8 +237,8 @@ export default function GameDetailPage() {
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Game Header */}
       <div className="card mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">{game.title}</h1>
-        <p className="text-gray-600 mt-1">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{game.title}</h1>
+        <p className="text-gray-600 dark:text-gray-400 mt-1">
           {new Date(game.game_date).toLocaleDateString("en-US", {
             weekday: "long",
             month: "long",
@@ -248,34 +248,34 @@ export default function GameDetailPage() {
             minute: "2-digit",
           })}
         </p>
-        <p className="text-gray-500">{game.location}</p>
+        <p className="text-gray-500 dark:text-gray-400">{game.location}</p>
         <div className="flex items-center gap-4 mt-4">
           <span className="text-sm font-medium">
             {game.accepted_count}/{game.roster_size} players
           </span>
-          <span className="text-sm text-gray-500">
+          <span className="text-sm text-gray-500 dark:text-gray-400">
             {game.num_teams} teams
           </span>
           <span className={`badge ${
-            game.status === "cancelled" ? "bg-red-100 text-red-800" : "bg-blue-100 text-blue-800"
+            game.status === "cancelled" ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400" : "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
           }`}>
             {game.status.replace("_", " ")}
           </span>
         </div>
-        {game.notes && <p className="text-gray-600 mt-4 italic">{game.notes}</p>}
+        {game.notes && <p className="text-gray-600 dark:text-gray-400 mt-4 italic">{game.notes}</p>}
       </div>
 
       {/* Final Score Banner */}
       {game.status === "completed" && game.result?.team_scores?.length > 0 && (
-        <div className="card mb-6 border-2 border-court-300 bg-court-50">
+        <div className="card mb-6 border-2 border-court-300 dark:border-court-700 bg-court-50 dark:bg-court-900/20">
           <h3 className="text-sm font-semibold text-court-600 uppercase tracking-wide text-center mb-2">Final Score</h3>
           <div className="flex items-center justify-center gap-4 flex-wrap">
             {[...game.result.team_scores]
               .sort((a, b) => b.wins - a.wins)
               .map((ts, idx) => (
                 <div key={ts.team} className="flex items-center gap-2">
-                  {idx > 0 && <span className="text-gray-400 font-bold">-</span>}
-                  <span className="font-bold text-gray-800">{ts.team_name}</span>
+                  {idx > 0 && <span className="text-gray-400 dark:text-gray-500 font-bold">-</span>}
+                  <span className="font-bold text-gray-800 dark:text-gray-200">{ts.team_name}</span>
                   <span className="text-2xl font-black text-court-600">{ts.wins}</span>
                 </div>
               ))}
@@ -285,7 +285,7 @@ export default function GameDetailPage() {
 
       {/* Cancelled Banner */}
       {game.status === "cancelled" && (
-        <div className="card mb-6 border-2 border-red-300 bg-red-50">
+        <div className="card mb-6 border-2 border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20">
           <p className="text-red-700 font-semibold text-center">
             This game has been cancelled.
           </p>
@@ -294,7 +294,7 @@ export default function GameDetailPage() {
 
       {/* Skipped Banner */}
       {game.status === "skipped" && (
-        <div className="card mb-6 border-2 border-yellow-300 bg-yellow-50">
+        <div className="card mb-6 border-2 border-yellow-300 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-900/20">
           <p className="text-yellow-700 font-semibold text-center">
             This game has been skipped.
           </p>
@@ -306,12 +306,12 @@ export default function GameDetailPage() {
       {awards && !awards.voting_open && (awards.mvp || awards.shaqtin || awards.xfactor) && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
           {awards.mvp && (
-            <div className="card border-2 border-yellow-400 bg-yellow-50">
+            <div className="card border-2 border-yellow-400 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-900/20">
               <div className="flex items-center gap-3 mb-2">
                 <span className="text-3xl">🏆</span>
                 <div>
                   <p className="text-xs font-semibold text-yellow-600 uppercase tracking-wide">MVP</p>
-                  <Link to={`/players/${awards.mvp.player.id}`} className="text-lg font-bold text-gray-900 hover:text-court-600">
+                  <Link to={`/players/${awards.mvp.player.id}`} className="text-lg font-bold text-gray-900 dark:text-gray-100 hover:text-court-600">
                     {awards.mvp.player.full_name}
                   </Link>
                 </div>
@@ -320,12 +320,12 @@ export default function GameDetailPage() {
             </div>
           )}
           {awards.xfactor && (
-            <div className="card border-2 border-blue-400 bg-blue-50">
+            <div className="card border-2 border-blue-400 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20">
               <div className="flex items-center gap-3 mb-2">
                 <span className="text-3xl">⚡</span>
                 <div>
                   <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide">X Factor</p>
-                  <Link to={`/players/${awards.xfactor.player.id}`} className="text-lg font-bold text-gray-900 hover:text-court-600">
+                  <Link to={`/players/${awards.xfactor.player.id}`} className="text-lg font-bold text-gray-900 dark:text-gray-100 hover:text-court-600">
                     {awards.xfactor.player.full_name}
                   </Link>
                 </div>
@@ -334,12 +334,12 @@ export default function GameDetailPage() {
             </div>
           )}
           {awards.shaqtin && (
-            <div className="card border-2 border-purple-400 bg-purple-50">
+            <div className="card border-2 border-purple-400 dark:border-purple-700 bg-purple-50 dark:bg-purple-900/20">
               <div className="flex items-center gap-3 mb-2">
                 <span className="text-3xl">🤦</span>
                 <div>
                   <p className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Shaqtin' a Fool</p>
-                  <Link to={`/players/${awards.shaqtin.player.id}`} className="text-lg font-bold text-gray-900 hover:text-court-600">
+                  <Link to={`/players/${awards.shaqtin.player.id}`} className="text-lg font-bold text-gray-900 dark:text-gray-100 hover:text-court-600">
                     {awards.shaqtin.player.full_name}
                   </Link>
                 </div>
@@ -355,13 +355,13 @@ export default function GameDetailPage() {
         <div className="card mb-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold">Cast Your Votes</h2>
-            <span className="text-sm text-gray-500">
+            <span className="text-sm text-gray-500 dark:text-gray-400">
               Closes {new Date(awards.voting_deadline).toLocaleString("en-US", {
                 month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
               })}
             </span>
           </div>
-          <p className="text-sm text-gray-500 mb-4">
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
             {awards.votes_cast} of {awards.total_voters} participants have voted.
             Results are hidden until voting closes.
           </p>
@@ -403,7 +403,7 @@ export default function GameDetailPage() {
 
       {/* Voting closed message */}
       {game.status === "completed" && awards && !awards.voting_open && isParticipant && (
-        <div className="text-center text-sm text-gray-500 mb-6">
+        <div className="text-center text-sm text-gray-500 dark:text-gray-400 mb-6">
           Voting has closed. {awards.votes_cast} of {awards.total_voters} participants voted.
         </div>
       )}
@@ -415,9 +415,9 @@ export default function GameDetailPage() {
           {myRsvp ? (
             <div className="flex items-center gap-4">
               <span className={`badge ${
-                myRsvp.status === "accepted" ? "bg-green-100 text-green-800" :
-                myRsvp.status === "declined" ? "bg-red-100 text-red-800" :
-                "bg-gray-100 text-gray-800"
+                myRsvp.status === "accepted" ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" :
+                myRsvp.status === "declined" ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400" :
+                "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
               }`}>
                 {myRsvp.status}
               </span>
@@ -458,13 +458,13 @@ export default function GameDetailPage() {
         {game.rsvps?.length > 0 ? (
           <div className="space-y-2">
             {game.rsvps.map((rsvp) => (
-              <div key={rsvp.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+              <div key={rsvp.id} className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700 last:border-0">
                 <span className="font-medium">{rsvp.user?.full_name || `Player #${rsvp.user_id}`}</span>
                 <span className={`badge ${
-                  rsvp.status === "accepted" ? "bg-green-100 text-green-800" :
-                  rsvp.status === "declined" ? "bg-red-100 text-red-800" :
-                  rsvp.status === "waitlist" ? "bg-yellow-100 text-yellow-800" :
-                  "bg-gray-100 text-gray-800"
+                  rsvp.status === "accepted" ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" :
+                  rsvp.status === "declined" ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400" :
+                  rsvp.status === "waitlist" ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400" :
+                  "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
                 }`}>
                   {rsvp.status}
                 </span>
@@ -472,7 +472,7 @@ export default function GameDetailPage() {
             ))}
           </div>
         ) : (
-          <p className="text-gray-500">No RSVPs yet.</p>
+          <p className="text-gray-500 dark:text-gray-400">No RSVPs yet.</p>
         )}
       </div>
 
@@ -483,11 +483,11 @@ export default function GameDetailPage() {
 
           {/* Edit Game Form */}
           {editing ? (
-            <div className="space-y-3 mb-4 p-4 bg-gray-50 rounded-lg">
-              <h3 className="text-sm font-semibold text-gray-700">Edit Game Details</h3>
+            <div className="space-y-3 mb-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Edit Game Details</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Title</label>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Title</label>
                   <input
                     type="text"
                     value={editForm.title}
@@ -496,7 +496,7 @@ export default function GameDetailPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Date & Time</label>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Date & Time</label>
                   <input
                     type="datetime-local"
                     value={editForm.game_date}
@@ -505,7 +505,7 @@ export default function GameDetailPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Location</label>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Location</label>
                   <input
                     type="text"
                     value={editForm.location}
@@ -514,7 +514,7 @@ export default function GameDetailPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Notes</label>
                   <input
                     type="text"
                     value={editForm.notes}
@@ -534,7 +534,7 @@ export default function GameDetailPage() {
           <div className="flex flex-wrap gap-3">
             {/* Edit Game */}
             {game.status !== "completed" && game.status !== "cancelled" && game.status !== "skipped" && (
-              <button onClick={handleStartEdit} className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2 px-4 rounded-lg">
+              <button onClick={handleStartEdit} className="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-semibold py-2 px-4 rounded-lg">
                 Edit Game
               </button>
             )}
@@ -549,7 +549,7 @@ export default function GameDetailPage() {
             {/* Record Scores — input per team */}
             {game.status === "teams_set" && uniqueTeams.length > 0 && (
               <div className="w-full mt-2">
-                <p className="text-sm text-gray-500 mb-2">Record wins per team:</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Record wins per team:</p>
                 <div className="flex flex-wrap items-end gap-3">
                   {uniqueTeams.map((team, idx) => (
                     <div key={team.id} className="flex flex-col items-center">
@@ -565,7 +565,7 @@ export default function GameDetailPage() {
                         value={scores[team.id] || ""}
                         onChange={(e) => setScores({ ...scores, [team.id]: e.target.value })}
                         placeholder="0"
-                        className="w-16 text-center text-lg font-bold border-2 border-gray-300 rounded-lg py-1 focus:border-court-500 focus:outline-none"
+                        className="w-16 text-center text-lg font-bold border-2 border-gray-300 dark:border-gray-600 rounded-lg py-1 focus:border-court-500 focus:outline-none dark:bg-gray-900 dark:text-gray-100"
                       />
                     </div>
                   ))}
@@ -587,7 +587,7 @@ export default function GameDetailPage() {
                   value={skipReason}
                   onChange={(e) => setSkipReason(e.target.value)}
                   placeholder="Reason (optional)"
-                  className="text-sm border border-gray-300 rounded-lg px-3 py-2"
+                  className="text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 dark:bg-gray-900 dark:text-gray-100"
                 />
                 <button
                   onClick={handleSkipGame}
@@ -612,7 +612,7 @@ export default function GameDetailPage() {
             {game.status !== "completed" && (
               <button
                 onClick={handleDeleteGame}
-                className="bg-red-100 hover:bg-red-200 text-red-700 font-semibold py-2 px-4 rounded-lg"
+                className="bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 text-red-700 dark:text-red-400 font-semibold py-2 px-4 rounded-lg"
               >
                 Delete Game
               </button>
@@ -629,9 +629,9 @@ export default function GameDetailPage() {
  */
 function VotingCard({ title, emoji, description, color, participants, currentUserId, currentVoteId, onVote }) {
   const colorMap = {
-    yellow: { border: "border-yellow-300", header: "text-yellow-700", selected: "bg-yellow-100 border-yellow-400" },
-    purple: { border: "border-purple-300", header: "text-purple-700", selected: "bg-purple-100 border-purple-400" },
-    blue: { border: "border-blue-300", header: "text-blue-700", selected: "bg-blue-100 border-blue-400" },
+    yellow: { border: "border-yellow-300 dark:border-yellow-700", header: "text-yellow-700", selected: "bg-yellow-100 dark:bg-yellow-900/30 border-yellow-400 dark:border-yellow-600" },
+    purple: { border: "border-purple-300 dark:border-purple-700", header: "text-purple-700", selected: "bg-purple-100 dark:bg-purple-900/30 border-purple-400 dark:border-purple-600" },
+    blue: { border: "border-blue-300 dark:border-blue-700", header: "text-blue-700", selected: "bg-blue-100 dark:bg-blue-900/30 border-blue-400 dark:border-blue-600" },
   };
   const colors = colorMap[color] || colorMap.yellow;
   const borderColor = colors.border;
@@ -646,7 +646,7 @@ function VotingCard({ title, emoji, description, color, participants, currentUse
         <span className="text-xl">{emoji}</span>
         <h3 className={`font-bold ${headerColor}`}>{title}</h3>
       </div>
-      <p className="text-xs text-gray-500 mb-3">{description}</p>
+      <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">{description}</p>
 
       <div className="space-y-2">
         {eligible.map((player) => {
@@ -658,7 +658,7 @@ function VotingCard({ title, emoji, description, color, participants, currentUse
               className={`w-full text-left px-3 py-2 rounded-lg border-2 transition-all text-sm ${
                 isSelected
                   ? `${selectedBg} font-semibold`
-                  : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                  : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
               }`}
             >
               <div className="flex items-center justify-between">

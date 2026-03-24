@@ -117,7 +117,7 @@ export default function PlayerProfilePage() {
               >
                 <AvatarBadge avatarId={player.avatar_url} size="lg" />
               </button>
-              <span className="text-[10px] text-gray-400 mt-1">{legacy.name}</span>
+              <span className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">{legacy.name}</span>
               {isOwnProfile && (
                 <button
                   onClick={() => setShowAvatarPicker(true)}
@@ -139,8 +139,8 @@ export default function PlayerProfilePage() {
           )}
 
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{player.full_name}</h1>
-            <p className="text-gray-500">@{player.username}</p>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{player.full_name}</h1>
+            <p className="text-gray-500 dark:text-gray-400">@{player.username}</p>
             <div className="flex items-center gap-2 mt-2">
               <span className={`badge-${player.player_status}`}>{player.player_status}</span>
               {isOwnProfile && <span className="badge bg-court-100 text-court-800">You</span>}
@@ -173,7 +173,7 @@ export default function PlayerProfilePage() {
         <h2 className="text-lg font-semibold mb-3">Physical Stats</h2>
         <div className="grid grid-cols-3 gap-4">
           <div>
-            <p className="text-sm text-gray-500">Height</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Height</p>
             <p className="text-lg font-semibold">
               {player.height_inches
                 ? `${Math.floor(player.height_inches / 12)}'${player.height_inches % 12}"`
@@ -181,22 +181,22 @@ export default function PlayerProfilePage() {
             </p>
           </div>
           <div>
-            <p className="text-sm text-gray-500">Age</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Age</p>
             <p className="text-lg font-semibold">{player.age || "N/A"}</p>
           </div>
           <div>
-            <p className="text-sm text-gray-500">Mobility</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Mobility</p>
             <p className="text-lg font-semibold">{player.mobility?.toFixed(1) || "N/A"} / 5.0</p>
           </div>
         </div>
-        <p className="text-xs text-gray-400 mt-3">Physical stats are maintained by admins.</p>
+        <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">Physical stats are maintained by admins.</p>
       </div>
 
       {/* Rating Form */}
       {!isOwnProfile && (
         <div className="card">
           <h2 className="text-lg font-semibold mb-1">Rate This Player</h2>
-          <p className="text-sm text-gray-500 mb-4">
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
             Ratings are anonymous. {summary?.total_ratings} total ratings.
             {myRating?.has_rated && !myRating?.can_update && (
               <span className="text-yellow-600 ml-2">
@@ -227,7 +227,7 @@ export default function PlayerProfilePage() {
               </button>
             </form>
           ) : (
-            <p className="text-gray-500">
+            <p className="text-gray-500 dark:text-gray-400">
               You've already rated this player. You can update your rating once per month.
             </p>
           )}
@@ -240,12 +240,12 @@ export default function PlayerProfilePage() {
 function StatCard({ label, value, max, highlight, subtitle }) {
   return (
     <div className={`card text-center ${highlight ? "border-2 border-court-300" : ""}`}>
-      <p className="text-sm text-gray-500">{label}</p>
-      <p className={`text-2xl font-bold ${highlight ? "text-court-600" : "text-gray-900"}`}>
+      <p className="text-sm text-gray-500 dark:text-gray-400">{label}</p>
+      <p className={`text-2xl font-bold ${highlight ? "text-court-600" : "text-gray-900 dark:text-gray-100"}`}>
         {value}
       </p>
-      {max && <p className="text-xs text-gray-400">/ {max}</p>}
-      {subtitle && <p className="text-xs text-gray-400">{subtitle}</p>}
+      {max && <p className="text-xs text-gray-400 dark:text-gray-500">/ {max}</p>}
+      {subtitle && <p className="text-xs text-gray-400 dark:text-gray-500">{subtitle}</p>}
     </div>
   );
 }
@@ -254,7 +254,7 @@ function RatingSlider({ label, value, onChange }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
-        <label className="text-sm font-medium text-gray-700">{label}</label>
+        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{label}</label>
         <span className="text-sm font-bold text-court-600">{value.toFixed(1)}</span>
       </div>
       <input
@@ -264,9 +264,9 @@ function RatingSlider({ label, value, onChange }) {
         step="0.5"
         value={value}
         onChange={(e) => onChange(parseFloat(e.target.value))}
-        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-court-500"
+        className="w-full h-2 bg-gray-200 dark:bg-gray-600 rounded-lg appearance-none cursor-pointer accent-court-500"
       />
-      <div className="flex justify-between text-xs text-gray-400">
+      <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500">
         <span>1</span>
         <span>2</span>
         <span>3</span>
