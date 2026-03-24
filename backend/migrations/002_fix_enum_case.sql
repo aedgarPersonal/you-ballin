@@ -6,6 +6,9 @@
 -- This caused Internal Server Errors when asyncpg tried to map enum values.
 --
 -- Applied manually via Supabase MCP on 2026-03-24.
+-- IMPORTANT: asyncpg caches enum OID mappings per-connection. After running
+-- ALTER TYPE RENAME VALUE, existing connections see stale mappings and fail.
+-- A full backend restart is required after applying this migration.
 -- Kept here for documentation.
 
 -- UserRole: PLAYER -> player, SUPER_ADMIN -> super_admin
