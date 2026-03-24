@@ -66,7 +66,10 @@ export default function PlayersPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-3">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Players</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Players</h1>
+          {currentRun && <p className="text-sm text-court-600">{currentRun.name}</p>}
+        </div>
         <div className="flex items-center gap-3">
           <select
             value={sortBy}

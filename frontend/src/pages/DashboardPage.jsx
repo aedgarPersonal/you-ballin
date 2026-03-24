@@ -84,6 +84,9 @@ export default function DashboardPage() {
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
             Welcome back, {user?.full_name?.split(" ")[0]}!
           </h1>
+          {currentRun && (
+            <p className="text-sm font-medium text-court-600 mt-0.5">{currentRun.name}</p>
+          )}
           <p className="text-gray-600 dark:text-gray-400 mt-1">{statusMessage[user?.player_status] || ""}</p>
           {user?.avatar_url && getPlayerById(user.avatar_url) && (
             <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
