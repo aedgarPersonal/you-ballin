@@ -29,7 +29,7 @@ import {
   importPlayers,
   quickAddPlayer,
 } from "../api/admin";
-import { createGame, generateSeasonGames, listGames, updateGame, cancelGame, skipGame } from "../api/games";
+import { createGame, generateSeasonGames, listGames, updateGame, cancelGame } from "../api/games";
 import {
   updateRun,
   listRunsNeedingPlayers,
@@ -429,8 +429,7 @@ export default function AdminPage() {
     dropin_open: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
     teams_set: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
     completed: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400",
-    cancelled: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
-    skipped: "bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400",
+    cancelled: "bg-red-200 text-red-900 dark:bg-red-900/40 dark:text-red-300 font-bold",
   };
 
   const tabs = ["pending", "players", "games", "import", "balancer", "suggestions", "settings"];
@@ -579,7 +578,7 @@ export default function AdminPage() {
                     const canEdit = !["completed", "cancelled", "skipped"].includes(game.status);
 
                     return (
-                      <tr key={game.id} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
+                      <tr key={game.id} className={`border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 ${game.status === "cancelled" ? "opacity-60 bg-red-50 dark:bg-red-900/10" : ""}`}>
                         <td className="py-2 px-3 text-sm">
                           {isEditing ? (
                             <div className="flex gap-1">
@@ -602,7 +601,7 @@ export default function AdminPage() {
                             <input type="text" value={editGameForm.title || ""} onChange={(e) => setEditGameForm({ ...editGameForm, title: e.target.value })}
                               className="w-full text-sm border rounded px-2 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600" />
                           ) : (
-                            <span className="font-medium text-gray-900 dark:text-gray-100">{game.title}</span>
+                            <span className={`font-medium text-gray-900 dark:text-gray-100 ${game.status === "cancelled" ? "line-through text-red-600 dark:text-red-400" : ""}`}>{game.title}</span>
                           )}
                         </td>
                         <td className="py-2 px-3 text-sm">
@@ -661,20 +660,12 @@ export default function AdminPage() {
                               >Edit</button>
                               <button
                                 onClick={async () => {
-                                  if (!confirm(`Cancel "${game.title}"?`)) return;
+                                  if (!confirm(`Cancel "${game.title}"? Players will see this game as cancelled.`)) return;
                                   try { await cancelGame(runId, game.id); toast.success("Game cancelled"); fetchAdminGames(); }
                                   catch { toast.error("Failed"); }
                                 }}
                                 className="text-xs text-red-600 hover:text-red-800 font-medium"
                               >Cancel</button>
-                              <button
-                                onClick={async () => {
-                                  if (!confirm(`Skip "${game.title}"?`)) return;
-                                  try { await skipGame(runId, game.id); toast.success("Game skipped"); fetchAdminGames(); }
-                                  catch { toast.error("Failed"); }
-                                }}
-                                className="text-xs text-gray-500 hover:text-gray-700 font-medium"
-                              >Skip</button>
                             </div>
                           ) : (
                             <span className="text-xs text-gray-400">—</span>

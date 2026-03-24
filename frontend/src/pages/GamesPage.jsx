@@ -24,7 +24,7 @@ const STATUS_COLORS = {
   dropin_open: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
   teams_set: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
   completed: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400",
-  cancelled: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+  cancelled: "bg-red-200 text-red-900 dark:bg-red-900/40 dark:text-red-300 font-bold",
 };
 
 export default function GamesPage() {
@@ -91,10 +91,10 @@ export default function GamesPage() {
       ) : (
         <div className="space-y-4">
           {games.map((game) => (
-            <Link key={game.id} to={`/games/${game.id}`} className="card block hover:shadow-md transition-shadow">
+            <Link key={game.id} to={`/games/${game.id}`} className={`card block hover:shadow-md transition-shadow ${game.status === "cancelled" ? "opacity-60 border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-900/10" : ""}`}>
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{game.title}</h3>
+                  <h3 className={`text-lg font-semibold ${game.status === "cancelled" ? "line-through text-red-600 dark:text-red-400" : "text-gray-900 dark:text-gray-100"}`}>{game.title}</h3>
                   <p className="text-gray-600 dark:text-gray-400">
                     {new Date(game.game_date).toLocaleDateString("en-US", {
                       weekday: "long",
