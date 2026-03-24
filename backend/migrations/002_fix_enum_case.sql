@@ -1,0 +1,16 @@
+-- Migration 002: Fix enum case mismatch
+-- ======================================
+-- The initial schema sync created PostgreSQL enum types with UPPERCASE labels
+-- (e.g., 'ACCEPTED', 'SCHEDULED', 'PLAYER') but the Python SQLAlchemy enums
+-- use lowercase values (e.g., 'accepted', 'scheduled', 'player').
+-- This caused Internal Server Errors when asyncpg tried to map enum values.
+--
+-- Applied manually via Supabase MCP on 2026-03-24.
+-- Kept here for documentation.
+
+-- UserRole: PLAYER -> player, SUPER_ADMIN -> super_admin
+-- GameStatus: SCHEDULED -> scheduled, INVITES_SENT -> invites_sent, etc.
+-- RSVPStatus: PENDING -> pending, ACCEPTED -> accepted, etc.
+-- PlayerStatus: PENDING -> pending, REGULAR -> regular, etc.
+-- VoteType: MVP -> mvp, SHAQTIN -> shaqtin, XFACTOR -> xfactor
+-- SuggestionStatus: PENDING -> pending, ACCEPTED -> accepted, DECLINED -> declined
