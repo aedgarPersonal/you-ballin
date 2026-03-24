@@ -571,7 +571,7 @@ async def handle_suggestion(
 
     new_status = SuggestionStatus(data.status)
     suggestion.status = new_status
-    suggestion.resolved_at = datetime.now(timezone.utc)
+    suggestion.resolved_at = datetime.utcnow()
     suggestion.resolved_by_user_id = admin.id
 
     from app.services.notification_service import send_notification

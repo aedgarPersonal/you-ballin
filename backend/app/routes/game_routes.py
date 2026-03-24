@@ -474,6 +474,10 @@ async def rsvp_to_game(
     if game.run_id != run_id:
         raise HTTPException(status_code=404, detail="Game not found in this run")
 
+    # Block RSVP for games that are no longer active
+    if game.status in (GameStatus.COMPLETED, GameStatus.CANCELLED, GameStatus.SKIPPED):
+        raise HTTPException(status_code=400, detail="Cannot RSVP to this game")
+
     # Check the user's RunMembership status for this run
     membership_result = await db.execute(
         select(RunMembership).where(
@@ -506,7 +510,7 @@ async def rsvp_to_game(
     if rsvp:
         # Update existing RSVP
         rsvp.status = rsvp_status
-        rsvp.responded_at = datetime.now(timezone.utc)
+        rsvp.responded_at = datetime.utcnow()
     else:
         # Handle drop-in waitlist logic
         if (
@@ -520,7 +524,7 @@ async def rsvp_to_game(
             game_id=game_id,
             user_id=user.id,
             status=rsvp_status,
-            responded_at=datetime.now(timezone.utc),
+            responded_at=datetime.utcnow(),
         )
         db.add(rsvp)
 

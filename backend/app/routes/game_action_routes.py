@@ -237,7 +237,7 @@ async def rsvp_via_token(
 
     if existing:
         existing.status = rsvp_status
-        existing.responded_at = datetime.now(timezone.utc)
+        existing.responded_at = datetime.utcnow()
     else:
         # Handle waitlist for drop-ins
         if rsvp_status == RSVPStatus.ACCEPTED and game.spots_remaining <= 0:
@@ -247,7 +247,7 @@ async def rsvp_via_token(
             game_id=game.id,
             user_id=user.id,
             status=rsvp_status,
-            responded_at=datetime.now(timezone.utc),
+            responded_at=datetime.utcnow(),
         )
         db.add(rsvp)
 
@@ -303,7 +303,7 @@ async def vote_via_token(
 
     if existing:
         existing.nominee_id = action.nominee_id
-        existing.created_at = datetime.now(timezone.utc)
+        existing.created_at = datetime.utcnow()
     else:
         db.add(GameVote(
             game_id=game.id,

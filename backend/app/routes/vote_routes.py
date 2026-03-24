@@ -144,7 +144,7 @@ async def cast_vote(
 
     if existing:
         existing.nominee_id = data.nominee_id
-        existing.created_at = datetime.now(timezone.utc)
+        existing.created_at = datetime.utcnow()
         vote = existing
     else:
         vote = GameVote(
