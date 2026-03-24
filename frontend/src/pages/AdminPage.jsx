@@ -396,6 +396,7 @@ export default function AdminPage() {
   const totalWeight = weights.reduce((sum, w) => sum + w.weight, 0);
 
   const tabs = ["pending", "players", "import", "balancer", "suggestions", "settings"];
+  const tabLabels = { settings: "Run Settings" };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -502,7 +503,7 @@ export default function AdminPage() {
                 : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
             }`}
           >
-            {t} {t === "pending" && pending.length > 0 && `(${pending.length})`}
+            {tabLabels[t] || t} {t === "pending" && pending.length > 0 && `(${pending.length})`}
           </button>
         ))}
       </div>

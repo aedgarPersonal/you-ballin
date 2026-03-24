@@ -191,9 +191,9 @@ async def add_run_admin(
     run_id: int,
     data: _RunAdminAdd,
     db: AsyncSession = Depends(get_db),
-    _admin: User = Depends(get_current_super_admin),
+    _admin: User = Depends(require_run_admin()),
 ) -> RunAdmin:
-    """Add a user as a run admin (super admin only).
+    """Add a user as a run admin (run admin or super admin).
 
     Body: { "user_id": int }
     """
@@ -234,9 +234,9 @@ async def remove_run_admin(
     run_id: int,
     user_id: int,
     db: AsyncSession = Depends(get_db),
-    _admin: User = Depends(get_current_super_admin),
+    _admin: User = Depends(require_run_admin()),
 ) -> None:
-    """Remove a run admin (super admin only)."""
+    """Remove a run admin (run admin or super admin)."""
     result = await db.execute(
         select(RunAdmin).where(
             RunAdmin.run_id == run_id,
