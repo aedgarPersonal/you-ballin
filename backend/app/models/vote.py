@@ -45,7 +45,9 @@ class GameVote(Base):
     game_id: Mapped[int] = mapped_column(Integer, ForeignKey("games.id"), nullable=False)
     voter_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
     nominee_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
-    vote_type: Mapped[VoteType] = mapped_column(Enum(VoteType), nullable=False)
+    vote_type: Mapped[VoteType] = mapped_column(
+        Enum(VoteType, values_callable=lambda x: [e.value for e in x]), nullable=False,
+    )
 
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 

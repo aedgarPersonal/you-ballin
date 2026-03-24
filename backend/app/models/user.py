@@ -33,6 +33,7 @@ class UserRole(str, enum.Enum):
         a relationship in the run_admins table (see RunAdmin model).
     """
     PLAYER = "player"
+    ADMIN = "admin"
     SUPER_ADMIN = "super_admin"
 
 
@@ -72,9 +73,13 @@ class User(Base):
     mobility: Mapped[float | None] = mapped_column(Float, nullable=True)  # 1.0 - 5.0 scale
 
     # --- System Fields ---
-    role: Mapped[UserRole] = mapped_column(Enum(UserRole), default=UserRole.PLAYER, nullable=False)
+    role: Mapped[UserRole] = mapped_column(
+        Enum(UserRole, values_callable=lambda x: [e.value for e in x]),
+        default=UserRole.PLAYER, nullable=False,
+    )
     player_status: Mapped[PlayerStatus] = mapped_column(
-        Enum(PlayerStatus), default=PlayerStatus.PENDING, nullable=False
+        Enum(PlayerStatus, values_callable=lambda x: [e.value for e in x]),
+        default=PlayerStatus.PENDING, nullable=False,
     )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     google_id: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True)

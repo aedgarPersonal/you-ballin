@@ -56,7 +56,8 @@ class Game(Base):
     location: Mapped[str] = mapped_column(String(300), nullable=False, default="TBD")
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[GameStatus] = mapped_column(
-        Enum(GameStatus), default=GameStatus.SCHEDULED, nullable=False
+        Enum(GameStatus, values_callable=lambda x: [e.value for e in x]),
+        default=GameStatus.SCHEDULED, nullable=False,
     )
     roster_size: Mapped[int] = mapped_column(Integer, default=16)  # Total player slots
     num_teams: Mapped[int] = mapped_column(Integer, default=2)    # How many teams to create
@@ -99,7 +100,8 @@ class RSVP(Base):
     game_id: Mapped[int] = mapped_column(Integer, ForeignKey("games.id"), nullable=False)
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
     status: Mapped[RSVPStatus] = mapped_column(
-        Enum(RSVPStatus), default=RSVPStatus.PENDING, nullable=False
+        Enum(RSVPStatus, values_callable=lambda x: [e.value for e in x]),
+        default=RSVPStatus.PENDING, nullable=False,
     )
     responded_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())

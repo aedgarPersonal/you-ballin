@@ -94,7 +94,8 @@ class RunMembership(Base):
     run_id: Mapped[int] = mapped_column(Integer, ForeignKey("runs.id"), nullable=False)
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
     player_status: Mapped[PlayerStatus] = mapped_column(
-        SAEnum(PlayerStatus), default=PlayerStatus.PENDING, nullable=False
+        SAEnum(PlayerStatus, values_callable=lambda x: [e.value for e in x]),
+        default=PlayerStatus.PENDING, nullable=False,
     )
     dues_paid: Mapped[bool] = mapped_column(Boolean, default=False)
     notify_email: Mapped[bool] = mapped_column(Boolean, default=True)
@@ -205,7 +206,8 @@ class PlayerSuggestion(Base):
     suggested_by_user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
     message: Mapped[str | None] = mapped_column(String(500), nullable=True)
     status: Mapped[SuggestionStatus] = mapped_column(
-        SAEnum(SuggestionStatus), default=SuggestionStatus.PENDING, nullable=False
+        SAEnum(SuggestionStatus, values_callable=lambda x: [e.value for e in x]),
+        default=SuggestionStatus.PENDING, nullable=False,
     )
     resolved_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     resolved_by_user_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id"), nullable=True)
