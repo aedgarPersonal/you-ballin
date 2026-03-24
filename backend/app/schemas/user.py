@@ -63,18 +63,39 @@ class UserUpdate(BaseModel):
 
 
 class AdminUserUpdate(BaseModel):
-    """Fields only an admin can update.
+    """Fields an admin can update on a player.
 
     For super admin: role and is_active (user-level fields).
-    For run admin: player_status, dues_paid (run-level), plus height/age/mobility on User.
+    For run admin: player_status, dues_paid (run-level), plus profile/physical/stats on User.
     """
+    # Profile fields
+    full_name: str | None = Field(None, min_length=1, max_length=200)
+    email: str | None = None
+    username: str | None = Field(None, min_length=3, max_length=100)
+    phone: str | None = None
+    avatar_url: str | None = None
+    # Run membership fields
     player_status: str | None = None  # regular, dropin, inactive
+    dues_paid: bool | None = None
+    # Super admin only
     role: str | None = None  # player, super_admin
     is_active: bool | None = None
-    dues_paid: bool | None = None
+    # Physical stats
     height_inches: int | None = None
     age: int | None = None
     mobility: float | None = Field(None, ge=1.0, le=5.0)
+    # Game stats (for manual correction)
+    games_played: int | None = Field(None, ge=0)
+    games_won: int | None = Field(None, ge=0)
+
+
+class QuickAddPlayer(BaseModel):
+    """Quick add a single player to a run."""
+    full_name: str = Field(min_length=1, max_length=200)
+    email: str | None = None
+    phone: str | None = None
+    wins: int = Field(default=0, ge=0)
+    losses: int = Field(default=0, ge=0)
 
 
 class UserResponse(BaseModel):

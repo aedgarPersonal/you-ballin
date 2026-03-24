@@ -21,3 +21,4 @@ export const cancelGame = (runId, gameId) => api.post(`/runs/${runId}/games/${ga
 export const skipGame = (runId, gameId, notes) =>
   api.post(`/runs/${runId}/games/${gameId}/skip`, null, { params: notes ? { notes } : {} });
 export const deleteGame = (runId, gameId) => api.delete(`/runs/${runId}/games/${gameId}`);
+export const generateSeasonGames = (runId) => api.post(`/runs/${runId}/games/generate-season`);

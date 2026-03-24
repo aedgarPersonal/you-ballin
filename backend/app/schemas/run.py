@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel, Field
 
@@ -14,6 +14,8 @@ class RunCreate(BaseModel):
     dues_amount: float | None = None
     skill_level: int = Field(default=5, ge=1, le=5)
     needs_players: bool = False
+    start_date: date | None = None
+    end_date: date | None = None
 
 
 class RunUpdate(BaseModel):
@@ -28,6 +30,8 @@ class RunUpdate(BaseModel):
     is_active: bool | None = None
     skill_level: int | None = Field(None, ge=1, le=5)
     needs_players: bool | None = None
+    start_date: date | None = None
+    end_date: date | None = None
 
 
 class RunResponse(BaseModel):
@@ -43,6 +47,8 @@ class RunResponse(BaseModel):
     is_active: bool
     skill_level: int
     needs_players: bool
+    start_date: date | None = None
+    end_date: date | None = None
     created_at: datetime
     is_admin: bool = False
     model_config = {"from_attributes": True}

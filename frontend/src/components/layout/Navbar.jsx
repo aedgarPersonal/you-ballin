@@ -20,7 +20,7 @@ export default function Navbar() {
   const { runs, currentRun, setCurrentRun, fetchRuns, isRunAdmin } = useRunStore();
   const navigate = useNavigate();
   const [showCreateRun, setShowCreateRun] = useState(false);
-  const [newRunName, setNewRunName] = useState("");
+  const [newRun, setNewRun] = useState({ name: "", default_game_day: "", default_game_time: "", default_location: "", start_date: "", end_date: "" });
   const [creating, setCreating] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { theme, setTheme } = useThemeStore();
@@ -30,14 +30,20 @@ export default function Navbar() {
 
   const handleCreateRun = async (e) => {
     e.preventDefault();
-    if (!newRunName.trim()) return;
+    if (!newRun.name.trim()) return;
     setCreating(true);
     try {
-      const { data } = await createRun({ name: newRunName.trim() });
+      const payload = { name: newRun.name.trim() };
+      if (newRun.default_game_day !== "") payload.default_game_day = parseInt(newRun.default_game_day);
+      if (newRun.default_game_time) payload.default_game_time = newRun.default_game_time;
+      if (newRun.default_location) payload.default_location = newRun.default_location;
+      if (newRun.start_date) payload.start_date = newRun.start_date;
+      if (newRun.end_date) payload.end_date = newRun.end_date;
+      const { data } = await createRun(payload);
       await fetchRuns();
       setCurrentRun(data);
       setShowCreateRun(false);
-      setNewRunName("");
+      setNewRun({ name: "", default_game_day: "", default_game_time: "", default_location: "", start_date: "", end_date: "" });
     } catch (err) {
       console.error("Failed to create run:", err);
     } finally {
@@ -271,22 +277,84 @@ export default function Navbar() {
       {/* Create Run Modal */}
       {showCreateRun && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowCreateRun(false)}>
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">Create New Run</h2>
-            <form onSubmit={handleCreateRun}>
-              <input
-                type="text"
-                value={newRunName}
-                onChange={(e) => setNewRunName(e.target.value)}
-                placeholder="Run name (e.g. Wednesday Night Hoops)"
-                className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md px-3 py-2 text-sm focus:ring-court-500 focus:border-court-500 mb-4"
-                autoFocus
-              />
-              <div className="flex justify-end space-x-3">
+            <form onSubmit={handleCreateRun} className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Run Name *</label>
+                <input
+                  type="text"
+                  value={newRun.name}
+                  onChange={(e) => setNewRun({ ...newRun, name: e.target.value })}
+                  placeholder="e.g. Monday Night Hoops"
+                  className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md px-3 py-2 text-sm focus:ring-court-500 focus:border-court-500"
+                  autoFocus
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Schedule Day</label>
+                  <select
+                    value={newRun.default_game_day}
+                    onChange={(e) => setNewRun({ ...newRun, default_game_day: e.target.value })}
+                    className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-md px-3 py-2 text-sm focus:ring-court-500 focus:border-court-500"
+                  >
+                    <option value="">Select day...</option>
+                    <option value="0">Monday</option>
+                    <option value="1">Tuesday</option>
+                    <option value="2">Wednesday</option>
+                    <option value="3">Thursday</option>
+                    <option value="4">Friday</option>
+                    <option value="5">Saturday</option>
+                    <option value="6">Sunday</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Game Time</label>
+                  <input
+                    type="time"
+                    value={newRun.default_game_time}
+                    onChange={(e) => setNewRun({ ...newRun, default_game_time: e.target.value })}
+                    className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-md px-3 py-2 text-sm focus:ring-court-500 focus:border-court-500"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Location</label>
+                <input
+                  type="text"
+                  value={newRun.default_location}
+                  onChange={(e) => setNewRun({ ...newRun, default_location: e.target.value })}
+                  placeholder="e.g. Downtown Rec Center"
+                  className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md px-3 py-2 text-sm focus:ring-court-500 focus:border-court-500"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Season Start</label>
+                  <input
+                    type="date"
+                    value={newRun.start_date}
+                    onChange={(e) => setNewRun({ ...newRun, start_date: e.target.value })}
+                    className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-md px-3 py-2 text-sm focus:ring-court-500 focus:border-court-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Season End</label>
+                  <input
+                    type="date"
+                    value={newRun.end_date}
+                    onChange={(e) => setNewRun({ ...newRun, end_date: e.target.value })}
+                    className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-md px-3 py-2 text-sm focus:ring-court-500 focus:border-court-500"
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-gray-400 dark:text-gray-500">Schedule and dates are optional. You can set them later in Run Settings.</p>
+              <div className="flex justify-end space-x-3 pt-2">
                 <button type="button" onClick={() => setShowCreateRun(false)} className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 px-4 py-2">
                   Cancel
                 </button>
-                <button type="submit" disabled={creating || !newRunName.trim()} className="text-sm bg-court-600 text-white rounded-md px-4 py-2 hover:bg-court-700 disabled:opacity-50">
+                <button type="submit" disabled={creating || !newRun.name.trim()} className="text-sm bg-court-600 text-white rounded-md px-4 py-2 hover:bg-court-700 disabled:opacity-50">
                   {creating ? "Creating..." : "Create Run"}
                 </button>
               </div>

@@ -15,17 +15,17 @@ TEACHING NOTE:
     ensuring all operations are scoped to the correct run.
 """
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import select, func as sqlfunc
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.auth.dependencies import get_current_user, require_run_admin, require_run_member
 from app.database import get_db
 from app.models.game import Game, GameStatus, RSVP, RSVPStatus
-from app.models.run import RunMembership, RunPlayerStats
+from app.models.run import Run, RunMembership, RunPlayerStats
 from app.models.team import GameResult, TeamAssignment, TeamScore, pick_team_names
 from app.models.user import PlayerStatus, User
 from app.models.notification import NotificationType
@@ -73,12 +73,130 @@ async def create_game(
     db: AsyncSession = Depends(get_db),
     _admin: User = Depends(require_run_admin()),
 ):
-    """Create a new game in this run (run admin only)."""
+    """Create a new game in this run (run admin only).
+
+    Notifies all regular and drop-in members about the new game.
+    """
     game = Game(run_id=run_id, **data.model_dump())
     db.add(game)
     await db.flush()
     await db.refresh(game, ["rsvps", "teams", "result"])
+
+    # Notify all active run members (regular + drop-in)
+    members_result = await db.execute(
+        select(User)
+        .join(RunMembership, RunMembership.user_id == User.id)
+        .where(
+            RunMembership.run_id == run_id,
+            RunMembership.player_status.in_([PlayerStatus.REGULAR, PlayerStatus.DROPIN]),
+            User.is_active == True,
+        )
+    )
+    members = members_result.scalars().all()
+
+    if members:
+        game_date_str = game.game_date.strftime("%A, %B %d at %I:%M %p") if game.game_date else "TBD"
+        await send_bulk_notification(
+            db=db,
+            users=members,
+            notification_type=NotificationType.GAME_INVITE,
+            title=f"New Game: {game.title}",
+            message=f"A new game has been scheduled for {game_date_str} at {game.location}. RSVP now!",
+            run_id=run_id,
+        )
+
     return game
+
+
+@router.post("/generate-season")
+async def generate_season_games(
+    run_id: int,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(require_run_admin()),
+):
+    """Generate all games for the season based on the run's schedule and date range.
+
+    Requires the run to have default_game_day, default_game_time, start_date, and end_date set.
+    Skips dates that already have a game to prevent duplicates.
+    """
+    result = await db.execute(select(Run).where(Run.id == run_id))
+    run = result.scalar_one_or_none()
+    if not run:
+        raise HTTPException(status_code=404, detail="Run not found")
+
+    # Validate required schedule fields
+    missing = []
+    if run.default_game_day is None:
+        missing.append("schedule day")
+    if not run.default_game_time:
+        missing.append("game time")
+    if not run.start_date:
+        missing.append("start date")
+    if not run.end_date:
+        missing.append("end date")
+    if missing:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot generate games. Missing: {', '.join(missing)}. Update these in Run Settings.",
+        )
+
+    if run.end_date <= run.start_date:
+        raise HTTPException(status_code=400, detail="End date must be after start date")
+
+    # Parse game time
+    try:
+        hour, minute = map(int, run.default_game_time.split(":"))
+    except (ValueError, AttributeError):
+        raise HTTPException(status_code=400, detail=f"Invalid game time format: {run.default_game_time}")
+
+    # Get existing game dates for this run to skip duplicates
+    existing_result = await db.execute(
+        select(sqlfunc.date_trunc("day", Game.game_date))
+        .where(Game.run_id == run_id)
+    )
+    existing_dates = {row[0].date() if hasattr(row[0], "date") else row[0] for row in existing_result.all()}
+
+    # Iterate from start_date to end_date, finding every matching weekday
+    current = run.start_date
+    if isinstance(current, datetime):
+        current = current.date()
+    end = run.end_date
+    if isinstance(end, datetime):
+        end = end.date()
+
+    # Advance to the first matching weekday
+    target_weekday = run.default_game_day  # 0=Monday
+    while current.weekday() != target_weekday and current <= end:
+        current += timedelta(days=1)
+
+    created_dates = []
+    week_num = 1
+    while current <= end:
+        if current not in existing_dates:
+            game_dt = datetime(current.year, current.month, current.day, hour, minute)
+            day_name = current.strftime("%A")
+            month_day = current.strftime("%b %d")
+            game = Game(
+                run_id=run_id,
+                title=f"Week {week_num} - {day_name} {month_day}",
+                game_date=game_dt,
+                location=run.default_location or "TBD",
+                roster_size=run.default_roster_size,
+                num_teams=run.default_num_teams,
+                status=GameStatus.SCHEDULED,
+            )
+            db.add(game)
+            created_dates.append(current.isoformat())
+        week_num += 1
+        current += timedelta(weeks=1)
+
+    await db.flush()
+
+    return {
+        "games_created": len(created_dates),
+        "total_weeks": week_num - 1,
+        "dates": created_dates,
+    }
 
 
 @router.get("/{game_id}", response_model=GameDetailResponse)

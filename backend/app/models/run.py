@@ -24,6 +24,7 @@ from datetime import datetime
 
 from sqlalchemy import (
     Boolean,
+    Date,
     DateTime,
     Float,
     ForeignKey,
@@ -59,6 +60,10 @@ class Run(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     skill_level: Mapped[int] = mapped_column(Integer, default=5)  # 1-5 scale
     needs_players: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    # --- Season Dates ---
+    start_date: Mapped[datetime | None] = mapped_column(Date, nullable=True)
+    end_date: Mapped[datetime | None] = mapped_column(Date, nullable=True)
 
     # --- Timestamps ---
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())

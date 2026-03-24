@@ -29,6 +29,7 @@ from app.schemas.user import (
     ImportPlayerEntry,
     ImportPlayersRequest,
     ImportPlayersResponse,
+    QuickAddPlayer,
     UserListResponse,
     UserResponse,
 )
@@ -250,14 +251,20 @@ async def update_run_player(
     db: AsyncSession = Depends(get_db),
     _admin: User = Depends(require_run_admin()),
 ):
-    """Update a player's run-specific and physical fields.
+    """Update a player's profile, physical stats, game stats, and run membership.
+
+    Profile fields (stored on User):
+        - full_name, email, username, phone, avatar_url
+
+    Physical fields (stored on User):
+        - height_inches, age, mobility
+
+    Game stats (stored on User + RunPlayerStats):
+        - games_played, games_won (recalculates jordan_factor)
 
     Run-specific fields (stored on RunMembership):
         - player_status: regular, dropin, inactive
         - dues_paid
-
-    Physical fields (stored on User):
-        - height_inches, age, mobility
     """
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
@@ -285,10 +292,38 @@ async def update_run_player(
     if "dues_paid" in update_data:
         membership.dues_paid = update_data.pop("dues_paid")
 
+    # Update profile fields on User
+    for field in ("full_name", "email", "username", "phone", "avatar_url"):
+        if field in update_data:
+            setattr(user, field, update_data.pop(field))
+
     # Update physical fields on User (skip role/is_active — those are super admin only)
     for field in ("height_inches", "age", "mobility"):
         if field in update_data:
-            setattr(user, field, update_data[field])
+            setattr(user, field, update_data.pop(field))
+
+    # Update game stats on User and RunPlayerStats
+    stats_changed = False
+    if "games_played" in update_data or "games_won" in update_data:
+        if "games_played" in update_data:
+            user.games_played = update_data.pop("games_played")
+        if "games_won" in update_data:
+            user.games_won = update_data.pop("games_won")
+        user.jordan_factor = user.games_won / user.games_played if user.games_played > 0 else 0.5
+        stats_changed = True
+
+        # Also update RunPlayerStats for this run
+        rps_result = await db.execute(
+            select(RunPlayerStats).where(
+                RunPlayerStats.run_id == run_id,
+                RunPlayerStats.user_id == user_id,
+            )
+        )
+        rps = rps_result.scalar_one_or_none()
+        if rps:
+            rps.games_played = user.games_played
+            rps.games_won = user.games_won
+            rps.jordan_factor = user.jordan_factor
 
     # Notify the player if their run membership status changed
     if membership.player_status != old_status:
@@ -422,3 +457,75 @@ async def import_players(
         created_players=created,
         skipped_players=skipped,
     )
+
+
+# =============================================================================
+# Quick Add Player (Run-Scoped)
+# =============================================================================
+
+@run_admin_router.post("/add-player", response_model=UserResponse)
+async def quick_add_player(
+    run_id: int,
+    data: QuickAddPlayer,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(require_run_admin()),
+):
+    """Quickly add a single player to this run.
+
+    Creates a new user account and immediately adds them as a regular
+    member of the run. If no email is provided, generates one from the name.
+    """
+    name = data.full_name.strip()
+    username = name.lower().replace(" ", "").replace("'", "")
+
+    if data.email:
+        email = data.email.strip()
+    else:
+        email = f"{username}@youballin.app"
+
+    # Check for existing user
+    existing = await db.execute(
+        select(User).where((User.username == username) | (User.email == email))
+    )
+    if existing.scalar_one_or_none():
+        raise HTTPException(status_code=400, detail=f"User '{username}' or email '{email}' already exists")
+
+    # Pick random avatar
+    available = [a for a in AVATAR_IDS]
+    avatar = random.choice(available)
+
+    games_played = data.wins + data.losses
+    jordan_factor = data.wins / games_played if games_played > 0 else 0.5
+
+    user = User(
+        email=email,
+        username=username,
+        hashed_password=hash_password(DEFAULT_IMPORT_PASSWORD),
+        full_name=name,
+        phone=data.phone,
+        avatar_url=avatar,
+        role=UserRole.PLAYER,
+        player_status=PlayerStatus.REGULAR,
+        is_active=True,
+        games_played=games_played,
+        games_won=data.wins,
+        jordan_factor=jordan_factor,
+    )
+    db.add(user)
+    await db.flush()
+
+    db.add(RunMembership(
+        run_id=run_id,
+        user_id=user.id,
+        player_status=PlayerStatus.REGULAR,
+    ))
+    db.add(RunPlayerStats(
+        run_id=run_id,
+        user_id=user.id,
+        games_played=games_played,
+        games_won=data.wins,
+        jordan_factor=jordan_factor,
+    ))
+
+    await db.flush()
+    return user

@@ -15,3 +15,5 @@ export const listAllPlayers = (runId, params) =>
   api.get(`/runs/${runId}/admin/players`, { params });
 export const importPlayers = (runId, data) =>
   api.post(`/runs/${runId}/admin/import-players`, data);
+export const quickAddPlayer = (runId, data) =>
+  api.post(`/runs/${runId}/admin/add-player`, data);

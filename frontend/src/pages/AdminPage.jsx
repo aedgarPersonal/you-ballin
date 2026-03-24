@@ -27,8 +27,9 @@ import {
   listAllPlayers,
   updatePlayerAdmin,
   importPlayers,
+  quickAddPlayer,
 } from "../api/admin";
-import { createGame } from "../api/games";
+import { createGame, generateSeasonGames } from "../api/games";
 import {
   updateRun,
   listRunsNeedingPlayers,
@@ -86,7 +87,8 @@ export default function AdminPage() {
     default_value: 3,
   });
   const [showNewMetricForm, setShowNewMetricForm] = useState(false);
-  const [newGameTeams, setNewGameTeams] = useState(2);
+  const [showCreateGame, setShowCreateGame] = useState(false);
+  const [newGame, setNewGame] = useState({ title: "", game_date: "", game_time: "", location: currentRun?.default_location || "TBD", num_teams: 2 });
 
   // Suggestions state
   const [suggestions, setSuggestions] = useState([]);
@@ -98,6 +100,11 @@ export default function AdminPage() {
   const [importText, setImportText] = useState("");
   const [importResult, setImportResult] = useState(null);
   const [importing, setImporting] = useState(false);
+
+  // Quick Add Player state
+  const [showAddPlayer, setShowAddPlayer] = useState(false);
+  const [addForm, setAddForm] = useState({ full_name: "", email: "", phone: "", wins: 0, losses: 0 });
+  const [adding, setAdding] = useState(false);
 
   const fetchPending = async () => {
     if (!runId) return;
@@ -156,6 +163,8 @@ export default function AdminPage() {
         dues_amount: currentRun.dues_amount ?? "",
         skill_level: currentRun.skill_level ?? 5,
         needs_players: currentRun.needs_players ?? false,
+        start_date: currentRun.start_date || "",
+        end_date: currentRun.end_date || "",
       });
     }
     if (tab === "suggestions" && runId) {
@@ -180,6 +189,9 @@ export default function AdminPage() {
       payload.default_roster_size = parseInt(payload.default_roster_size);
       payload.default_num_teams = parseInt(payload.default_num_teams);
       payload.skill_level = parseInt(payload.skill_level);
+      // Convert empty date strings to null
+      if (!payload.start_date) payload.start_date = null;
+      if (!payload.end_date) payload.end_date = null;
       const { data } = await updateRun(runId, payload);
       setCurrentRun(data);
       toast.success("Run settings saved!");
@@ -227,20 +239,37 @@ export default function AdminPage() {
     }
   };
 
-  const handleCreateGame = async () => {
-    const date = new Date();
-    date.setDate(date.getDate() + 7);
-    date.setHours(19, 0, 0, 0);
+  const handleCreateGame = async (e) => {
+    e.preventDefault();
+    if (!newGame.title.trim() || !newGame.game_date) {
+      toast.error("Title and date are required");
+      return;
+    }
     try {
+      const gameDate = newGame.game_time
+        ? new Date(`${newGame.game_date}T${newGame.game_time}`)
+        : new Date(newGame.game_date);
       await createGame(runId, {
-        title: `Weekly Pickup - ${date.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`,
-        game_date: date.toISOString(),
-        location: "TBD",
-        num_teams: newGameTeams,
+        title: newGame.title.trim(),
+        game_date: gameDate.toISOString(),
+        location: newGame.location || "TBD",
+        num_teams: parseInt(newGame.num_teams) || 2,
       });
-      toast.success("Game created!");
+      toast.success("Game created! Players have been notified.");
+      setShowCreateGame(false);
+      setNewGame({ title: "", game_date: "", game_time: "", location: currentRun?.default_location || "TBD", num_teams: 2 });
     } catch (err) {
       toast.error(err.response?.data?.detail || "Failed to create game");
+    }
+  };
+
+  const handleGenerateSeasonGames = async () => {
+    if (!confirm("Generate all games for the season based on the run schedule? This won't create duplicates.")) return;
+    try {
+      const { data } = await generateSeasonGames(runId);
+      toast.success(`Created ${data.games_created} games for ${data.total_weeks} weeks!`);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Failed to generate games");
     }
   };
 
@@ -336,6 +365,26 @@ export default function AdminPage() {
     }
   };
 
+  const handleQuickAddPlayer = async (e) => {
+    e.preventDefault();
+    if (!addForm.full_name.trim()) {
+      toast.error("Full name is required");
+      return;
+    }
+    setAdding(true);
+    try {
+      await quickAddPlayer(runId, addForm);
+      toast.success(`Player "${addForm.full_name}" added!`);
+      setAddForm({ full_name: "", email: "", phone: "", wins: 0, losses: 0 });
+      setShowAddPlayer(false);
+      fetchPlayers();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Failed to add player");
+    } finally {
+      setAdding(false);
+    }
+  };
+
   if (!currentRun) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-8 text-center">
@@ -353,23 +402,93 @@ export default function AdminPage() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Admin Panel</h1>
         <div className="flex items-center gap-3">
-          <label className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1">
-            Teams:
-            <select
-              value={newGameTeams}
-              onChange={(e) => setNewGameTeams(Number(e.target.value))}
-              className="border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm dark:bg-gray-700 dark:text-gray-200"
-            >
-              {[2, 3, 4, 5, 6, 7, 8].map((n) => (
-                <option key={n} value={n}>{n}</option>
-              ))}
-            </select>
-          </label>
-          <button onClick={handleCreateGame} className="btn-primary">
-            + Create Game
+          <button onClick={() => setShowCreateGame(!showCreateGame)} className="btn-primary">
+            {showCreateGame ? "Cancel" : "+ Create Game"}
           </button>
+          <button
+            onClick={handleGenerateSeasonGames}
+            className="bg-court-600 hover:bg-court-700 text-white font-semibold py-2 px-4 rounded-lg"
+            title={
+              !currentRun?.default_game_day && currentRun?.default_game_day !== 0 || !currentRun?.default_game_time || !currentRun?.start_date || !currentRun?.end_date
+                ? "Set schedule and dates in Run Settings to generate season games."
+                : "Generate all games for the season"
+            }
+          >
+            Generate Season Games
+          </button>
+          {(!currentRun?.default_game_time || !currentRun?.start_date || !currentRun?.end_date) && (
+            <span className="text-xs text-amber-600 dark:text-amber-400">
+              Set schedule and dates in Run Settings to generate season games.
+            </span>
+          )}
         </div>
       </div>
+
+      {/* Create Game Form */}
+      {showCreateGame && (
+        <form onSubmit={handleCreateGame} className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 mb-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Create One-Off Game</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Title *</label>
+              <input
+                type="text"
+                required
+                value={newGame.title}
+                onChange={(e) => setNewGame({ ...newGame, title: e.target.value })}
+                placeholder="e.g. Weekly Pickup - Mar 30"
+                className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-md px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date *</label>
+              <input
+                type="date"
+                required
+                value={newGame.game_date}
+                onChange={(e) => setNewGame({ ...newGame, game_date: e.target.value })}
+                className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-md px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Time</label>
+              <input
+                type="time"
+                value={newGame.game_time}
+                onChange={(e) => setNewGame({ ...newGame, game_time: e.target.value })}
+                className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-md px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Location</label>
+              <input
+                type="text"
+                value={newGame.location}
+                onChange={(e) => setNewGame({ ...newGame, location: e.target.value })}
+                placeholder="TBD"
+                className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-md px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Number of Teams</label>
+              <select
+                value={newGame.num_teams}
+                onChange={(e) => setNewGame({ ...newGame, num_teams: Number(e.target.value) })}
+                className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-md px-3 py-2 text-sm"
+              >
+                {[2, 3, 4, 5, 6, 7, 8].map((n) => (
+                  <option key={n} value={n}>{n}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-end">
+              <button type="submit" className="btn-primary w-full">
+                Create Game
+              </button>
+            </div>
+          </div>
+        </form>
+      )}
 
       {/* Tabs */}
       <div className="flex border-b border-gray-200 dark:border-gray-700 mb-6">
@@ -502,87 +621,208 @@ export default function AdminPage() {
         </div>
       ) : tab === "players" ? (
         /* ===== All Players ===== */
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="border-b border-gray-200 dark:border-gray-700">
-                <th className="py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Player</th>
-                <th className="py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Status</th>
-                <th className="py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Height</th>
-                <th className="py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Age</th>
-                <th className="py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Mobility</th>
-                {isSuperAdmin && (
-                  <th className="py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Role</th>
-                )}
-              </tr>
-            </thead>
-            <tbody>
-              {players.map((player) => (
-                <tr key={player.id} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
-                  <td className="py-3 px-4">
-                    <div>
-                      <p className="font-medium">{player.full_name}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{player.email}</p>
-                    </div>
-                  </td>
-                  <td className="py-3 px-4">
-                    <select
-                      value={player.player_status}
-                      onChange={(e) => handleUpdatePlayer(player.id, "player_status", e.target.value)}
-                      className="text-sm border rounded px-2 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
-                    >
-                      <option value="regular">Regular</option>
-                      <option value="dropin">Drop-in</option>
-                      <option value="inactive">Inactive</option>
-                    </select>
-                  </td>
-                  <td className="py-3 px-4">
-                    <input
-                      type="number"
-                      defaultValue={player.height_inches || ""}
-                      onBlur={(e) => e.target.value && handleUpdatePlayer(player.id, "height_inches", parseInt(e.target.value))}
-                      className="w-16 text-sm border rounded px-2 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
-                      placeholder="in"
-                    />
-                  </td>
-                  <td className="py-3 px-4">
-                    <input
-                      type="number"
-                      defaultValue={player.age || ""}
-                      onBlur={(e) => e.target.value && handleUpdatePlayer(player.id, "age", parseInt(e.target.value))}
-                      className="w-16 text-sm border rounded px-2 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
-                      placeholder="yrs"
-                    />
-                  </td>
-                  <td className="py-3 px-4">
-                    <input
-                      type="number"
-                      min="1"
-                      max="5"
-                      step="0.5"
-                      defaultValue={player.mobility || ""}
-                      onBlur={(e) => e.target.value && handleUpdatePlayer(player.id, "mobility", parseFloat(e.target.value))}
-                      className="w-16 text-sm border rounded px-2 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
-                      placeholder="1-5"
-                    />
-                  </td>
+        <div className="space-y-4">
+          {/* Quick Add Player */}
+          <div>
+            <button
+              onClick={() => setShowAddPlayer(!showAddPlayer)}
+              className="bg-court-500 hover:bg-court-600 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors"
+            >
+              {showAddPlayer ? "Cancel" : "+ Add Player"}
+            </button>
+          </div>
+          {showAddPlayer && (
+            <form onSubmit={handleQuickAddPlayer} className="card border border-gray-200 dark:border-gray-600 p-4 space-y-3">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Quick Add Player</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Full Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={addForm.full_name}
+                    onChange={(e) => setAddForm({ ...addForm, full_name: e.target.value })}
+                    className="w-full text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1 dark:bg-gray-700 dark:text-gray-200"
+                    placeholder="John Doe"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={addForm.email}
+                    onChange={(e) => setAddForm({ ...addForm, email: e.target.value })}
+                    className="w-full text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1 dark:bg-gray-700 dark:text-gray-200"
+                    placeholder="john@example.com"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Phone</label>
+                  <input
+                    type="text"
+                    value={addForm.phone}
+                    onChange={(e) => setAddForm({ ...addForm, phone: e.target.value })}
+                    className="w-full text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1 dark:bg-gray-700 dark:text-gray-200"
+                    placeholder="555-1234"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Wins</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={addForm.wins}
+                    onChange={(e) => setAddForm({ ...addForm, wins: parseInt(e.target.value) || 0 })}
+                    className="w-full text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1 dark:bg-gray-700 dark:text-gray-200"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Losses</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={addForm.losses}
+                    onChange={(e) => setAddForm({ ...addForm, losses: parseInt(e.target.value) || 0 })}
+                    className="w-full text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1 dark:bg-gray-700 dark:text-gray-200"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={adding}
+                  className={`text-sm font-medium py-1.5 px-4 rounded-lg transition-colors ${
+                    adding
+                      ? "bg-gray-200 dark:bg-gray-600 text-gray-400 dark:text-gray-500 cursor-not-allowed"
+                      : "bg-green-500 hover:bg-green-600 text-white"
+                  }`}
+                >
+                  {adding ? "Adding..." : "Add Player"}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* Players Table */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="border-b border-gray-200 dark:border-gray-700">
+                  <th className="py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Name</th>
+                  <th className="py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Email</th>
+                  <th className="py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Status</th>
+                  <th className="py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Height</th>
+                  <th className="py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Age</th>
+                  <th className="py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Mobility</th>
+                  <th className="py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">GP</th>
+                  <th className="py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">W</th>
                   {isSuperAdmin && (
-                    <td className="py-3 px-4">
-                      <select
-                        value={player.role}
-                        onChange={(e) => handleUpdatePlayer(player.id, "role", e.target.value)}
-                        className="text-sm border rounded px-2 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
-                      >
-                        <option value="player">Player</option>
-                        <option value="admin">Admin</option>
-                        <option value="super_admin">Super Admin</option>
-                      </select>
-                    </td>
+                    <th className="py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Role</th>
                   )}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {players.map((player) => (
+                  <tr key={player.id} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td className="py-3 px-4">
+                      <input
+                        type="text"
+                        defaultValue={player.full_name}
+                        onBlur={(e) => {
+                          const val = e.target.value.trim();
+                          if (val && val !== player.full_name) handleUpdatePlayer(player.id, "full_name", val);
+                        }}
+                        className="w-32 text-sm font-medium border border-transparent hover:border-gray-300 dark:hover:border-gray-600 rounded px-2 py-1 bg-transparent dark:bg-transparent dark:text-gray-200 focus:border-gray-300 dark:focus:border-gray-600 focus:bg-white dark:focus:bg-gray-700"
+                      />
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className="text-xs text-gray-500 dark:text-gray-400">{player.email}</span>
+                    </td>
+                    <td className="py-3 px-4">
+                      <select
+                        value={player.player_status}
+                        onChange={(e) => handleUpdatePlayer(player.id, "player_status", e.target.value)}
+                        className="text-sm border rounded px-2 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
+                      >
+                        <option value="regular">Regular</option>
+                        <option value="dropin">Drop-in</option>
+                        <option value="inactive">Inactive</option>
+                      </select>
+                    </td>
+                    <td className="py-3 px-4">
+                      <input
+                        type="number"
+                        defaultValue={player.height_inches || ""}
+                        onBlur={(e) => e.target.value && handleUpdatePlayer(player.id, "height_inches", parseInt(e.target.value))}
+                        className="w-16 text-sm border rounded px-2 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
+                        placeholder="in"
+                      />
+                    </td>
+                    <td className="py-3 px-4">
+                      <input
+                        type="number"
+                        defaultValue={player.age || ""}
+                        onBlur={(e) => e.target.value && handleUpdatePlayer(player.id, "age", parseInt(e.target.value))}
+                        className="w-16 text-sm border rounded px-2 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
+                        placeholder="yrs"
+                      />
+                    </td>
+                    <td className="py-3 px-4">
+                      <input
+                        type="number"
+                        min="1"
+                        max="5"
+                        step="0.5"
+                        defaultValue={player.mobility || ""}
+                        onBlur={(e) => e.target.value && handleUpdatePlayer(player.id, "mobility", parseFloat(e.target.value))}
+                        className="w-16 text-sm border rounded px-2 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
+                        placeholder="1-5"
+                      />
+                    </td>
+                    <td className="py-3 px-4">
+                      <input
+                        type="number"
+                        min="0"
+                        defaultValue={player.games_played ?? ""}
+                        onBlur={(e) => {
+                          const val = parseInt(e.target.value);
+                          if (!isNaN(val)) handleUpdatePlayer(player.id, "games_played", val);
+                        }}
+                        className="w-14 text-sm border rounded px-2 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
+                        placeholder="0"
+                      />
+                    </td>
+                    <td className="py-3 px-4">
+                      <input
+                        type="number"
+                        min="0"
+                        defaultValue={player.games_won ?? ""}
+                        onBlur={(e) => {
+                          const val = parseInt(e.target.value);
+                          if (!isNaN(val)) handleUpdatePlayer(player.id, "games_won", val);
+                        }}
+                        className="w-14 text-sm border rounded px-2 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
+                        placeholder="0"
+                      />
+                    </td>
+                    {isSuperAdmin && (
+                      <td className="py-3 px-4">
+                        <select
+                          value={player.role}
+                          onChange={(e) => handleUpdatePlayer(player.id, "role", e.target.value)}
+                          className="text-sm border rounded px-2 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
+                        >
+                          <option value="player">Player</option>
+                          <option value="admin">Admin</option>
+                          <option value="super_admin">Super Admin</option>
+                        </select>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       ) : tab === "suggestions" ? (
         /* ===== Suggestions Tab ===== */
@@ -771,6 +1011,26 @@ export default function AdminPage() {
                     type="time"
                     value={runForm.default_game_time}
                     onChange={(e) => setRunForm({ ...runForm, default_game_time: e.target.value })}
+                    className="input"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Season Start Date</label>
+                  <input
+                    type="date"
+                    value={runForm.start_date || ""}
+                    onChange={(e) => setRunForm({ ...runForm, start_date: e.target.value })}
+                    className="input"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Season End Date</label>
+                  <input
+                    type="date"
+                    value={runForm.end_date || ""}
+                    onChange={(e) => setRunForm({ ...runForm, end_date: e.target.value })}
                     className="input"
                   />
                 </div>
