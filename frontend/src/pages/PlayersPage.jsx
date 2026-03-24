@@ -238,7 +238,7 @@ export default function PlayersPage() {
                 </div>
                 <div>
                   <div className="text-sm font-bold text-court-600">{((player.jordan_factor || 0.5) * 100).toFixed(0)}%</div>
-                  <div className="text-xs text-gray-400 dark:text-gray-500">JF</div>
+                  <div className="text-xs text-gray-400 dark:text-gray-500">WIN</div>
                 </div>
                 <div>
                   <div className="text-sm font-bold text-court-600">
