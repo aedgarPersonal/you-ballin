@@ -177,27 +177,53 @@ export default function PlayerProfilePage() {
           <div>
             <p className="text-sm text-gray-500 dark:text-gray-400">Height</p>
             {isAdmin ? (
-              <input
-                type="number"
-                defaultValue={player.height_inches || ""}
-                placeholder="inches"
-                onBlur={(e) => {
-                  const val = parseInt(e.target.value);
-                  if (val && val !== player.height_inches) {
-                    updatePlayerAdmin(runId, player.id, { height_inches: val })
-                      .then(() => { setPlayer({ ...player, height_inches: val }); toast.success("Height updated"); })
-                      .catch(() => toast.error("Failed to update"));
-                  }
-                }}
-                className="w-full text-lg font-semibold border border-transparent hover:border-gray-300 dark:hover:border-gray-600 rounded px-1 py-0.5 bg-transparent dark:text-gray-100 focus:border-court-500 focus:outline-none"
-              />
+              <div className="flex items-center gap-1">
+                <input
+                  type="number"
+                  min="3"
+                  max="7"
+                  defaultValue={player.height_inches ? Math.floor(player.height_inches / 12) : ""}
+                  placeholder="ft"
+                  onBlur={(e) => {
+                    const ft = parseInt(e.target.value) || 0;
+                    const inchesEl = e.target.parentElement.querySelector('[data-field="inches"]');
+                    const inch = parseInt(inchesEl?.value) || 0;
+                    const totalInches = ft * 12 + inch;
+                    if (totalInches > 0 && totalInches !== player.height_inches) {
+                      updatePlayerAdmin(runId, player.id, { height_inches: totalInches })
+                        .then(() => { setPlayer({ ...player, height_inches: totalInches }); toast.success("Height updated"); })
+                        .catch(() => toast.error("Failed to update"));
+                    }
+                  }}
+                  className="w-12 text-lg font-semibold border border-transparent hover:border-gray-300 dark:hover:border-gray-600 rounded px-1 py-0.5 bg-transparent dark:text-gray-100 focus:border-court-500 focus:outline-none text-center"
+                />
+                <span className="text-gray-500 dark:text-gray-400 font-medium">ft</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="11"
+                  data-field="inches"
+                  defaultValue={player.height_inches ? player.height_inches % 12 : ""}
+                  placeholder="in"
+                  onBlur={(e) => {
+                    const inch = parseInt(e.target.value) || 0;
+                    const ftEl = e.target.parentElement.querySelector('input:first-child');
+                    const ft = parseInt(ftEl?.value) || 0;
+                    const totalInches = ft * 12 + inch;
+                    if (totalInches > 0 && totalInches !== player.height_inches) {
+                      updatePlayerAdmin(runId, player.id, { height_inches: totalInches })
+                        .then(() => { setPlayer({ ...player, height_inches: totalInches }); toast.success("Height updated"); })
+                        .catch(() => toast.error("Failed to update"));
+                    }
+                  }}
+                  className="w-12 text-lg font-semibold border border-transparent hover:border-gray-300 dark:hover:border-gray-600 rounded px-1 py-0.5 bg-transparent dark:text-gray-100 focus:border-court-500 focus:outline-none text-center"
+                />
+                <span className="text-gray-500 dark:text-gray-400 font-medium">in</span>
+              </div>
             ) : (
               <p className="text-lg font-semibold">
                 {player.height_inches ? `${Math.floor(player.height_inches / 12)}'${player.height_inches % 12}"` : "N/A"}
               </p>
-            )}
-            {isAdmin && player.height_inches && (
-              <p className="text-xs text-gray-400 dark:text-gray-500">{Math.floor(player.height_inches / 12)}'{player.height_inches % 12}"</p>
             )}
           </div>
           <div>
