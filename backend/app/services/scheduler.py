@@ -656,7 +656,7 @@ async def announce_awards():
                     medal = {1: "\U0001f947", 2: "\U0001f948", 3: "\U0001f949"}.get(rank, f"{rank}.")
                     jf_pct = int((player.jordan_factor or 0.5) * 100)
                     standings_lines.append(
-                        f"{medal} {player.full_name} - {jf_pct}% JF ({player.games_won}W-{player.games_played - player.games_won}L)"
+                        f"{medal} {player.full_name} - {jf_pct}% Win Rate ({player.games_won}W-{player.games_played - player.games_won}L)"
                     )
                 standings_text = "\n".join(standings_lines)
 
@@ -761,7 +761,7 @@ async def _get_game_team_names(db, game_id: int) -> dict[str, str]:
 
 
 async def _get_top10_standings(db) -> list[User]:
-    """Get top 10 players by Jordan Factor (must have played at least 1 game).
+    """Get top 10 players by Win Rate (must have played at least 1 game).
 
     TEACHING NOTE:
         This remains global (across all runs), using User-level cached stats.

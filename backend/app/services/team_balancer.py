@@ -17,7 +17,7 @@ TEACHING NOTE:
 
     Default Weight Configuration:
     - Overall rating (peer-rated):  35% - highest weight as requested
-    - Jordan Factor (win history):  20% - rewards consistent winners
+    - Win Rate (win history):       20% - rewards consistent winners
     - Offense rating:               15%
     - Defense rating:               15%
     - Height (normalized):           5%
@@ -45,7 +45,7 @@ from app.models.user import User
 
 DEFAULT_WEIGHTS = {
     "overall": 0.35,         # Peer-rated overall skill (highest weight)
-    "jordan_factor": 0.20,   # Historical win percentage (the Jordan Factor)
+    "jordan_factor": 0.20,   # Historical win percentage (Win Rate)
     "offense": 0.15,         # Peer-rated offensive skill
     "defense": 0.15,         # Peer-rated defensive skill
     "height": 0.05,          # Physical height (normalized)

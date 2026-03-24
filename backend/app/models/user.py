@@ -80,12 +80,11 @@ class User(Base):
     google_id: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True)
 
     # --- Computed Ratings (cached from PlayerRating averages) ---
-    # Jordan Factor: win percentage used by team balancing algorithm
-    # Named for the GOAT - the higher your Jordan Factor, the more you win
+    # Win Rate: win percentage used by team balancing algorithm (games_won / games_played)
     avg_offense: Mapped[float] = mapped_column(Float, default=3.0)
     avg_defense: Mapped[float] = mapped_column(Float, default=3.0)
     avg_overall: Mapped[float] = mapped_column(Float, default=3.0)
-    jordan_factor: Mapped[float] = mapped_column(Float, default=0.5)  # Win percentage 0.0 - 1.0
+    jordan_factor: Mapped[float] = mapped_column(Float, default=0.5)  # Win Rate 0.0 - 1.0
     games_played: Mapped[int] = mapped_column(Integer, default=0)
     games_won: Mapped[int] = mapped_column(Integer, default=0)
     mvp_count: Mapped[int] = mapped_column(Integer, default=0)        # Times won MVP award

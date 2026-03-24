@@ -54,7 +54,7 @@ DEFAULT_WEIGHTS = {
 
 BUILTIN_METRIC_LABELS = {
     "overall": "Overall Rating",
-    "jordan_factor": "Jordan Factor",
+    "jordan_factor": "Win Rate",
     "offense": "Offense Rating",
     "defense": "Defense Rating",
     "height": "Height",

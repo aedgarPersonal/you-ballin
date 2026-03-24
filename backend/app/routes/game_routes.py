@@ -727,8 +727,8 @@ async def record_result(
         Team A players: games_played += 5, games_won += 3
         Team B players: games_played += 5, games_won += 2
 
-        The Jordan Factor (games_won / games_played) is now more granular
-        than the old binary system, giving a truer picture of win rate.
+        The Win Rate (games_won / games_played) is now more granular
+        than the old binary system, giving a truer picture of performance.
 
         Both global User stats and per-run RunPlayerStats are updated.
     """
@@ -782,7 +782,7 @@ async def record_result(
             wins=ts.wins,
         ))
 
-    # Update Jordan Factor for all players (global User stats + per-run RunPlayerStats)
+    # Update Win Rate for all players (global User stats + per-run RunPlayerStats)
     for assignment in game.teams:
         player_result = await db.execute(select(User).where(User.id == assignment.user_id))
         player = player_result.scalar_one_or_none()

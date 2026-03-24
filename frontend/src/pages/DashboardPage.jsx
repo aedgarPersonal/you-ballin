@@ -128,9 +128,9 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Jordan Factor */}
+        {/* Win Rate */}
         <div className="card">
-          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Jordan Factor</h3>
+          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Win Rate</h3>
           <div className="mt-2">
             <div className="text-3xl font-bold text-court-600">
               {((user?.jordan_factor || 0.5) * 100).toFixed(0)}%

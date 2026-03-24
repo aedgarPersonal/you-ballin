@@ -15,7 +15,7 @@ import toast from "react-hot-toast";
 
 const SORT_OPTIONS = [
   { value: "name", label: "Name" },
-  { value: "jordan_factor", label: "Jordan Factor" },
+  { value: "jordan_factor", label: "Win Rate" },
   { value: "games_won", label: "Total Wins" },
   { value: "games_played", label: "Games Played" },
   { value: "avg_overall", label: "Overall Rating" },

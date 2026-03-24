@@ -167,7 +167,7 @@ export default function PlayerProfilePage() {
         <StatCard label="Offense" value={summary?.avg_offense?.toFixed(1)} max="5.0" />
         <StatCard label="Defense" value={summary?.avg_defense?.toFixed(1)} max="5.0" />
         <StatCard label="Overall" value={summary?.avg_overall?.toFixed(1)} max="5.0" highlight />
-        <StatCard label="Jordan Factor" value={`${((summary?.jordan_factor || 0.5) * 100).toFixed(0)}%`} subtitle={`${summary?.games_won || 0}W - ${(summary?.games_played || 0) - (summary?.games_won || 0)}L`} />
+        <StatCard label="Win Rate" value={`${((summary?.jordan_factor || 0.5) * 100).toFixed(0)}%`} subtitle={`${summary?.games_won || 0}W - ${(summary?.games_played || 0) - (summary?.games_won || 0)}L`} />
       </div>
 
       {/* Physical Stats */}

@@ -1,7 +1,7 @@
 """
 Team & Game Result Models
 =========================
-Stores team assignments and game outcomes for the Jordan Factor.
+Stores team assignments and game outcomes for Win Rate tracking.
 
 TEACHING NOTE:
     After the team balancing algorithm runs, each accepted player is assigned
@@ -10,8 +10,8 @@ TEACHING NOTE:
 
     After the game, an admin records the scores for each team (e.g.,
     Team A won 3 games, Team B won 2). This feeds into the `jordan_factor`
-    on the User model, which tracks each player's historical win percentage
-    (games_won / games_played). The Jordan Factor is used by the team
+    (Win Rate) on the User model, which tracks each player's historical win
+    percentage (games_won / games_played). Win Rate is used by the team
     balancing algorithm to create fair teams.
 """
 
@@ -92,7 +92,7 @@ class GameResult(Base):
     TEACHING NOTE:
         A game night can have multiple individual games (e.g., best of 5).
         The per-team scores are stored in TeamScore rows linked to this result.
-        The system updates each player's Jordan Factor based on their team's
+        The system updates each player's Win Rate based on their team's
         wins relative to total games played that night.
     """
 

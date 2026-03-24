@@ -75,7 +75,7 @@ export default function StatsPage() {
               <div className="text-2xl font-bold text-court-600">
                 {(stats.personal.jordan_factor * 100).toFixed(0)}%
               </div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">Jordan Factor</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">Win Rate</div>
               <div className="text-xs text-gray-400 dark:text-gray-500">Rank #{stats.personal.jordan_factor_rank}</div>
             </div>
             <div className="text-center">
@@ -125,7 +125,7 @@ export default function StatsPage() {
       <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Leaderboards</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <LeaderboardCard
-          title="Jordan Factor"
+          title="Win Rate"
           entries={stats.leaderboards.jordan_factor}
           formatValue={(v) => `${(v * 100).toFixed(0)}%`}
         />

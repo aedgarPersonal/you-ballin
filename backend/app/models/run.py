@@ -150,7 +150,7 @@ class RunPlayerStats(Base):
 
     TEACHING NOTE:
         Stats are tracked per-run because different runs are independent.
-        A player's jordan_factor in "Wednesday Night Hoops" may differ
+        A player's win rate in "Wednesday Night Hoops" may differ
         from "Sunday League". Global aggregates on the User model are
         updated as a cached convenience for cross-run views.
     """

@@ -5,7 +5,7 @@
  *   Renders N teams in a retro NBA Jam arcade style:
  *   - Dark background with cyan/teal border accents
  *   - Player cards showing their legacy NBA avatar, name, and stat bars
- *   - Stat bars for Offense, Defense, Overall, and Jordan Factor
+ *   - Stat bars for Offense, Defense, Overall, and Win Rate
  *   - Each team has a fun randomly-assigned basketball name
  *   - Supports any number of teams (2, 3, 4, etc.)
  *   - All players are starters — no bench distinction
@@ -95,7 +95,7 @@ function JamPlayerCard({ player }) {
           <StatBar label="DEF" value={player.avg_defense || 3} max={5} color="#60a5fa" />
           <StatBar label="OVR" value={player.avg_overall || 3} max={5} color="#facc15" />
           <StatBar
-            label="JF"
+            label="WIN"
             value={(player.jordan_factor || 0.5) * 100}
             max={100}
             color="#f97316"

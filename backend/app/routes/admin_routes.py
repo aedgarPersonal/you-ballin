@@ -260,7 +260,7 @@ async def update_run_player(
         - height_inches, age, mobility
 
     Game stats (stored on User + RunPlayerStats):
-        - games_played, games_won (recalculates jordan_factor)
+        - games_played, games_won (recalculates win rate)
 
     Run-specific fields (stored on RunMembership):
         - player_status: regular, dropin, inactive
@@ -396,7 +396,7 @@ async def import_players(
         - A generated email and username from their name
         - A random NBA legend avatar (changeable later)
         - The default password "Password123" (should change on first login)
-        - Pre-populated win/loss records and Jordan Factor
+        - Pre-populated win/loss records and Win Rate
         - Status set to "regular" (already approved, ready to play)
         - A RunMembership for this run with REGULAR status
         - A RunPlayerStats record for this run with imported stats
@@ -430,7 +430,7 @@ async def import_players(
         avatar = random.choice(available)
         used_avatars.append(avatar)
 
-        # Calculate Jordan Factor from win/loss record
+        # Calculate Win Rate from win/loss record
         games_played = entry.wins + entry.losses
         jordan_factor = entry.wins / games_played if games_played > 0 else 0.5
 

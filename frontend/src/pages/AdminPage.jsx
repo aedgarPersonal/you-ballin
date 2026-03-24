@@ -49,7 +49,7 @@ import {
 // Human-friendly labels for built-in metrics
 const BUILTIN_LABELS = {
   overall: "Overall Rating",
-  jordan_factor: "Jordan Factor",
+  jordan_factor: "Win Rate",
   offense: "Offense Rating",
   defense: "Defense Rating",
   height: "Height",
