@@ -12,7 +12,11 @@ import useNotificationStore from "../../stores/notificationStore";
 import useRunStore from "../../stores/runStore";
 import useThemeStore from "../../stores/themeStore";
 import { createRun } from "../../api/runs";
+import { generateSeasonGames } from "../../api/games";
 import { AvatarBadge } from "../AvatarPicker";
+import toast from "react-hot-toast";
+
+const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 export default function Navbar() {
   const { user, logout } = useAuthStore();
@@ -22,6 +26,8 @@ export default function Navbar() {
   const [showCreateRun, setShowCreateRun] = useState(false);
   const [newRun, setNewRun] = useState({ name: "", default_game_day: "", default_game_time: "", default_location: "", start_date: "", end_date: "" });
   const [creating, setCreating] = useState(false);
+  const [createdRun, setCreatedRun] = useState(null);
+  const [generating, setGenerating] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { theme, setTheme } = useThemeStore();
 
@@ -42,7 +48,13 @@ export default function Navbar() {
       const { data } = await createRun(payload);
       await fetchRuns();
       setCurrentRun(data);
-      setShowCreateRun(false);
+      // Check if all schedule fields are set — offer to generate season
+      const hasSchedule = payload.default_game_day !== undefined && payload.default_game_time && payload.start_date && payload.end_date;
+      if (hasSchedule) {
+        setCreatedRun(data);
+      } else {
+        setShowCreateRun(false);
+      }
       setNewRun({ name: "", default_game_day: "", default_game_time: "", default_location: "", start_date: "", end_date: "" });
     } catch (err) {
       console.error("Failed to create run:", err);
@@ -276,89 +288,132 @@ export default function Navbar() {
 
       {/* Create Run Modal */}
       {showCreateRun && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowCreateRun(false)}>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => { setShowCreateRun(false); setCreatedRun(null); }}>
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">Create New Run</h2>
-            <form onSubmit={handleCreateRun} className="space-y-3">
+            {createdRun ? (
+              /* Step 2: Generate Season Games Prompt */
               <div>
-                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Run Name *</label>
-                <input
-                  type="text"
-                  value={newRun.name}
-                  onChange={(e) => setNewRun({ ...newRun, name: e.target.value })}
-                  placeholder="e.g. Monday Night Hoops"
-                  className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md px-3 py-2 text-sm focus:ring-court-500 focus:border-court-500"
-                  autoFocus
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Schedule Day</label>
-                  <select
-                    value={newRun.default_game_day}
-                    onChange={(e) => setNewRun({ ...newRun, default_game_day: e.target.value })}
-                    className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-md px-3 py-2 text-sm focus:ring-court-500 focus:border-court-500"
+                <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3">Run Created!</h2>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  <strong>{createdRun.name}</strong> is set up with a schedule:
+                </p>
+                <div className="bg-court-50 dark:bg-court-900/20 border border-court-200 dark:border-court-800 rounded-lg p-3 mb-4">
+                  <p className="text-sm text-court-800 dark:text-court-300">
+                    Every <strong>{DAY_NAMES[createdRun.default_game_day]}</strong> at <strong>{createdRun.default_game_time}</strong>
+                  </p>
+                  <p className="text-xs text-court-600 dark:text-court-400 mt-1">
+                    {new Date(createdRun.start_date + "T00:00").toLocaleDateString()} — {new Date(createdRun.end_date + "T00:00").toLocaleDateString()}
+                  </p>
+                </div>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Generate all season games now?</p>
+                <div className="flex justify-end space-x-3">
+                  <button
+                    onClick={() => { setShowCreateRun(false); setCreatedRun(null); }}
+                    className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 px-4 py-2"
                   >
-                    <option value="">Select day...</option>
-                    <option value="0">Monday</option>
-                    <option value="1">Tuesday</option>
-                    <option value="2">Wednesday</option>
-                    <option value="3">Thursday</option>
-                    <option value="4">Friday</option>
-                    <option value="5">Saturday</option>
-                    <option value="6">Sunday</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Game Time</label>
-                  <input
-                    type="time"
-                    value={newRun.default_game_time}
-                    onChange={(e) => setNewRun({ ...newRun, default_game_time: e.target.value })}
-                    className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-md px-3 py-2 text-sm focus:ring-court-500 focus:border-court-500"
-                  />
+                    Skip for Now
+                  </button>
+                  <button
+                    onClick={async () => {
+                      setGenerating(true);
+                      try {
+                        const { data } = await generateSeasonGames(createdRun.id);
+                        toast.success(`Created ${data.games_created} games for ${data.total_weeks} weeks!`);
+                      } catch (err) {
+                        toast.error(err.response?.data?.detail || "Failed to generate games");
+                      } finally {
+                        setGenerating(false);
+                        setShowCreateRun(false);
+                        setCreatedRun(null);
+                      }
+                    }}
+                    disabled={generating}
+                    className="text-sm bg-court-600 text-white rounded-md px-4 py-2 hover:bg-court-700 disabled:opacity-50"
+                  >
+                    {generating ? "Generating..." : "Generate Games"}
+                  </button>
                 </div>
               </div>
+            ) : (
+              /* Step 1: Create Run Form */
               <div>
-                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Location</label>
-                <input
-                  type="text"
-                  value={newRun.default_location}
-                  onChange={(e) => setNewRun({ ...newRun, default_location: e.target.value })}
-                  placeholder="e.g. Downtown Rec Center"
-                  className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md px-3 py-2 text-sm focus:ring-court-500 focus:border-court-500"
-                />
+                <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">Create New Run</h2>
+                <form onSubmit={handleCreateRun} className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Run Name *</label>
+                    <input
+                      type="text"
+                      value={newRun.name}
+                      onChange={(e) => setNewRun({ ...newRun, name: e.target.value })}
+                      placeholder="e.g. Monday Night Hoops"
+                      className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md px-3 py-2 text-sm focus:ring-court-500 focus:border-court-500"
+                      autoFocus
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Schedule Day</label>
+                      <select
+                        value={newRun.default_game_day}
+                        onChange={(e) => setNewRun({ ...newRun, default_game_day: e.target.value })}
+                        className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-md px-3 py-2 text-sm focus:ring-court-500 focus:border-court-500"
+                      >
+                        <option value="">Select day...</option>
+                        {DAY_NAMES.map((d, i) => <option key={i} value={i}>{d}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Game Time</label>
+                      <input
+                        type="time"
+                        value={newRun.default_game_time}
+                        onChange={(e) => setNewRun({ ...newRun, default_game_time: e.target.value })}
+                        className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-md px-3 py-2 text-sm focus:ring-court-500 focus:border-court-500"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Location</label>
+                    <input
+                      type="text"
+                      value={newRun.default_location}
+                      onChange={(e) => setNewRun({ ...newRun, default_location: e.target.value })}
+                      placeholder="e.g. Downtown Rec Center"
+                      className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md px-3 py-2 text-sm focus:ring-court-500 focus:border-court-500"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Season Start</label>
+                      <input
+                        type="date"
+                        value={newRun.start_date}
+                        onChange={(e) => setNewRun({ ...newRun, start_date: e.target.value })}
+                        className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-md px-3 py-2 text-sm focus:ring-court-500 focus:border-court-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Season End</label>
+                      <input
+                        type="date"
+                        value={newRun.end_date}
+                        onChange={(e) => setNewRun({ ...newRun, end_date: e.target.value })}
+                        className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-md px-3 py-2 text-sm focus:ring-court-500 focus:border-court-500"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-400 dark:text-gray-500">Schedule and dates are optional. You can set them later in Run Settings.</p>
+                  <div className="flex justify-end space-x-3 pt-2">
+                    <button type="button" onClick={() => setShowCreateRun(false)} className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 px-4 py-2">
+                      Cancel
+                    </button>
+                    <button type="submit" disabled={creating || !newRun.name.trim()} className="text-sm bg-court-600 text-white rounded-md px-4 py-2 hover:bg-court-700 disabled:opacity-50">
+                      {creating ? "Creating..." : "Create Run"}
+                    </button>
+                  </div>
+                </form>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Season Start</label>
-                  <input
-                    type="date"
-                    value={newRun.start_date}
-                    onChange={(e) => setNewRun({ ...newRun, start_date: e.target.value })}
-                    className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-md px-3 py-2 text-sm focus:ring-court-500 focus:border-court-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Season End</label>
-                  <input
-                    type="date"
-                    value={newRun.end_date}
-                    onChange={(e) => setNewRun({ ...newRun, end_date: e.target.value })}
-                    className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-md px-3 py-2 text-sm focus:ring-court-500 focus:border-court-500"
-                  />
-                </div>
-              </div>
-              <p className="text-xs text-gray-400 dark:text-gray-500">Schedule and dates are optional. You can set them later in Run Settings.</p>
-              <div className="flex justify-end space-x-3 pt-2">
-                <button type="button" onClick={() => setShowCreateRun(false)} className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 px-4 py-2">
-                  Cancel
-                </button>
-                <button type="submit" disabled={creating || !newRun.name.trim()} className="text-sm bg-court-600 text-white rounded-md px-4 py-2 hover:bg-court-700 disabled:opacity-50">
-                  {creating ? "Creating..." : "Create Run"}
-                </button>
-              </div>
-            </form>
+            )}
           </div>
         </div>
       )}

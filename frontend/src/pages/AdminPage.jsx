@@ -29,7 +29,7 @@ import {
   importPlayers,
   quickAddPlayer,
 } from "../api/admin";
-import { createGame, generateSeasonGames } from "../api/games";
+import { createGame, generateSeasonGames, listGames, updateGame, cancelGame, skipGame } from "../api/games";
 import {
   updateRun,
   listRunsNeedingPlayers,
@@ -88,7 +88,13 @@ export default function AdminPage() {
   });
   const [showNewMetricForm, setShowNewMetricForm] = useState(false);
   const [showCreateGame, setShowCreateGame] = useState(false);
-  const [newGame, setNewGame] = useState({ title: "", game_date: "", game_time: "", location: currentRun?.default_location || "TBD", num_teams: 2 });
+  const [newGame, setNewGame] = useState({ title: "", game_date: "", game_time: currentRun?.default_game_time || "", location: currentRun?.default_location || "TBD", num_teams: 2 });
+
+  // Games tab state
+  const [adminGames, setAdminGames] = useState([]);
+  const [gamesLoading, setGamesLoading] = useState(false);
+  const [editingGameId, setEditingGameId] = useState(null);
+  const [editGameForm, setEditGameForm] = useState({});
 
   // Suggestions state
   const [suggestions, setSuggestions] = useState([]);
@@ -122,6 +128,16 @@ export default function AdminPage() {
     } catch { /* empty */ }
   };
 
+  const fetchAdminGames = async () => {
+    if (!runId) return;
+    setGamesLoading(true);
+    try {
+      const { data } = await listGames(runId);
+      setAdminGames(data.sort((a, b) => new Date(a.game_date) - new Date(b.game_date)));
+    } catch { setAdminGames([]); }
+    finally { setGamesLoading(false); }
+  };
+
   const fetchWeights = async () => {
     try {
       const { data } = await getWeights(runId);
@@ -147,6 +163,9 @@ export default function AdminPage() {
 
   // Load balancer data when tab is selected
   useEffect(() => {
+    if (tab === "games" && runId) {
+      fetchAdminGames();
+    }
     if (tab === "balancer") {
       fetchWeights();
       fetchCustomMetrics();
@@ -257,7 +276,8 @@ export default function AdminPage() {
       });
       toast.success("Game created! Players have been notified.");
       setShowCreateGame(false);
-      setNewGame({ title: "", game_date: "", game_time: "", location: currentRun?.default_location || "TBD", num_teams: 2 });
+      setNewGame({ title: "", game_date: "", game_time: currentRun?.default_game_time || "", location: currentRun?.default_location || "TBD", num_teams: 2 });
+      fetchAdminGames();
     } catch (err) {
       toast.error(err.response?.data?.detail || "Failed to create game");
     }
@@ -268,6 +288,7 @@ export default function AdminPage() {
     try {
       const { data } = await generateSeasonGames(runId);
       toast.success(`Created ${data.games_created} games for ${data.total_weeks} weeks!`);
+      fetchAdminGames();
     } catch (err) {
       toast.error(err.response?.data?.detail || "Failed to generate games");
     }
@@ -395,101 +416,31 @@ export default function AdminPage() {
 
   const totalWeight = weights.reduce((sum, w) => sum + w.weight, 0);
 
-  const tabs = ["pending", "players", "import", "balancer", "suggestions", "settings"];
+  const DAY_NAMES_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const hasFullSchedule = currentRun?.default_game_time && currentRun?.start_date && currentRun?.end_date && (currentRun?.default_game_day !== null && currentRun?.default_game_day !== undefined);
+
+  const STATUS_LABELS = {
+    scheduled: "Scheduled", invites_sent: "Invites Sent", dropin_open: "Drop-in Open",
+    teams_set: "Teams Set", completed: "Completed", cancelled: "Cancelled", skipped: "Skipped",
+  };
+  const STATUS_COLORS = {
+    scheduled: "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300",
+    invites_sent: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+    dropin_open: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
+    teams_set: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+    completed: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400",
+    cancelled: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+    skipped: "bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400",
+  };
+
+  const tabs = ["pending", "players", "games", "import", "balancer", "suggestions", "settings"];
   const tabLabels = { settings: "Run Settings" };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="flex items-center justify-between mb-6">
+      <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Admin Panel</h1>
-        <div className="flex items-center gap-3">
-          <button onClick={() => setShowCreateGame(!showCreateGame)} className="btn-primary">
-            {showCreateGame ? "Cancel" : "+ Create Game"}
-          </button>
-          <button
-            onClick={handleGenerateSeasonGames}
-            className="bg-court-600 hover:bg-court-700 text-white font-semibold py-2 px-4 rounded-lg"
-            title={
-              !currentRun?.default_game_day && currentRun?.default_game_day !== 0 || !currentRun?.default_game_time || !currentRun?.start_date || !currentRun?.end_date
-                ? "Set schedule and dates in Run Settings to generate season games."
-                : "Generate all games for the season"
-            }
-          >
-            Generate Season Games
-          </button>
-          {(!currentRun?.default_game_time || !currentRun?.start_date || !currentRun?.end_date) && (
-            <span className="text-xs text-amber-600 dark:text-amber-400">
-              Set schedule and dates in Run Settings to generate season games.
-            </span>
-          )}
-        </div>
       </div>
-
-      {/* Create Game Form */}
-      {showCreateGame && (
-        <form onSubmit={handleCreateGame} className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 mb-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Create One-Off Game</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Title *</label>
-              <input
-                type="text"
-                required
-                value={newGame.title}
-                onChange={(e) => setNewGame({ ...newGame, title: e.target.value })}
-                placeholder="e.g. Weekly Pickup - Mar 30"
-                className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-md px-3 py-2 text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date *</label>
-              <input
-                type="date"
-                required
-                value={newGame.game_date}
-                onChange={(e) => setNewGame({ ...newGame, game_date: e.target.value })}
-                className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-md px-3 py-2 text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Time</label>
-              <input
-                type="time"
-                value={newGame.game_time}
-                onChange={(e) => setNewGame({ ...newGame, game_time: e.target.value })}
-                className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-md px-3 py-2 text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Location</label>
-              <input
-                type="text"
-                value={newGame.location}
-                onChange={(e) => setNewGame({ ...newGame, location: e.target.value })}
-                placeholder="TBD"
-                className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-md px-3 py-2 text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Number of Teams</label>
-              <select
-                value={newGame.num_teams}
-                onChange={(e) => setNewGame({ ...newGame, num_teams: Number(e.target.value) })}
-                className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-md px-3 py-2 text-sm"
-              >
-                {[2, 3, 4, 5, 6, 7, 8].map((n) => (
-                  <option key={n} value={n}>{n}</option>
-                ))}
-              </select>
-            </div>
-            <div className="flex items-end">
-              <button type="submit" className="btn-primary w-full">
-                Create Game
-              </button>
-            </div>
-          </div>
-        </form>
-      )}
 
       {/* Tabs */}
       <div className="flex border-b border-gray-200 dark:border-gray-700 mb-6">
@@ -551,6 +502,192 @@ export default function AdminPage() {
             ))}
           </div>
         )
+      ) : tab === "games" ? (
+        /* ===== Games Tab ===== */
+        <div className="space-y-4">
+          {/* One-Off Game Creation */}
+          <div className="flex items-center gap-3">
+            <button onClick={() => setShowCreateGame(!showCreateGame)} className="btn-primary">
+              {showCreateGame ? "Cancel" : "+ One-Off Game"}
+            </button>
+          </div>
+
+          {showCreateGame && (
+            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+              <p className="text-sm text-amber-800 dark:text-amber-300 mb-3">
+                This creates a game outside the regular schedule. All regular and drop-in members will be notified.
+              </p>
+              <form onSubmit={handleCreateGame} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Title *</label>
+                  <input type="text" required value={newGame.title} onChange={(e) => setNewGame({ ...newGame, title: e.target.value })}
+                    placeholder="e.g. Special Pickup - Apr 5" className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-md px-3 py-2 text-sm" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Date *</label>
+                  <input type="date" required value={newGame.game_date} onChange={(e) => setNewGame({ ...newGame, game_date: e.target.value })}
+                    className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-md px-3 py-2 text-sm" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Time</label>
+                  <input type="time" value={newGame.game_time} onChange={(e) => setNewGame({ ...newGame, game_time: e.target.value })}
+                    className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-md px-3 py-2 text-sm" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Location</label>
+                  <input type="text" value={newGame.location} onChange={(e) => setNewGame({ ...newGame, location: e.target.value })}
+                    placeholder="TBD" className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-md px-3 py-2 text-sm" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Teams</label>
+                  <select value={newGame.num_teams} onChange={(e) => setNewGame({ ...newGame, num_teams: Number(e.target.value) })}
+                    className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-md px-3 py-2 text-sm">
+                    {[2, 3, 4, 5, 6, 7, 8].map((n) => <option key={n} value={n}>{n}</option>)}
+                  </select>
+                </div>
+                <div className="flex items-end">
+                  <button type="submit" className="btn-primary w-full">Create Game</button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* Games Table */}
+          {gamesLoading ? (
+            <p className="text-gray-500 dark:text-gray-400">Loading games...</p>
+          ) : adminGames.length === 0 ? (
+            <div className="card text-center py-8">
+              <p className="text-gray-500 dark:text-gray-400">No games yet. Generate season games from Run Settings or create a one-off game above.</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="border-b border-gray-200 dark:border-gray-700">
+                    <th className="py-3 px-3 text-xs font-medium text-gray-500 dark:text-gray-400">Date</th>
+                    <th className="py-3 px-3 text-xs font-medium text-gray-500 dark:text-gray-400">Title</th>
+                    <th className="py-3 px-3 text-xs font-medium text-gray-500 dark:text-gray-400">Location</th>
+                    <th className="py-3 px-3 text-xs font-medium text-gray-500 dark:text-gray-400">Status</th>
+                    <th className="py-3 px-3 text-xs font-medium text-gray-500 dark:text-gray-400">RSVPs</th>
+                    <th className="py-3 px-3 text-xs font-medium text-gray-500 dark:text-gray-400">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {adminGames.map((game) => {
+                    const isEditing = editingGameId === game.id;
+                    const d = new Date(game.game_date);
+                    const canEdit = !["completed", "cancelled", "skipped"].includes(game.status);
+
+                    return (
+                      <tr key={game.id} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
+                        <td className="py-2 px-3 text-sm">
+                          {isEditing ? (
+                            <div className="flex gap-1">
+                              <input type="date" value={editGameForm.game_date || ""} onChange={(e) => setEditGameForm({ ...editGameForm, game_date: e.target.value })}
+                                className="w-32 text-xs border rounded px-1 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600" />
+                              <input type="time" value={editGameForm.game_time || ""} onChange={(e) => setEditGameForm({ ...editGameForm, game_time: e.target.value })}
+                                className="w-24 text-xs border rounded px-1 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600" />
+                            </div>
+                          ) : (
+                            <span className="text-gray-700 dark:text-gray-300">
+                              {d.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                              <span className="text-gray-400 dark:text-gray-500 ml-1 text-xs">
+                                {d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+                              </span>
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-2 px-3 text-sm">
+                          {isEditing ? (
+                            <input type="text" value={editGameForm.title || ""} onChange={(e) => setEditGameForm({ ...editGameForm, title: e.target.value })}
+                              className="w-full text-sm border rounded px-2 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600" />
+                          ) : (
+                            <span className="font-medium text-gray-900 dark:text-gray-100">{game.title}</span>
+                          )}
+                        </td>
+                        <td className="py-2 px-3 text-sm">
+                          {isEditing ? (
+                            <input type="text" value={editGameForm.location || ""} onChange={(e) => setEditGameForm({ ...editGameForm, location: e.target.value })}
+                              className="w-full text-sm border rounded px-2 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600" />
+                          ) : (
+                            <span className="text-gray-600 dark:text-gray-400">{game.location}</span>
+                          )}
+                        </td>
+                        <td className="py-2 px-3">
+                          <span className={`inline-block text-xs font-medium px-2 py-0.5 rounded-full ${STATUS_COLORS[game.status] || ""}`}>
+                            {STATUS_LABELS[game.status] || game.status}
+                          </span>
+                        </td>
+                        <td className="py-2 px-3 text-sm text-gray-600 dark:text-gray-400">
+                          {game.accepted_count || 0}/{game.roster_size}
+                        </td>
+                        <td className="py-2 px-3">
+                          {isEditing ? (
+                            <div className="flex gap-1">
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    const payload = { title: editGameForm.title, location: editGameForm.location };
+                                    if (editGameForm.game_date) {
+                                      const dt = editGameForm.game_time
+                                        ? new Date(`${editGameForm.game_date}T${editGameForm.game_time}`)
+                                        : new Date(editGameForm.game_date);
+                                      payload.game_date = dt.toISOString();
+                                    }
+                                    await updateGame(runId, game.id, payload);
+                                    toast.success("Game updated");
+                                    setEditingGameId(null);
+                                    fetchAdminGames();
+                                  } catch { toast.error("Update failed"); }
+                                }}
+                                className="text-xs bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded"
+                              >Save</button>
+                              <button onClick={() => setEditingGameId(null)} className="text-xs bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 px-2 py-1 rounded">Cancel</button>
+                            </div>
+                          ) : canEdit ? (
+                            <div className="flex gap-1">
+                              <button
+                                onClick={() => {
+                                  const gd = new Date(game.game_date);
+                                  setEditingGameId(game.id);
+                                  setEditGameForm({
+                                    title: game.title,
+                                    location: game.location,
+                                    game_date: gd.toISOString().split("T")[0],
+                                    game_time: gd.toTimeString().slice(0, 5),
+                                  });
+                                }}
+                                className="text-xs text-court-600 hover:text-court-800 font-medium"
+                              >Edit</button>
+                              <button
+                                onClick={async () => {
+                                  if (!confirm(`Cancel "${game.title}"?`)) return;
+                                  try { await cancelGame(runId, game.id); toast.success("Game cancelled"); fetchAdminGames(); }
+                                  catch { toast.error("Failed"); }
+                                }}
+                                className="text-xs text-red-600 hover:text-red-800 font-medium"
+                              >Cancel</button>
+                              <button
+                                onClick={async () => {
+                                  if (!confirm(`Skip "${game.title}"?`)) return;
+                                  try { await skipGame(runId, game.id); toast.success("Game skipped"); fetchAdminGames(); }
+                                  catch { toast.error("Failed"); }
+                                }}
+                                className="text-xs text-gray-500 hover:text-gray-700 font-medium"
+                              >Skip</button>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-gray-400">—</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       ) : tab === "import" ? (
         /* ===== Import Players ===== */
         <div className="space-y-6">
@@ -1106,6 +1243,29 @@ export default function AdminPage() {
               </button>
             </form>
           )}
+
+          {/* Season Schedule Section */}
+          <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wide mb-3">Season Schedule</h3>
+            {hasFullSchedule ? (
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                  Every <strong>{DAY_NAMES[currentRun.default_game_day]}</strong> at <strong>{currentRun.default_game_time}</strong>,
+                  from <strong>{new Date(currentRun.start_date + "T00:00").toLocaleDateString()}</strong> to <strong>{new Date(currentRun.end_date + "T00:00").toLocaleDateString()}</strong>
+                </p>
+                <button
+                  onClick={handleGenerateSeasonGames}
+                  className="bg-court-600 hover:bg-court-700 text-white font-semibold py-2 px-4 rounded-lg"
+                >
+                  Generate Season Games
+                </button>
+              </div>
+            ) : (
+              <p className="text-sm text-amber-600 dark:text-amber-400">
+                Fill in Game Day, Game Time, Season Start Date, and Season End Date above, then save to enable season generation.
+              </p>
+            )}
+          </div>
         </div>
       ) : (
         /* ===== Balancer Tab ===== */
