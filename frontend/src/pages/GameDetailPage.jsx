@@ -19,7 +19,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import useAuthStore from "../stores/authStore";
 import useRunStore from "../stores/runStore";
-import { getGame, updateGame, rsvpToGame, generateTeams, recordResult, cancelGame, skipGame, deleteGame } from "../api/games";
+import { getGame, updateGame, rsvpToGame, generateTeams, recordResult, cancelGame } from "../api/games";
 import { castVote, getMyVotes, getGameAwards } from "../api/votes";
 import NbaJamTeams from "../components/NbaJamTeams";
 
@@ -36,7 +36,6 @@ export default function GameDetailPage() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState({});
-  const [skipReason, setSkipReason] = useState("");
 
   const fetchGame = async () => {
     if (!runId) return;
@@ -164,27 +163,6 @@ export default function GameDetailPage() {
     }
   };
 
-  const handleSkipGame = async () => {
-    if (!confirm("Skip this game? All RSVPed players will be notified.")) return;
-    try {
-      await skipGame(runId, id, skipReason || null);
-      toast.success("Game marked as skipped.");
-      fetchGame();
-    } catch (err) {
-      toast.error(err.response?.data?.detail || "Failed to skip game");
-    }
-  };
-
-  const handleDeleteGame = async () => {
-    if (!confirm("Permanently delete this game? This cannot be undone.")) return;
-    try {
-      await deleteGame(runId, id);
-      toast.success("Game deleted.");
-      navigate("/games");
-    } catch (err) {
-      toast.error(err.response?.data?.detail || "Failed to delete game");
-    }
-  };
 
   const handleVote = async (voteType, nomineeId) => {
     try {
@@ -579,25 +557,6 @@ export default function GameDetailPage() {
               </div>
             )}
 
-            {/* Skip Game */}
-            {game.status !== "completed" && game.status !== "cancelled" && game.status !== "skipped" && (
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={skipReason}
-                  onChange={(e) => setSkipReason(e.target.value)}
-                  placeholder="Reason (optional)"
-                  className="text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 dark:bg-gray-900 dark:text-gray-100"
-                />
-                <button
-                  onClick={handleSkipGame}
-                  className="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 px-4 rounded-lg"
-                >
-                  Skip Game
-                </button>
-              </div>
-            )}
-
             {/* Cancel Game */}
             {game.status !== "completed" && game.status !== "cancelled" && game.status !== "skipped" && (
               <button
@@ -605,16 +564,6 @@ export default function GameDetailPage() {
                 className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg"
               >
                 Cancel Game
-              </button>
-            )}
-
-            {/* Delete Game */}
-            {game.status !== "completed" && (
-              <button
-                onClick={handleDeleteGame}
-                className="bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 text-red-700 dark:text-red-400 font-semibold py-2 px-4 rounded-lg"
-              >
-                Delete Game
               </button>
             )}
           </div>

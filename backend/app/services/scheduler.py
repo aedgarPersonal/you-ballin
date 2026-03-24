@@ -335,27 +335,27 @@ async def open_dropin_spots():
 
 
 async def generate_and_publish_teams():
-    """Auto-generate balanced teams 1 hour before game time.
+    """Auto-generate balanced teams 15 minutes before game time.
 
     TEACHING NOTE:
         This runs every 15 minutes and checks for upcoming games where:
-        - The game starts within the next hour
+        - The game starts within the next 15 minutes
         - Teams haven't been set yet (status is INVITES_SENT or DROPIN_OPEN)
 
         This means an admin can manually generate teams at any time before
-        the 1-hour window. If they don't, this job handles it automatically.
+        the 15-minute window. If they don't, this job handles it automatically.
     """
     logger.info("Checking for games needing auto team generation...")
 
     async with async_session() as db:
         try:
             now = datetime.now(timezone.utc)
-            one_hour_from_now = now + timedelta(hours=1)
+            fifteen_min_from_now = now + timedelta(minutes=15)
 
-            # Find games starting within the next hour that still need teams
+            # Find games starting within the next 15 minutes that still need teams
             result = await db.execute(
                 select(Game).where(
-                    Game.game_date <= one_hour_from_now,
+                    Game.game_date <= fifteen_min_from_now,
                     Game.game_date > now,
                     Game.status.in_([GameStatus.INVITES_SENT, GameStatus.DROPIN_OPEN]),
                 )
