@@ -17,6 +17,7 @@ import toast from "react-hot-toast";
 import useAuthStore from "../stores/authStore";
 import useRunStore from "../stores/runStore";
 import { getPlayer, updateMyProfile } from "../api/players";
+import { updatePlayerAdmin } from "../api/admin";
 import { getPlayerRatingSummary, getMyRatingForPlayer, ratePlayer } from "../api/ratings";
 import AvatarPicker, { AvatarBadge } from "../components/AvatarPicker";
 import { getPlayerById } from "../data/legacyPlayers";
@@ -36,6 +37,7 @@ export default function PlayerProfilePage() {
   const updateUser = useAuthStore((s) => s.updateUser);
 
   const isOwnProfile = currentUser?.id === parseInt(id);
+  const isAdmin = currentUser?.role === "super_admin";
 
   useEffect(() => {
     const fetch = async () => {
@@ -174,22 +176,79 @@ export default function PlayerProfilePage() {
         <div className="grid grid-cols-3 gap-4">
           <div>
             <p className="text-sm text-gray-500 dark:text-gray-400">Height</p>
-            <p className="text-lg font-semibold">
-              {player.height_inches
-                ? `${Math.floor(player.height_inches / 12)}'${player.height_inches % 12}"`
-                : "N/A"}
-            </p>
+            {isAdmin ? (
+              <input
+                type="number"
+                defaultValue={player.height_inches || ""}
+                placeholder="inches"
+                onBlur={(e) => {
+                  const val = parseInt(e.target.value);
+                  if (val && val !== player.height_inches) {
+                    updatePlayerAdmin(runId, player.id, { height_inches: val })
+                      .then(() => { setPlayer({ ...player, height_inches: val }); toast.success("Height updated"); })
+                      .catch(() => toast.error("Failed to update"));
+                  }
+                }}
+                className="w-full text-lg font-semibold border border-transparent hover:border-gray-300 dark:hover:border-gray-600 rounded px-1 py-0.5 bg-transparent dark:text-gray-100 focus:border-court-500 focus:outline-none"
+              />
+            ) : (
+              <p className="text-lg font-semibold">
+                {player.height_inches ? `${Math.floor(player.height_inches / 12)}'${player.height_inches % 12}"` : "N/A"}
+              </p>
+            )}
+            {isAdmin && player.height_inches && (
+              <p className="text-xs text-gray-400 dark:text-gray-500">{Math.floor(player.height_inches / 12)}'{player.height_inches % 12}"</p>
+            )}
           </div>
           <div>
             <p className="text-sm text-gray-500 dark:text-gray-400">Age</p>
-            <p className="text-lg font-semibold">{player.age || "N/A"}</p>
+            {isAdmin ? (
+              <input
+                type="number"
+                defaultValue={player.age || ""}
+                placeholder="age"
+                onBlur={(e) => {
+                  const val = parseInt(e.target.value);
+                  if (val && val !== player.age) {
+                    updatePlayerAdmin(runId, player.id, { age: val })
+                      .then(() => { setPlayer({ ...player, age: val }); toast.success("Age updated"); })
+                      .catch(() => toast.error("Failed to update"));
+                  }
+                }}
+                className="w-full text-lg font-semibold border border-transparent hover:border-gray-300 dark:hover:border-gray-600 rounded px-1 py-0.5 bg-transparent dark:text-gray-100 focus:border-court-500 focus:outline-none"
+              />
+            ) : (
+              <p className="text-lg font-semibold">{player.age || "N/A"}</p>
+            )}
           </div>
           <div>
             <p className="text-sm text-gray-500 dark:text-gray-400">Mobility</p>
-            <p className="text-lg font-semibold">{player.mobility?.toFixed(1) || "N/A"} / 5.0</p>
+            {isAdmin ? (
+              <input
+                type="number"
+                step="0.5"
+                min="1"
+                max="5"
+                defaultValue={player.mobility || ""}
+                placeholder="1-5"
+                onBlur={(e) => {
+                  const val = parseFloat(e.target.value);
+                  if (val && val !== player.mobility) {
+                    updatePlayerAdmin(runId, player.id, { mobility: val })
+                      .then(() => { setPlayer({ ...player, mobility: val }); toast.success("Mobility updated"); })
+                      .catch(() => toast.error("Failed to update"));
+                  }
+                }}
+                className="w-full text-lg font-semibold border border-transparent hover:border-gray-300 dark:hover:border-gray-600 rounded px-1 py-0.5 bg-transparent dark:text-gray-100 focus:border-court-500 focus:outline-none"
+              />
+            ) : (
+              <p className="text-lg font-semibold">{player.mobility?.toFixed(1) || "N/A"} / 5.0</p>
+            )}
           </div>
         </div>
-        <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">Physical stats are maintained by admins.</p>
+        <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">
+          {isAdmin ? "Click a value to edit. Changes save on blur." : "Physical stats are maintained by admins."}
+        </p>
       </div>
 
       {/* Rating Form */}

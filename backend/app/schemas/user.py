@@ -84,6 +84,10 @@ class AdminUserUpdate(BaseModel):
     height_inches: int | None = None
     age: int | None = None
     mobility: float | None = Field(None, ge=1.0, le=5.0)
+    # Rating overrides
+    avg_offense: float | None = Field(None, ge=1.0, le=5.0)
+    avg_defense: float | None = Field(None, ge=1.0, le=5.0)
+    avg_overall: float | None = Field(None, ge=1.0, le=5.0)
     # Game stats (for manual correction)
     games_played: int | None = Field(None, ge=0)
     games_won: int | None = Field(None, ge=0)

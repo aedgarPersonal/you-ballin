@@ -7,8 +7,11 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import useRunStore from "../stores/runStore";
+import useAuthStore from "../stores/authStore";
 import { listPlayers } from "../api/players";
+import { updatePlayerAdmin } from "../api/admin";
 import { AvatarBadge } from "../components/AvatarPicker";
+import toast from "react-hot-toast";
 
 const SORT_OPTIONS = [
   { value: "name", label: "Name" },
@@ -23,6 +26,8 @@ const SORT_OPTIONS = [
 export default function PlayersPage() {
   const { currentRun } = useRunStore();
   const runId = currentRun?.id;
+  const currentUser = useAuthStore((s) => s.user);
+  const isAdmin = currentUser?.role === "super_admin";
   const [players, setPlayers] = useState([]);
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("jordan_factor");
@@ -160,15 +165,75 @@ export default function PlayersPage() {
               {/* Stats Grid */}
               <div className="grid grid-cols-5 gap-2 mt-3 text-center">
                 <div>
-                  <div className="text-sm font-bold text-court-600">{player.avg_offense?.toFixed(1)}</div>
+                  {isAdmin ? (
+                    <input
+                      type="number"
+                      step="0.5"
+                      min="1"
+                      max="5"
+                      defaultValue={player.avg_offense?.toFixed(1)}
+                      onBlur={(e) => {
+                        const val = parseFloat(e.target.value);
+                        if (!isNaN(val) && val !== player.avg_offense) {
+                          updatePlayerAdmin(runId, player.id, { avg_offense: val })
+                            .then(() => toast.success("Updated"))
+                            .catch(() => toast.error("Failed"));
+                        }
+                      }}
+                      onClick={(e) => e.preventDefault()}
+                      className="w-full text-sm font-bold text-court-600 text-center border border-transparent hover:border-gray-300 dark:hover:border-gray-600 rounded bg-transparent focus:border-court-500 focus:outline-none"
+                    />
+                  ) : (
+                    <div className="text-sm font-bold text-court-600">{player.avg_offense?.toFixed(1)}</div>
+                  )}
                   <div className="text-xs text-gray-400 dark:text-gray-500">OFF</div>
                 </div>
                 <div>
-                  <div className="text-sm font-bold text-court-600">{player.avg_defense?.toFixed(1)}</div>
+                  {isAdmin ? (
+                    <input
+                      type="number"
+                      step="0.5"
+                      min="1"
+                      max="5"
+                      defaultValue={player.avg_defense?.toFixed(1)}
+                      onBlur={(e) => {
+                        const val = parseFloat(e.target.value);
+                        if (!isNaN(val) && val !== player.avg_defense) {
+                          updatePlayerAdmin(runId, player.id, { avg_defense: val })
+                            .then(() => toast.success("Updated"))
+                            .catch(() => toast.error("Failed"));
+                        }
+                      }}
+                      onClick={(e) => e.preventDefault()}
+                      className="w-full text-sm font-bold text-court-600 text-center border border-transparent hover:border-gray-300 dark:hover:border-gray-600 rounded bg-transparent focus:border-court-500 focus:outline-none"
+                    />
+                  ) : (
+                    <div className="text-sm font-bold text-court-600">{player.avg_defense?.toFixed(1)}</div>
+                  )}
                   <div className="text-xs text-gray-400 dark:text-gray-500">DEF</div>
                 </div>
                 <div>
-                  <div className="text-sm font-bold text-court-600">{player.avg_overall?.toFixed(1)}</div>
+                  {isAdmin ? (
+                    <input
+                      type="number"
+                      step="0.5"
+                      min="1"
+                      max="5"
+                      defaultValue={player.avg_overall?.toFixed(1)}
+                      onBlur={(e) => {
+                        const val = parseFloat(e.target.value);
+                        if (!isNaN(val) && val !== player.avg_overall) {
+                          updatePlayerAdmin(runId, player.id, { avg_overall: val })
+                            .then(() => toast.success("Updated"))
+                            .catch(() => toast.error("Failed"));
+                        }
+                      }}
+                      onClick={(e) => e.preventDefault()}
+                      className="w-full text-sm font-bold text-court-600 text-center border border-transparent hover:border-gray-300 dark:hover:border-gray-600 rounded bg-transparent focus:border-court-500 focus:outline-none"
+                    />
+                  ) : (
+                    <div className="text-sm font-bold text-court-600">{player.avg_overall?.toFixed(1)}</div>
+                  )}
                   <div className="text-xs text-gray-400 dark:text-gray-500">OVR</div>
                 </div>
                 <div>

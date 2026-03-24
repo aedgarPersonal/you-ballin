@@ -302,6 +302,25 @@ async def update_run_player(
         if field in update_data:
             setattr(user, field, update_data.pop(field))
 
+    # Update rating fields on User and RunPlayerStats
+    rating_fields = ("avg_offense", "avg_defense", "avg_overall")
+    ratings_changed = any(f in update_data for f in rating_fields)
+    for field in rating_fields:
+        if field in update_data:
+            setattr(user, field, update_data.pop(field))
+    if ratings_changed:
+        rps_result = await db.execute(
+            select(RunPlayerStats).where(
+                RunPlayerStats.run_id == run_id,
+                RunPlayerStats.user_id == user_id,
+            )
+        )
+        rps = rps_result.scalar_one_or_none()
+        if rps:
+            rps.avg_offense = user.avg_offense
+            rps.avg_defense = user.avg_defense
+            rps.avg_overall = user.avg_overall
+
     # Update game stats on User and RunPlayerStats
     stats_changed = False
     if "games_played" in update_data or "games_won" in update_data:
