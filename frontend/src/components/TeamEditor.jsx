@@ -197,7 +197,16 @@ export default function TeamEditor({ teams, runId, gameId, onSave, onCancel }) {
     if (!over) return;
 
     const assignment = active.data.current.assignment;
-    const targetTeam = over.id;
+
+    // Determine target team: if dropped on a droppable column, use its ID directly.
+    // If dropped on another draggable card, find what team that card belongs to.
+    let targetTeam = over.id;
+    if (String(targetTeam).startsWith("assignment-")) {
+      // Dropped on a player card — find their team
+      const targetAssignment = localTeams.find((t) => `assignment-${t.id}` === targetTeam);
+      if (targetAssignment) targetTeam = targetAssignment.team;
+      else return;
+    }
 
     if (assignment.team === targetTeam) return;
 

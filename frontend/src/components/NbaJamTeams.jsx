@@ -165,7 +165,7 @@ function JamPlayerCard({ player, isAdmin }) {
   );
 }
 
-export default function NbaJamTeams({ teams, gameResult }) {
+export default function NbaJamTeams({ teams, gameResult, onEditTeams }) {
   const userRole = useAuthStore((s) => s.user?.role);
   const isAdmin = userRole === "super_admin" || userRole === "admin";
 
@@ -203,9 +203,19 @@ export default function NbaJamTeams({ teams, gameResult }) {
       <div className="bg-gray-950 rounded-xl p-4">
         {/* Title Bar */}
         <div className="text-center mb-4">
-          <h2 className="text-2xl font-black text-cyan-400 uppercase tracking-[0.3em]">
-            Tonight's Matchup
-          </h2>
+          <div className="flex items-center justify-center gap-3">
+            <h2 className="text-2xl font-black text-cyan-400 uppercase tracking-[0.3em]">
+              Tonight's Matchup
+            </h2>
+            {isAdmin && onEditTeams && (
+              <button
+                onClick={onEditTeams}
+                className="text-xs bg-cyan-600 hover:bg-cyan-500 text-white font-bold px-3 py-1 rounded-lg uppercase tracking-wider"
+              >
+                Edit
+              </button>
+            )}
+          </div>
           <div className="flex items-center justify-center gap-3 mt-1 flex-wrap">
             {teamCounts.map((count, i) => (
               <span key={i} className="flex items-center gap-3">

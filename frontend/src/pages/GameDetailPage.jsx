@@ -436,7 +436,11 @@ export default function GameDetailPage() {
               onCancel={() => { setEditingTeams(false); fetchGame(); }}
             />
           ) : (
-            <NbaJamTeams teams={game.teams} gameResult={game.result} />
+            <NbaJamTeams
+              teams={game.teams}
+              gameResult={game.result}
+              onEditTeams={game.status === "teams_set" ? () => setEditingTeams(true) : null}
+            />
           )}
         </div>
       )}
@@ -534,16 +538,6 @@ export default function GameDetailPage() {
             {game.status !== "completed" && game.status !== "cancelled" && game.status !== "skipped" && (
               <button onClick={handleGenerateTeams} className="btn-primary">
                 {game.status === "teams_set" ? "Regenerate Teams" : "Generate Teams"}
-              </button>
-            )}
-
-            {/* Edit Teams (drag-and-drop) */}
-            {game.status === "teams_set" && !editingTeams && (
-              <button
-                onClick={() => setEditingTeams(true)}
-                className="bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-2 px-4 rounded-lg"
-              >
-                Edit Teams
               </button>
             )}
 
