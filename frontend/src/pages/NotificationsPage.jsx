@@ -4,9 +4,10 @@
  * In-app notification feed with deep linking.
  */
 
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import useNotificationStore from "../stores/notificationStore";
+import { isPushSupported, getPushPermission, subscribeToPush, unsubscribeFromPush, isSubscribedToPush } from "../utils/pushNotifications";
 
 const TYPE_ICONS = {
   game_invite: "📅",
@@ -45,10 +46,32 @@ export default function NotificationsPage() {
   const { notifications, unreadCount, loading, fetchNotifications, markRead, markAllRead } =
     useNotificationStore();
   const navigate = useNavigate();
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushLoading, setPushLoading] = useState(false);
+  const pushSupported = isPushSupported();
+  const pushDenied = pushSupported && getPushPermission() === "denied";
 
   useEffect(() => {
     fetchNotifications();
+    if (pushSupported) {
+      isSubscribedToPush().then(setPushEnabled);
+    }
   }, [fetchNotifications]);
+
+  const handleTogglePush = async () => {
+    setPushLoading(true);
+    try {
+      if (pushEnabled) {
+        await unsubscribeFromPush();
+        setPushEnabled(false);
+      } else {
+        const ok = await subscribeToPush();
+        setPushEnabled(ok);
+      }
+    } finally {
+      setPushLoading(false);
+    }
+  };
 
   const handleClick = (notif) => {
     if (!notif.read) markRead(notif.id);
@@ -70,6 +93,35 @@ export default function NotificationsPage() {
           </button>
         )}
       </div>
+
+      {/* Push Notification Toggle */}
+      {pushSupported && (
+        <div className="card mb-6 flex items-center justify-between">
+          <div>
+            <h3 className="font-semibold text-gray-900 dark:text-gray-100">Push Notifications</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {pushDenied
+                ? "Notifications are blocked. Update your browser settings to enable them."
+                : pushEnabled
+                ? "You'll receive alerts on this device for game invites, teams, and voting."
+                : "Enable to get alerts on this device when there's a game update."}
+            </p>
+          </div>
+          <button
+            onClick={handleTogglePush}
+            disabled={pushLoading || pushDenied}
+            className={`relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+              pushEnabled ? "bg-court-600" : "bg-gray-300 dark:bg-gray-600"
+            } ${pushDenied ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+          >
+            <span
+              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                pushEnabled ? "translate-x-5" : "translate-x-0"
+              }`}
+            />
+          </button>
+        </div>
+      )}
 
       {loading ? (
         <p className="text-gray-500 dark:text-gray-400">Loading...</p>
