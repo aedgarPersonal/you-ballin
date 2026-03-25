@@ -428,29 +428,31 @@ export default function GameDetailPage() {
         </div>
       )}
 
-      {/* RSVP List */}
-      <div className="card mb-6">
-        <h2 className="text-lg font-semibold mb-3">RSVPs ({game.rsvps?.length || 0})</h2>
-        {game.rsvps?.length > 0 ? (
-          <div className="space-y-2">
-            {game.rsvps.map((rsvp) => (
-              <div key={rsvp.id} className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700 last:border-0">
-                <span className="font-medium">{rsvp.user?.full_name || `Player #${rsvp.user_id}`}</span>
-                <span className={`badge ${
-                  rsvp.status === "accepted" ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" :
-                  rsvp.status === "declined" ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400" :
-                  rsvp.status === "waitlist" ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400" :
-                  "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
-                }`}>
-                  {rsvp.status}
-                </span>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-gray-500 dark:text-gray-400">No RSVPs yet.</p>
-        )}
-      </div>
+      {/* RSVP List — hidden on completed games for non-admins */}
+      {(game.status !== "completed" || user?.role === "super_admin" || user?.role === "admin") && (
+        <div className="card mb-6">
+          <h2 className="text-lg font-semibold mb-3">RSVPs ({game.rsvps?.length || 0})</h2>
+          {game.rsvps?.length > 0 ? (
+            <div className="space-y-2">
+              {game.rsvps.map((rsvp) => (
+                <div key={rsvp.id} className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700 last:border-0">
+                  <span className="font-medium">{rsvp.user?.full_name || `Player #${rsvp.user_id}`}</span>
+                  <span className={`badge ${
+                    rsvp.status === "accepted" ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" :
+                    rsvp.status === "declined" ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400" :
+                    rsvp.status === "waitlist" ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400" :
+                    "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
+                  }`}>
+                    {rsvp.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-500 dark:text-gray-400">No RSVPs yet.</p>
+          )}
+        </div>
+      )}
 
       {/* Admin Actions */}
       {(user?.role === "super_admin" || user?.role === "admin") && (
