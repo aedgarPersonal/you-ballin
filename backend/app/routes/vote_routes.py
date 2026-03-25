@@ -58,7 +58,7 @@ def _is_voting_open(game: Game) -> bool:
     """Check if the voting window is currently open."""
     if game.status != GameStatus.COMPLETED:
         return False
-    now = datetime.now(timezone.utc)
+    now = datetime.utcnow()
     deadline = _get_voting_deadline(game)
     return now <= deadline
 
@@ -338,7 +338,7 @@ async def get_recent_awards(
     games = result.scalars().all()
 
     recent_awards = []
-    now = datetime.now(timezone.utc)
+    now = datetime.utcnow()
 
     for game in games:
         deadline = _get_voting_deadline(game)

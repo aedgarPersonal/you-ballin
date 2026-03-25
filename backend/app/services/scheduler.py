@@ -149,7 +149,7 @@ async def create_weekly_game():
                 logger.info("No active runs found")
                 return
 
-            now = datetime.now(timezone.utc)
+            now = datetime.utcnow()
 
             for run in runs:
                 if run.default_game_day is None or run.default_game_time is None:
@@ -263,7 +263,7 @@ async def open_dropin_spots():
 
     async with async_session() as db:
         try:
-            now = datetime.now(timezone.utc)
+            now = datetime.utcnow()
             today_start = now.replace(hour=0, minute=0, second=0)
             today_end = now.replace(hour=23, minute=59, second=59)
 
@@ -344,7 +344,7 @@ async def generate_and_publish_teams():
 
     async with async_session() as db:
         try:
-            now = datetime.now(timezone.utc)
+            now = datetime.utcnow()
             fifteen_min_from_now = now + timedelta(minutes=15)
 
             # Find games starting within the next 15 minutes that still need teams
@@ -486,7 +486,7 @@ async def send_voting_reminders():
         try:
             from app.models.notification import Notification
 
-            now = datetime.now(timezone.utc)
+            now = datetime.utcnow()
 
             result = await db.execute(
                 select(Game).where(Game.status == GameStatus.COMPLETED)
@@ -496,7 +496,7 @@ async def send_voting_reminders():
             for game in completed_games:
                 game_time = game.game_date
                 if game_time.tzinfo is None:
-                    game_time = game_time.replace(tzinfo=timezone.utc)
+                    game_time = game_time.replace(tzinfo=None)
 
                 # Voting deadline is noon the day after
                 voting_deadline = (game_time + timedelta(days=1)).replace(
@@ -576,7 +576,7 @@ async def announce_awards():
         try:
             from app.models.notification import Notification
 
-            now = datetime.now(timezone.utc)
+            now = datetime.utcnow()
 
             # Find completed games where voting window has closed
             result = await db.execute(
@@ -587,7 +587,7 @@ async def announce_awards():
             for game in completed_games:
                 game_time = game.game_date
                 if game_time.tzinfo is None:
-                    game_time = game_time.replace(tzinfo=timezone.utc)
+                    game_time = game_time.replace(tzinfo=None)
                 voting_deadline = (game_time + timedelta(days=1)).replace(
                     hour=12, minute=0, second=0, microsecond=0
                 )

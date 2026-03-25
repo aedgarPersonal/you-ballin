@@ -138,10 +138,10 @@ async def get_game_action(
     if game.status == GameStatus.COMPLETED:
         from datetime import timedelta
         game_time = game.game_date
-        if game_time.tzinfo is None:
-            game_time = game_time.replace(tzinfo=timezone.utc)
+        if game_time.tzinfo is not None:
+            game_time = game_time.replace(tzinfo=None)
         deadline = (game_time + timedelta(days=1)).replace(hour=12, minute=0, second=0, microsecond=0)
-        now = datetime.now(timezone.utc)
+        now = datetime.utcnow()
         voting_open = now <= deadline
         voting_deadline = deadline.isoformat()
 
@@ -270,10 +270,10 @@ async def vote_via_token(
     # Check voting window
     from datetime import timedelta
     game_time = game.game_date
-    if game_time.tzinfo is None:
-        game_time = game_time.replace(tzinfo=timezone.utc)
+    if game_time.tzinfo is not None:
+        game_time = game_time.replace(tzinfo=None)
     deadline = (game_time + timedelta(days=1)).replace(hour=12, minute=0, second=0, microsecond=0)
-    if datetime.now(timezone.utc) > deadline:
+    if datetime.utcnow() > deadline:
         raise HTTPException(status_code=400, detail="Voting window has closed")
 
     # Verify voter is a participant

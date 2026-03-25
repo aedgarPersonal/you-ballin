@@ -124,8 +124,8 @@ async def get_my_rating_for_player(
         return MyRatingForPlayer(has_rated=False, can_update=True)
 
     # Check 30-day cooldown
-    now = datetime.now(timezone.utc)
-    cooldown_end = rating.updated_at.replace(tzinfo=timezone.utc) + timedelta(days=30)
+    now = datetime.utcnow()
+    cooldown_end = rating.updated_at + timedelta(days=30)
     can_update = now >= cooldown_end
 
     return MyRatingForPlayer(
@@ -175,8 +175,8 @@ async def rate_player(
 
     if existing:
         # Enforce 30-day cooldown
-        now = datetime.now(timezone.utc)
-        cooldown_end = existing.updated_at.replace(tzinfo=timezone.utc) + timedelta(days=30)
+        now = datetime.utcnow()
+        cooldown_end = existing.updated_at + timedelta(days=30)
         if now < cooldown_end:
             raise HTTPException(
                 status_code=429,
