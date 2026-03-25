@@ -56,8 +56,8 @@ async def get_run_stats(
     )
 
     # Average roster from accepted RSVPs on completed games
-    avg_roster_result = await db.execute(
-        select(sqlfunc.avg(sqlfunc.count(RSVP.id)))
+    counts_subq = (
+        select(sqlfunc.count(RSVP.id).label("cnt"))
         .select_from(RSVP)
         .join(Game, RSVP.game_id == Game.id)
         .where(
@@ -66,9 +66,11 @@ async def get_run_stats(
             RSVP.status == RSVPStatus.ACCEPTED,
         )
         .group_by(Game.id)
+        .subquery()
     )
-    roster_values = [row[0] for row in avg_roster_result.all()]
-    avg_roster = sum(roster_values) / len(roster_values) if roster_values else 0.0
+    avg_roster = await db.scalar(
+        select(sqlfunc.avg(counts_subq.c.cnt))
+    ) or 0.0
 
     overview = RunOverview(
         total_games=completed_count or 0,
