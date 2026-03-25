@@ -117,6 +117,7 @@ class GameResultCreate(BaseModel):
     """Admin records the game outcome with per-team scores."""
     team_scores: list[TeamScoreInput] = Field(min_length=2)
     notes: str | None = None
+    commentary: str | None = None
 
 
 class TeamScoreResponse(BaseModel):

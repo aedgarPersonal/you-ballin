@@ -53,8 +53,8 @@ router = APIRouter(prefix="/api/runs/{run_id}/games", tags=["Games"])
 # Helpers
 # =============================================================================
 
-async def _recalculate_odds_and_commentary(game: Game, db: AsyncSession):
-    """Recalculate odds_line and commentary from current team assignments."""
+async def _recalculate_odds(game: Game, db: AsyncSession):
+    """Recalculate odds_line from current team assignments."""
     import math
 
     result = await db.execute(
@@ -64,7 +64,6 @@ async def _recalculate_odds_and_commentary(game: Game, db: AsyncSession):
     )
     assignments = result.scalars().all()
 
-    # Group by team
     team_groups: dict[str, list] = {}
     team_name_map: dict[str, str] = {}
     for a in assignments:
@@ -74,7 +73,6 @@ async def _recalculate_odds_and_commentary(game: Game, db: AsyncSession):
     teams_list = list(team_groups.keys())
     if len(teams_list) != 2:
         game.odds_line = None
-        game.commentary = None
         return
 
     def _composite(u):
@@ -105,53 +103,6 @@ async def _recalculate_odds_and_commentary(game: Game, db: AsyncSession):
         return "+" + str(round((1 - prob) / prob * 100))
 
     game.odds_line = f"{team_names[0]} {_ml(prob0)} ({round(prob0*100)}%) | {team_names[1]} {_ml(prob1)} ({round(prob1*100)}%)"
-
-    # Generate "Keys to Victory" commentary
-    def _team_stats(team_players):
-        n = len(team_players)
-        return {
-            "off": sum((p.avg_offense or 3) for p in team_players) / n,
-            "def": sum((p.avg_defense or 3) for p in team_players) / n,
-            "jf": sum((p.jordan_factor or 0.5) for p in team_players) / n,
-            "height": sum((p.height_inches or 70) for p in team_players) / n,
-            "mob": sum((p.mobility or 3) for p in team_players) / n,
-            "mvps": sum((p.mvp_count or 0) for p in team_players),
-            "size": n,
-            "best_jf": max(team_players, key=lambda p: p.jordan_factor or 0),
-        }
-
-    stats = [_team_stats(t) for t in balanced_teams]
-    keys = []
-    for i, (s, name) in enumerate(zip(stats, team_names)):
-        other = stats[1 - i]
-        points = []
-        if s["off"] > other["off"] + 0.2:
-            points.append("Push the pace — clear offensive edge")
-        elif s["off"] > other["off"]:
-            points.append("Move the ball — slight scoring advantage")
-        if s["def"] > other["def"] + 0.2:
-            points.append("Lock down on D — defensive identity is the weapon")
-        elif s["def"] > other["def"]:
-            points.append("Stay disciplined on defense")
-        if s["height"] > other["height"] + 1:
-            points.append(f"Dominate the boards — size advantage ({s['height']:.0f}\" vs {other['height']:.0f}\")")
-        if s["mob"] > other["mob"] + 0.3:
-            points.append("Run the fast break — superior speed")
-        if s["size"] > other["size"]:
-            points.append(f"Use the bench — {s['size']} players means fresher legs")
-        if s["jf"] > other["jf"] + 0.05:
-            points.append(f"Trust the closer — {s['best_jf'].full_name} at {(s['best_jf'].jordan_factor or 0.5)*100:.0f}% win rate")
-        if s["mvps"] > other["mvps"] and s["mvps"] > 0:
-            points.append(f"Star power — {s['mvps']} combined MVP awards")
-        if not points:
-            if s["jf"] < other["jf"]:
-                points.append("Play with nothing to lose — underdogs bite hardest")
-                points.append("Grind out every possession")
-            else:
-                points.append("Stay balanced and execute")
-        keys.append(f"🔑 {name}: " + " | ".join(points[:3]))
-
-    game.commentary = "\n".join(keys)
 
 
 # =============================================================================
@@ -771,7 +722,7 @@ async def generate_teams(
     game.status = GameStatus.TEAMS_SET
 
     await db.flush()
-    await _recalculate_odds_and_commentary(game, db)
+    await _recalculate_odds(game, db)
 
     # Notify all players about their team assignments
     team_lookup = {}
@@ -872,7 +823,7 @@ async def move_team_assignment(
     assignment.team = data.team
     assignment.team_name = valid_teams[data.team]
     await db.flush()
-    await _recalculate_odds_and_commentary(game, db)
+    await _recalculate_odds(game, db)
     await db.flush()
     await db.refresh(assignment, ["user"])
     return assignment
@@ -907,7 +858,7 @@ async def remove_team_assignment(
 
     await db.delete(assignment)
     await db.flush()
-    await _recalculate_odds_and_commentary(game, db)
+    await _recalculate_odds(game, db)
     await db.flush()
 
 
@@ -958,7 +909,7 @@ async def add_team_assignment(
     )
     db.add(new_assignment)
     await db.flush()
-    await _recalculate_odds_and_commentary(game, db)
+    await _recalculate_odds(game, db)
     await db.flush()
     await db.refresh(new_assignment, ["user"])
     return new_assignment
@@ -1076,6 +1027,10 @@ async def record_result(
             run_stats.jordan_factor = run_stats.games_won / run_stats.games_played if run_stats.games_played > 0 else 0.5
 
     game.status = GameStatus.COMPLETED
+
+    # Save admin commentary if provided
+    if data.commentary:
+        game.commentary = data.commentary
 
     # Build notification message
     score_parts = sorted(data.team_scores, key=lambda ts: ts.wins, reverse=True)

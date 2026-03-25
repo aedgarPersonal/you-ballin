@@ -38,6 +38,7 @@ export default function GameDetailPage() {
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState({});
   const [editingTeams, setEditingTeams] = useState(false);
+  const [gameCommentary, setGameCommentary] = useState("");
 
   const fetchGame = async () => {
     if (!runId) return;
@@ -113,7 +114,10 @@ export default function GameDetailPage() {
         team: t.id,
         wins: parseInt(scores[t.id]) || 0,
       }));
-      await recordResult(runId, id, { team_scores });
+      await recordResult(runId, id, {
+        team_scores,
+        commentary: gameCommentary.trim() || null,
+      });
       toast.success("Results recorded! Players have been notified.");
       fetchGame();
     } catch (err) {
@@ -263,12 +267,9 @@ export default function GameDetailPage() {
         </div>
       )}
 
-      {/* Game Commentary / Keys to Victory */}
+      {/* Game Commentary */}
       {game.commentary && (
         <div className="card mb-6 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700">
-          {game.status === "teams_set" && (
-            <h3 className="text-sm font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-3">Keys to Victory</h3>
-          )}
           <div className="space-y-2">
             {game.commentary.split("\n").map((line, i) => (
               <p key={i} className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
@@ -576,6 +577,13 @@ export default function GameDetailPage() {
                     Submit Scores
                   </button>
                 </div>
+                <textarea
+                  value={gameCommentary}
+                  onChange={(e) => setGameCommentary(e.target.value)}
+                  placeholder="Game commentary (optional)"
+                  rows={2}
+                  className="w-full mt-3 text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 dark:bg-gray-900 dark:text-gray-100"
+                />
               </div>
             )}
 
