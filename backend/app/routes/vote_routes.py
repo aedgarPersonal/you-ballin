@@ -58,8 +58,11 @@ def _is_voting_open(game: Game) -> bool:
     """Check if the voting window is currently open."""
     if game.status != GameStatus.COMPLETED:
         return False
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     deadline = _get_voting_deadline(game)
+    # Ensure both are timezone-aware for comparison
+    if deadline.tzinfo is None:
+        deadline = deadline.replace(tzinfo=timezone.utc)
     return now <= deadline
 
 
