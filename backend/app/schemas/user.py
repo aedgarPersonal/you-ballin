@@ -158,6 +158,12 @@ class ImportPlayerEntry(BaseModel):
     email: str = Field(min_length=3, max_length=255)
     wins: int = Field(default=0, ge=0)
     losses: int = Field(default=0, ge=0)
+    height_inches: int | None = Field(default=70, ge=48, le=96)
+    age: int | None = Field(default=30, ge=16, le=70)
+    mobility: float | None = Field(default=3.0, ge=1.0, le=5.0)
+    avg_offense: float | None = Field(default=3.0, ge=1.0, le=5.0)
+    avg_defense: float | None = Field(default=3.0, ge=1.0, le=5.0)
+    avg_overall: float | None = Field(default=3.0, ge=1.0, le=5.0)
 
 
 class ImportPlayersRequest(BaseModel):

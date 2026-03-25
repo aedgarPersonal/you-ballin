@@ -46,9 +46,18 @@ function parseImportText(text) {
       const parts = line.includes("\t") ? line.split("\t") : line.split(",");
       const name = (parts[0] || "").trim();
       const email = (parts[1] || "").trim();
-      const wins = parseInt(parts[2]) || 0;
-      const losses = parseInt(parts[3]) || 0;
-      return name && email ? { name, email, wins, losses } : null;
+      if (!name || !email) return null;
+      const entry = { name, email };
+      // Optional fields: wins, losses, height_inches, age, mobility, offense, defense, overall
+      if (parts[2]?.trim()) entry.wins = parseInt(parts[2]) || 0;
+      if (parts[3]?.trim()) entry.losses = parseInt(parts[3]) || 0;
+      if (parts[4]?.trim()) entry.height_inches = parseInt(parts[4]) || 70;
+      if (parts[5]?.trim()) entry.age = parseInt(parts[5]) || 30;
+      if (parts[6]?.trim()) entry.mobility = parseFloat(parts[6]) || 3.0;
+      if (parts[7]?.trim()) entry.avg_offense = parseFloat(parts[7]) || 3.0;
+      if (parts[8]?.trim()) entry.avg_defense = parseFloat(parts[8]) || 3.0;
+      if (parts[9]?.trim()) entry.avg_overall = parseFloat(parts[9]) || 3.0;
+      return entry;
     })
     .filter(Boolean);
 }
@@ -274,22 +283,21 @@ export default function PlayersPage() {
               <button onClick={() => setShowImport(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-white text-2xl leading-none">&times;</button>
             </div>
             <div className="px-6 py-4">
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
-                Paste player data below (one per line):
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+                Paste CSV data below (one player per line). Only <strong>Name</strong> and <strong>Email</strong> are required:
               </p>
-              <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-2 mb-3 text-xs font-mono text-gray-600 dark:text-gray-400 space-y-0.5">
-                <p>Name, Email, Wins, Losses</p>
-                <p>Name{"\t"}Email{"\t"}Wins{"\t"}Losses</p>
+              <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-2 mb-2 text-xs font-mono text-gray-600 dark:text-gray-400 space-y-0.5">
+                <p className="font-semibold text-gray-500 dark:text-gray-300">Name, Email, Wins, Losses, Height(in), Age, Mobility, OFF, DEF, OVR</p>
               </div>
               <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">
-                Email is required and must be unique. Players get a random avatar, default password <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">Password123</code>, and Regular status.
+                Email must be unique. Missing fields use defaults: 0W/0L, 5'10", age 30, ratings 3.0. Players get a random avatar, password <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">Password123</code>, and Regular status.
               </p>
               <textarea
                 rows={10}
                 value={importText}
                 onChange={(e) => setImportText(e.target.value)}
                 className="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 font-mono focus:ring-2 focus:ring-court-500 focus:border-court-500 dark:bg-gray-700 dark:text-gray-200"
-                placeholder={`Bryan, bryan@email.com, 26, 14\nJulien, julien@email.com, 23, 12\nDenis, denis@email.com, 23, 17`}
+                placeholder={`Bryan, bryan@email.com, 26, 14, 74, 28, 4.0, 4.5, 3.5, 4.0\nJulien, julien@email.com, 23, 12\nDenis, denis@email.com`}
               />
               <div className="flex items-center justify-between mt-4">
                 <span className="text-sm text-gray-500 dark:text-gray-400">

@@ -449,6 +449,12 @@ async def import_players(
             games_played=games_played,
             games_won=entry.wins,
             jordan_factor=jordan_factor,
+            height_inches=entry.height_inches,
+            age=entry.age,
+            mobility=entry.mobility,
+            avg_offense=entry.avg_offense,
+            avg_defense=entry.avg_defense,
+            avg_overall=entry.avg_overall,
         )
         db.add(user)
         await db.flush()  # Get user.id for membership/stats creation
