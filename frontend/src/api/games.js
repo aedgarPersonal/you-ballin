@@ -14,6 +14,14 @@ export const getGameRsvps = (runId, gameId) => api.get(`/runs/${runId}/games/${g
 export const generateTeams = (runId, gameId) => api.post(`/runs/${runId}/games/${gameId}/teams`);
 export const getTeams = (runId, gameId) => api.get(`/runs/${runId}/games/${gameId}/teams`);
 
+// Team editing (post-generation, pre-result)
+export const moveTeamAssignment = (runId, gameId, assignmentId, team) =>
+  api.patch(`/runs/${runId}/games/${gameId}/teams/${assignmentId}`, { team });
+export const removeTeamAssignment = (runId, gameId, assignmentId) =>
+  api.delete(`/runs/${runId}/games/${gameId}/teams/${assignmentId}`);
+export const addTeamAssignment = (runId, gameId, userId, team) =>
+  api.post(`/runs/${runId}/games/${gameId}/teams/add`, { user_id: userId, team });
+
 export const recordResult = (runId, gameId, data) =>
   api.post(`/runs/${runId}/games/${gameId}/result`, data);
 

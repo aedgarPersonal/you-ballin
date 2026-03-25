@@ -38,13 +38,120 @@ from app.schemas.game import (
     GameUpdate,
     RSVPCreate,
     RSVPResponse,
+    TeamAddPlayerRequest,
     TeamAssignmentResponse,
+    TeamAssignmentUpdate,
 )
 from app.models.algorithm_config import AlgorithmWeight, CustomMetric, PlayerCustomMetric
 from app.services.team_balancer import CustomMetricDef, create_balanced_teams
 from app.services.notification_service import send_bulk_notification
 
 router = APIRouter(prefix="/api/runs/{run_id}/games", tags=["Games"])
+
+
+# =============================================================================
+# Helpers
+# =============================================================================
+
+async def _recalculate_odds_and_commentary(game: Game, db: AsyncSession):
+    """Recalculate odds_line and commentary from current team assignments."""
+    import math
+
+    result = await db.execute(
+        select(TeamAssignment)
+        .where(TeamAssignment.game_id == game.id)
+        .options(selectinload(TeamAssignment.user))
+    )
+    assignments = result.scalars().all()
+
+    # Group by team
+    team_groups: dict[str, list] = {}
+    team_name_map: dict[str, str] = {}
+    for a in assignments:
+        team_groups.setdefault(a.team, []).append(a.user)
+        team_name_map[a.team] = a.team_name
+
+    teams_list = list(team_groups.keys())
+    if len(teams_list) != 2:
+        game.odds_line = None
+        game.commentary = None
+        return
+
+    def _composite(u):
+        off = (u.avg_offense or 3) / 5
+        dfe = (u.avg_defense or 3) / 5
+        ovr = (u.avg_overall or 3) / 5
+        jf = u.jordan_factor or 0.5
+        ht = min((u.height_inches or 70) / 84, 1)
+        ag = 1 - min(max(((u.age or 30) - 18), 0) / 32, 1)
+        mob = (u.mobility or 3) / 5
+        return ovr * 0.35 + jf * 0.20 + off * 0.15 + dfe * 0.15 + ht * 0.05 + ag * 0.05 + mob * 0.05
+
+    team_names = [team_name_map[t] for t in teams_list]
+    balanced_teams = [team_groups[t] for t in teams_list]
+
+    avgs = []
+    for team_players in balanced_teams:
+        scores = [_composite(p) for p in team_players]
+        avgs.append(sum(scores) / len(scores) if scores else 0)
+
+    diff = avgs[0] - avgs[1]
+    prob0 = 1 / (1 + math.exp(-diff * 8))
+    prob1 = 1 - prob0
+
+    def _ml(prob):
+        if prob >= 0.5:
+            return str(round(-prob / (1 - prob) * 100))
+        return "+" + str(round((1 - prob) / prob * 100))
+
+    game.odds_line = f"{team_names[0]} {_ml(prob0)} ({round(prob0*100)}%) | {team_names[1]} {_ml(prob1)} ({round(prob1*100)}%)"
+
+    # Generate "Keys to Victory" commentary
+    def _team_stats(team_players):
+        n = len(team_players)
+        return {
+            "off": sum((p.avg_offense or 3) for p in team_players) / n,
+            "def": sum((p.avg_defense or 3) for p in team_players) / n,
+            "jf": sum((p.jordan_factor or 0.5) for p in team_players) / n,
+            "height": sum((p.height_inches or 70) for p in team_players) / n,
+            "mob": sum((p.mobility or 3) for p in team_players) / n,
+            "mvps": sum((p.mvp_count or 0) for p in team_players),
+            "size": n,
+            "best_jf": max(team_players, key=lambda p: p.jordan_factor or 0),
+        }
+
+    stats = [_team_stats(t) for t in balanced_teams]
+    keys = []
+    for i, (s, name) in enumerate(zip(stats, team_names)):
+        other = stats[1 - i]
+        points = []
+        if s["off"] > other["off"] + 0.2:
+            points.append("Push the pace — clear offensive edge")
+        elif s["off"] > other["off"]:
+            points.append("Move the ball — slight scoring advantage")
+        if s["def"] > other["def"] + 0.2:
+            points.append("Lock down on D — defensive identity is the weapon")
+        elif s["def"] > other["def"]:
+            points.append("Stay disciplined on defense")
+        if s["height"] > other["height"] + 1:
+            points.append(f"Dominate the boards — size advantage ({s['height']:.0f}\" vs {other['height']:.0f}\")")
+        if s["mob"] > other["mob"] + 0.3:
+            points.append("Run the fast break — superior speed")
+        if s["size"] > other["size"]:
+            points.append(f"Use the bench — {s['size']} players means fresher legs")
+        if s["jf"] > other["jf"] + 0.05:
+            points.append(f"Trust the closer — {s['best_jf'].full_name} at {(s['best_jf'].jordan_factor or 0.5)*100:.0f}% win rate")
+        if s["mvps"] > other["mvps"] and s["mvps"] > 0:
+            points.append(f"Star power — {s['mvps']} combined MVP awards")
+        if not points:
+            if s["jf"] < other["jf"]:
+                points.append("Play with nothing to lose — underdogs bite hardest")
+                points.append("Grind out every possession")
+            else:
+                points.append("Stay balanced and execute")
+        keys.append(f"🔑 {name}: " + " | ".join(points[:3]))
+
+    game.commentary = "\n".join(keys)
 
 
 # =============================================================================
@@ -663,102 +770,8 @@ async def generate_teams(
 
     game.status = GameStatus.TEAMS_SET
 
-    # Calculate Vegas-style odds from composite team scores
-    if game.num_teams == 2 and len(balanced_teams) == 2:
-        import math
-
-        def _composite(u):
-            off = (u.avg_offense or 3) / 5
-            dfe = (u.avg_defense or 3) / 5
-            ovr = (u.avg_overall or 3) / 5
-            jf = u.jordan_factor or 0.5
-            ht = min((u.height_inches or 70) / 84, 1)
-            ag = 1 - min(max(((u.age or 30) - 18), 0) / 32, 1)
-            mob = (u.mobility or 3) / 5
-            return ovr * 0.35 + jf * 0.20 + off * 0.15 + dfe * 0.15 + ht * 0.05 + ag * 0.05 + mob * 0.05
-
-        avgs = []
-        for team_players in balanced_teams:
-            scores = [_composite(p) for p in team_players]
-            avgs.append(sum(scores) / len(scores) if scores else 0)
-
-        diff = avgs[0] - avgs[1]
-        prob0 = 1 / (1 + math.exp(-diff * 8))
-        prob1 = 1 - prob0
-
-        def _ml(prob):
-            if prob >= 0.5:
-                return str(round(-prob / (1 - prob) * 100))
-            return "+" + str(round((1 - prob) / prob * 100))
-
-        game.odds_line = f"{team_names[0]} {_ml(prob0)} ({round(prob0*100)}%) | {team_names[1]} {_ml(prob1)} ({round(prob1*100)}%)"
-
-        # Generate "Keys to Victory" commentary
-        def _team_stats(team_players):
-            n = len(team_players)
-            return {
-                "off": sum((p.avg_offense or 3) for p in team_players) / n,
-                "def": sum((p.avg_defense or 3) for p in team_players) / n,
-                "ovr": sum((p.avg_overall or 3) for p in team_players) / n,
-                "jf": sum((p.jordan_factor or 0.5) for p in team_players) / n,
-                "height": sum((p.height_inches or 70) for p in team_players) / n,
-                "mob": sum((p.mobility or 3) for p in team_players) / n,
-                "mvps": sum((p.mvp_count or 0) for p in team_players),
-                "size": n,
-                "best_jf": max(team_players, key=lambda p: p.jordan_factor or 0),
-                "best_off": max(team_players, key=lambda p: p.avg_offense or 0),
-                "best_def": max(team_players, key=lambda p: p.avg_defense or 0),
-            }
-
-        stats = [_team_stats(t) for t in balanced_teams]
-        keys = []
-        for i, (s, name) in enumerate(zip(stats, team_names)):
-            other = stats[1 - i]
-            points = []
-
-            # Offensive advantage (team-level only, no individual ratings)
-            if s["off"] > other["off"] + 0.2:
-                points.append("Push the pace — this squad has a clear offensive edge")
-            elif s["off"] > other["off"]:
-                points.append("Move the ball — slight scoring advantage when the offense clicks")
-
-            # Defensive advantage (team-level only)
-            if s["def"] > other["def"] + 0.2:
-                points.append("Lock down on D — this team's defensive identity is their weapon")
-            elif s["def"] > other["def"]:
-                points.append("Stay disciplined on defense — the edge is there if they commit")
-
-            # Height advantage
-            if s["height"] > other["height"] + 1:
-                points.append(f"Dominate the boards — size advantage ({s['height']:.0f}\" vs {other['height']:.0f}\" avg height)")
-
-            # Mobility advantage (team-level only)
-            if s["mob"] > other["mob"] + 0.3:
-                points.append("Run the fast break — superior team speed and agility")
-
-            # Depth advantage
-            if s["size"] > other["size"]:
-                points.append(f"Use the bench — {s['size']} players means fresher legs")
-
-            # Clutch factor (win rate is public info)
-            if s["jf"] > other["jf"] + 0.05:
-                points.append(f"Trust the closer — {s['best_jf'].full_name} has a {(s['best_jf'].jordan_factor or 0.5)*100:.0f}% win rate")
-
-            # MVP firepower (award counts are public)
-            if s["mvps"] > other["mvps"] and s["mvps"] > 0:
-                points.append(f"Star power — {s['mvps']} combined MVP awards on the roster")
-
-            # Underdog grit
-            if not points:
-                if s["jf"] < other["jf"]:
-                    points.append("Play with nothing to lose — underdogs bite hardest")
-                    points.append("Keep it physical and grind out every possession")
-                else:
-                    points.append("Stay balanced and execute — no single weakness to exploit")
-
-            keys.append(f"🔑 {name}: " + " | ".join(points[:3]))
-
-        game.commentary = "\n".join(keys)
+    await db.flush()
+    await _recalculate_odds_and_commentary(game, db)
 
     # Notify all players about their team assignments
     team_lookup = {}
@@ -806,6 +819,149 @@ async def get_teams(
         .options(selectinload(TeamAssignment.user))
     )
     return result.scalars().all()
+
+
+# =============================================================================
+# Team Editing (post-generation, pre-result)
+# =============================================================================
+
+async def _get_game_for_team_edit(db: AsyncSession, run_id: int, game_id: int) -> Game:
+    """Validate game exists, belongs to run, and is in teams_set status."""
+    game_result = await db.execute(select(Game).where(Game.id == game_id))
+    game = game_result.scalar_one_or_none()
+    if not game or game.run_id != run_id:
+        raise HTTPException(status_code=404, detail="Game not found in this run")
+    if game.status != GameStatus.TEAMS_SET:
+        raise HTTPException(status_code=400, detail="Teams can only be edited while game status is 'teams_set'")
+    return game
+
+
+@router.patch("/{game_id}/teams/{assignment_id}", response_model=TeamAssignmentResponse)
+async def move_team_assignment(
+    run_id: int,
+    game_id: int,
+    assignment_id: int,
+    data: TeamAssignmentUpdate,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(require_run_admin()),
+):
+    """Move a player to a different team (admin only, teams_set status)."""
+    game = await _get_game_for_team_edit(db, run_id, game_id)
+
+    assign_result = await db.execute(
+        select(TeamAssignment)
+        .where(TeamAssignment.id == assignment_id, TeamAssignment.game_id == game_id)
+        .options(selectinload(TeamAssignment.user))
+    )
+    assignment = assign_result.scalar_one_or_none()
+    if not assignment:
+        raise HTTPException(status_code=404, detail="Team assignment not found")
+
+    if assignment.team == data.team:
+        raise HTTPException(status_code=400, detail="Player is already on that team")
+
+    teams_result = await db.execute(
+        select(TeamAssignment.team, TeamAssignment.team_name)
+        .where(TeamAssignment.game_id == game_id)
+        .distinct()
+    )
+    valid_teams = {row.team: row.team_name for row in teams_result.all()}
+    if data.team not in valid_teams:
+        raise HTTPException(status_code=400, detail=f"Team '{data.team}' does not exist in this game")
+
+    assignment.team = data.team
+    assignment.team_name = valid_teams[data.team]
+    await db.flush()
+    await _recalculate_odds_and_commentary(game, db)
+    await db.flush()
+    await db.refresh(assignment, ["user"])
+    return assignment
+
+
+@router.delete("/{game_id}/teams/{assignment_id}", status_code=204)
+async def remove_team_assignment(
+    run_id: int,
+    game_id: int,
+    assignment_id: int,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(require_run_admin()),
+):
+    """Remove a player from a team — marks them as a no-show (admin only)."""
+    game = await _get_game_for_team_edit(db, run_id, game_id)
+
+    assign_result = await db.execute(
+        select(TeamAssignment).where(TeamAssignment.id == assignment_id, TeamAssignment.game_id == game_id)
+    )
+    assignment = assign_result.scalar_one_or_none()
+    if not assignment:
+        raise HTTPException(status_code=404, detail="Team assignment not found")
+
+    count_result = await db.execute(
+        select(sqlfunc.count()).where(
+            TeamAssignment.game_id == game_id,
+            TeamAssignment.team == assignment.team,
+        )
+    )
+    if count_result.scalar() <= 1:
+        raise HTTPException(status_code=400, detail="Cannot remove the last player from a team")
+
+    await db.delete(assignment)
+    await db.flush()
+    await _recalculate_odds_and_commentary(game, db)
+    await db.flush()
+
+
+@router.post("/{game_id}/teams/add", response_model=TeamAssignmentResponse, status_code=201)
+async def add_team_assignment(
+    run_id: int,
+    game_id: int,
+    data: TeamAddPlayerRequest,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(require_run_admin()),
+):
+    """Add a player to a team (admin only, teams_set status)."""
+    game = await _get_game_for_team_edit(db, run_id, game_id)
+
+    teams_result = await db.execute(
+        select(TeamAssignment.team, TeamAssignment.team_name)
+        .where(TeamAssignment.game_id == game_id)
+        .distinct()
+    )
+    valid_teams = {row.team: row.team_name for row in teams_result.all()}
+    if data.team not in valid_teams:
+        raise HTTPException(status_code=400, detail=f"Team '{data.team}' does not exist in this game")
+
+    membership_result = await db.execute(
+        select(RunMembership).where(
+            RunMembership.run_id == run_id,
+            RunMembership.user_id == data.user_id,
+            RunMembership.player_status.in_([PlayerStatus.REGULAR, PlayerStatus.DROPIN]),
+        )
+    )
+    if not membership_result.scalar_one_or_none():
+        raise HTTPException(status_code=400, detail="Player is not an active member of this run")
+
+    existing = await db.execute(
+        select(TeamAssignment).where(
+            TeamAssignment.game_id == game_id,
+            TeamAssignment.user_id == data.user_id,
+        )
+    )
+    if existing.scalar_one_or_none():
+        raise HTTPException(status_code=400, detail="Player is already assigned to a team in this game")
+
+    new_assignment = TeamAssignment(
+        game_id=game_id,
+        user_id=data.user_id,
+        team=data.team,
+        team_name=valid_teams[data.team],
+    )
+    db.add(new_assignment)
+    await db.flush()
+    await _recalculate_odds_and_commentary(game, db)
+    await db.flush()
+    await db.refresh(new_assignment, ["user"])
+    return new_assignment
 
 
 # =============================================================================

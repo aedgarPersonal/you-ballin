@@ -96,6 +96,17 @@ class TeamAssignmentResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class TeamAssignmentUpdate(BaseModel):
+    """Move a player to a different team."""
+    team: str = Field(description="target team identifier, e.g. team_2")
+
+
+class TeamAddPlayerRequest(BaseModel):
+    """Add a player to a team."""
+    user_id: int
+    team: str = Field(description="team identifier, e.g. team_1")
+
+
 class TeamScoreInput(BaseModel):
     """Per-team score for recording game results."""
     team: str = Field(description="team identifier, e.g. team_1")

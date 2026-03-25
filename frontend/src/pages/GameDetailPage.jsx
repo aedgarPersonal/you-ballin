@@ -22,6 +22,7 @@ import useRunStore from "../stores/runStore";
 import { getGame, updateGame, rsvpToGame, generateTeams, recordResult, cancelGame } from "../api/games";
 import { castVote, getMyVotes, getGameAwards } from "../api/votes";
 import NbaJamTeams from "../components/NbaJamTeams";
+import TeamEditor from "../components/TeamEditor";
 
 export default function GameDetailPage() {
   const { id } = useParams();
@@ -36,6 +37,7 @@ export default function GameDetailPage() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState({});
+  const [editingTeams, setEditingTeams] = useState(false);
 
   const fetchGame = async () => {
     if (!runId) return;
@@ -421,10 +423,20 @@ export default function GameDetailPage() {
         </div>
       )}
 
-      {/* Teams Display — NBA Jam Style */}
+      {/* Teams Display — NBA Jam Style or Team Editor */}
       {game.teams?.length > 0 && (
         <div className="mb-6">
-          <NbaJamTeams teams={game.teams} gameResult={game.result} />
+          {editingTeams ? (
+            <TeamEditor
+              teams={game.teams}
+              runId={runId}
+              gameId={id}
+              onSave={() => { setEditingTeams(false); fetchGame(); }}
+              onCancel={() => { setEditingTeams(false); fetchGame(); }}
+            />
+          ) : (
+            <NbaJamTeams teams={game.teams} gameResult={game.result} />
+          )}
         </div>
       )}
 
@@ -524,8 +536,18 @@ export default function GameDetailPage() {
               </button>
             )}
 
+            {/* Edit Teams (drag-and-drop) */}
+            {game.status === "teams_set" && !editingTeams && (
+              <button
+                onClick={() => setEditingTeams(true)}
+                className="bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-2 px-4 rounded-lg"
+              >
+                Edit Teams
+              </button>
+            )}
+
             {/* Record Scores — input per team */}
-            {game.status === "teams_set" && uniqueTeams.length > 0 && (
+            {game.status === "teams_set" && !editingTeams && uniqueTeams.length > 0 && (
               <div className="w-full mt-2">
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Record wins per team:</p>
                 <div className="flex flex-wrap items-end gap-3">
