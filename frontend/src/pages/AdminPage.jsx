@@ -106,6 +106,7 @@ export default function AdminPage() {
   const [importText, setImportText] = useState("");
   const [importResult, setImportResult] = useState(null);
   const [importing, setImporting] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
 
   // Quick Add Player state
   const [showAddPlayer, setShowAddPlayer] = useState(false);
@@ -432,7 +433,7 @@ export default function AdminPage() {
     cancelled: "bg-red-200 text-red-900 dark:bg-red-900/40 dark:text-red-300 font-bold",
   };
 
-  const tabs = ["pending", "players", "games", "import", "balancer", "suggestions", "settings"];
+  const tabs = ["pending", "players", "games", "balancer", "settings"];
   const tabLabels = { settings: "Run Settings" };
 
   return (
@@ -679,85 +680,22 @@ export default function AdminPage() {
             </div>
           )}
         </div>
-      ) : tab === "import" ? (
-        /* ===== Import Players ===== */
-        <div className="space-y-6">
-          <div className="card">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Import Players</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-              Paste player data below (one player per line). Accepted formats:
-            </p>
-            <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-3 mb-4 text-xs font-mono text-gray-600 dark:text-gray-400 space-y-1">
-              <p>Name, Wins, Losses</p>
-              <p>Name{"\t"}Wins{"\t"}Losses</p>
-            </div>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">
-              Imported players get a random NBA legend avatar (changeable later), default password <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">Password123</code>, and status set to Regular.
-            </p>
-            <textarea
-              rows={12}
-              value={importText}
-              onChange={(e) => setImportText(e.target.value)}
-              className="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 font-mono focus:ring-2 focus:ring-court-500 focus:border-court-500 dark:bg-gray-700 dark:text-gray-200"
-              placeholder={`Bryan, 26, 14\nJulien, 23, 12\nDenis, 23, 17\n...`}
-            />
-            <div className="flex items-center justify-between mt-4">
-              <span className="text-sm text-gray-500 dark:text-gray-400">
-                {parseImportText(importText).length} player(s) detected
-              </span>
-              <button
-                onClick={handleImport}
-                disabled={importing || !importText.trim()}
-                className={`font-medium py-2 px-6 rounded-lg transition-colors ${
-                  importing || !importText.trim()
-                    ? "bg-gray-200 dark:bg-gray-600 text-gray-400 dark:text-gray-500 cursor-not-allowed"
-                    : "bg-court-500 hover:bg-court-600 text-white"
-                }`}
-              >
-                {importing ? "Importing..." : "Import Players"}
-              </button>
-            </div>
-          </div>
-
-          {/* Import Results */}
-          {importResult && (
-            <div className="card">
-              <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">Import Results</h3>
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
-                  <div className="text-2xl font-bold text-green-700">{importResult.created_count}</div>
-                  <div className="text-xs text-green-600 font-medium">Created</div>
-                </div>
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-center">
-                  <div className="text-2xl font-bold text-yellow-700">{importResult.skipped_count}</div>
-                  <div className="text-xs text-yellow-600 font-medium">Skipped</div>
-                </div>
-              </div>
-              {importResult.created_players.length > 0 && (
-                <div className="mb-3">
-                  <p className="text-xs font-medium text-green-700 mb-1">Created:</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">{importResult.created_players.join(", ")}</p>
-                </div>
-              )}
-              {importResult.skipped_players.length > 0 && (
-                <div>
-                  <p className="text-xs font-medium text-yellow-700 mb-1">Skipped (already exist):</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">{importResult.skipped_players.join(", ")}</p>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
       ) : tab === "players" ? (
         /* ===== All Players ===== */
         <div className="space-y-4">
-          {/* Quick Add Player */}
-          <div>
+          {/* Action Buttons */}
+          <div className="flex gap-3">
             <button
               onClick={() => setShowAddPlayer(!showAddPlayer)}
               className="bg-court-500 hover:bg-court-600 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors"
             >
               {showAddPlayer ? "Cancel" : "+ Add Player"}
+            </button>
+            <button
+              onClick={() => { setShowImportModal(true); setImportResult(null); }}
+              className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors"
+            >
+              Import Players
             </button>
           </div>
           {showAddPlayer && (
@@ -952,16 +890,13 @@ export default function AdminPage() {
               </tbody>
             </table>
           </div>
-        </div>
-      ) : tab === "suggestions" ? (
-        /* ===== Suggestions Tab ===== */
-        <div className="space-y-6">
-          {/* Incoming Suggestions for this run */}
-          <div className="card">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Incoming Suggestions</h2>
-            {suggestions.length === 0 ? (
-              <p className="text-sm text-gray-400 dark:text-gray-500">No pending suggestions for this run.</p>
-            ) : (
+
+          {/* Suggestions Section */}
+          {suggestions.length > 0 && (
+            <div className="card">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                Incoming Suggestions ({suggestions.length})
+              </h2>
               <div className="space-y-3">
                 {suggestions.map((s) => (
                   <div key={s.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
@@ -1007,15 +942,13 @@ export default function AdminPage() {
                   </div>
                 ))}
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
-          {/* Suggest a player to another run */}
-          <div className="card">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Suggest a Player to Another Run</h2>
-            {runsNeedingPlayers.filter((r) => r.id !== runId).length === 0 ? (
-              <p className="text-sm text-gray-400 dark:text-gray-500">No other runs currently need players.</p>
-            ) : (
+          {/* Suggest a Player to Another Run */}
+          {runsNeedingPlayers.filter((r) => r.id !== runId).length > 0 && (
+            <div className="card">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Suggest a Player to Another Run</h2>
               <div className="space-y-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Target Run</label>
@@ -1081,8 +1014,94 @@ export default function AdminPage() {
                   Suggest Player
                 </button>
               </div>
-            )}
-          </div>
+            </div>
+          )}
+
+          {/* Import Modal */}
+          {showImportModal && (
+            <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+              <div className="bg-white dark:bg-gray-800 rounded-xl max-w-lg w-full shadow-2xl">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                  <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Import Players</h2>
+                  <button onClick={() => setShowImportModal(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-white text-2xl leading-none">&times;</button>
+                </div>
+                <div className="px-6 py-4">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Paste player data below (one per line):</p>
+                  <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-2 mb-3 text-xs font-mono text-gray-600 dark:text-gray-400 space-y-0.5">
+                    <p>Name, Email, Wins, Losses</p>
+                  </div>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">
+                    Email is required and must be unique. Default password: <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">Password123</code>
+                  </p>
+                  <textarea
+                    rows={10}
+                    value={importText}
+                    onChange={(e) => setImportText(e.target.value)}
+                    className="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 font-mono focus:ring-2 focus:ring-court-500 focus:border-court-500 dark:bg-gray-700 dark:text-gray-200"
+                    placeholder={`Bryan, bryan@email.com, 26, 14\nJulien, julien@email.com, 23, 12`}
+                  />
+                  <div className="flex items-center justify-between mt-4">
+                    <span className="text-sm text-gray-500 dark:text-gray-400">
+                      {parseImportText(importText).length} player(s) detected
+                    </span>
+                    <button
+                      onClick={async () => {
+                        const parsed = parseImportText(importText);
+                        if (parsed.length === 0) return;
+                        if (!confirm(`Import ${parsed.length} player(s) with default password 'Password123'?`)) return;
+                        setImporting(true);
+                        try {
+                          const { data } = await importPlayers(runId, { players: parsed });
+                          setImportResult(data);
+                          toast.success(`${data.created_count} player(s) imported`);
+                          if (data.created_count > 0) {
+                            setImportText("");
+                            fetchPlayers();
+                          }
+                        } catch (err) {
+                          toast.error(err.response?.data?.detail || "Import failed");
+                        } finally {
+                          setImporting(false);
+                        }
+                      }}
+                      disabled={importing || !importText.trim()}
+                      className={`font-medium py-2 px-6 rounded-lg transition-colors ${
+                        importing || !importText.trim()
+                          ? "bg-gray-200 dark:bg-gray-600 text-gray-400 cursor-not-allowed"
+                          : "bg-court-500 hover:bg-court-600 text-white"
+                      }`}
+                    >
+                      {importing ? "Importing..." : "Import Players"}
+                    </button>
+                  </div>
+                  {importResult && (
+                    <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                      <div className="grid grid-cols-2 gap-3 mb-3">
+                        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-2 text-center">
+                          <div className="text-xl font-bold text-green-700 dark:text-green-400">{importResult.created_count}</div>
+                          <div className="text-xs text-green-600 dark:text-green-500">Created</div>
+                        </div>
+                        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg p-2 text-center">
+                          <div className="text-xl font-bold text-yellow-700 dark:text-yellow-400">{importResult.skipped_count}</div>
+                          <div className="text-xs text-yellow-600 dark:text-yellow-500">Skipped</div>
+                        </div>
+                      </div>
+                      {importResult.created_players.length > 0 && (
+                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                          <span className="font-medium text-green-700 dark:text-green-400">Created:</span> {importResult.created_players.join(", ")}
+                        </p>
+                      )}
+                      {importResult.skipped_players.length > 0 && (
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                          <span className="font-medium text-yellow-700 dark:text-yellow-400">Skipped:</span> {importResult.skipped_players.join(", ")}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       ) : tab === "settings" ? (
         /* ===== Run Settings Tab ===== */
