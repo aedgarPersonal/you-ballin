@@ -10,7 +10,7 @@ import toast from "react-hot-toast";
 import { registerUser } from "../api/auth";
 import useAuthStore from "../stores/authStore";
 import AvatarPicker, { AvatarBadge } from "../components/AvatarPicker";
-import { getPlayerById } from "../data/legacyPlayers";
+import { getPlayerById, getRandomPlayerId } from "../data/legacyPlayers";
 
 export default function RegisterPage() {
   const [form, setForm] = useState({
@@ -21,7 +21,7 @@ export default function RegisterPage() {
     full_name: "",
     phone: "",
   });
-  const [avatarId, setAvatarId] = useState(null);
+  const [avatarId, setAvatarId] = useState("bensimmons");
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [loading, setLoading] = useState(false);
   const login = useAuthStore((s) => s.login);

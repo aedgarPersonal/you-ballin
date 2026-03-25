@@ -280,7 +280,7 @@ async def get_my_matchups(
     )
     user_map = {u.id: u for u in users_result.scalars().all()}
 
-    def build_entries(stats_dict, sort_reverse, min_games=3, top_n=5):
+    def build_entries(stats_dict, sort_reverse, min_games=1, top_n=5):
         entries = []
         for pid, data in stats_dict.items():
             if data["games"] < min_games:
@@ -294,7 +294,7 @@ async def get_my_matchups(
                 wins=data["wins"],
                 win_rate=round(data["wins"] / data["games"], 3),
             ))
-        entries.sort(key=lambda e: e.win_rate, reverse=sort_reverse)
+        entries.sort(key=lambda e: (e.win_rate, e.games), reverse=sort_reverse)
         return entries[:top_n]
 
     return MatchupsResponse(

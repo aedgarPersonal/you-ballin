@@ -13,6 +13,8 @@ TEACHING NOTE:
     and sends with subsequent requests.
 """
 
+import random
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -34,6 +36,18 @@ from app.schemas.user import (
 )
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
+
+_LEGACY_AVATAR_IDS = [
+    "jordan", "magic", "bird", "isiah", "drexler", "wilkins", "ewing",
+    "barkley", "malone", "stockton", "hakeem", "robinson", "pippen",
+    "shaq", "iverson", "kobe", "duncan", "kg", "penny", "payton",
+    "kidd", "carter", "tmac", "nash", "dirk", "reggie", "ray",
+    "pierce", "yao", "benwallace", "lebron", "wade", "cp3", "melo",
+    "dwight", "pau", "tony", "manu", "rondo", "billups", "westbrook",
+    "durant", "drose", "bosh", "davis", "frazier", "ljohnson", "bensimmons", "bennett",
+    "sambowie", "washburn", "olowokandi", "kwame", "darko", "morrison", "thabeet",
+    "fultz", "laruemartin",
+]
 
 
 # =============================================================================
@@ -64,7 +78,7 @@ async def register(data: UserRegister, db: AsyncSession = Depends(get_db)):
         hashed_password=hash_password(data.password),
         full_name=data.full_name,
         phone=data.phone,
-        avatar_url=data.avatar_url,
+        avatar_url=data.avatar_url or random.choice(_LEGACY_AVATAR_IDS),
         player_status=PlayerStatus.PENDING,
         role=UserRole.PLAYER,
     )

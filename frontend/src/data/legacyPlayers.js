@@ -20,7 +20,7 @@ const LEGACY_PLAYERS = [
   { id: "magic", name: "Magic Johnson", team: "Lakers", number: 32, colors: ["#552583", "#FDB927"], era: "80s-90s",
     sprite: { skin: 4, hair: "fade", build: "big", accessories: [] } },
   { id: "bird", name: "Larry Bird", team: "Celtics", number: 33, colors: ["#007A33", "#FFFFFF"], era: "80s-90s",
-    sprite: { skin: 0, hair: "flat", build: "big", accessories: [] } },
+    sprite: { skin: 0, hair: "flat", build: "big", accessories: [], hairColor: "#C4A24A" } },
   { id: "isiah", name: "Isiah Thomas", team: "Pistons", number: 11, colors: ["#C8102E", "#1D42BA"], era: "80s-90s",
     sprite: { skin: 4, hair: "flat", build: "normal", accessories: [] } },
   { id: "drexler", name: "Clyde Drexler", team: "Blazers", number: 22, colors: ["#E03A3E", "#000000"], era: "80s-90s",
@@ -34,7 +34,7 @@ const LEGACY_PLAYERS = [
   { id: "malone", name: "Karl Malone", team: "Jazz", number: 32, colors: ["#002B5C", "#00471B"], era: "80s-90s",
     sprite: { skin: 4, hair: "bald", build: "big", accessories: [] } },
   { id: "stockton", name: "John Stockton", team: "Jazz", number: 12, colors: ["#002B5C", "#00471B"], era: "80s-90s",
-    sprite: { skin: 0, hair: "flat", build: "normal", accessories: [] } },
+    sprite: { skin: 0, hair: "flat", build: "normal", accessories: [], hairColor: "#5A3A1A" } },
   { id: "hakeem", name: "Hakeem Olajuwon", team: "Rockets", number: 34, colors: ["#CE1141", "#000000"], era: "80s-90s",
     sprite: { skin: 4, hair: "bald", build: "big", accessories: [] } },
   { id: "robinson", name: "David Robinson", team: "Spurs", number: 50, colors: ["#C4CED4", "#000000"], era: "80s-90s",
@@ -64,9 +64,9 @@ const LEGACY_PLAYERS = [
   { id: "tmac", name: "Tracy McGrady", team: "Magic", number: 1, colors: ["#0077C0", "#000000"], era: "90s-00s",
     sprite: { skin: 4, hair: "flat", build: "normal", accessories: [] } },
   { id: "nash", name: "Steve Nash", team: "Suns", number: 13, colors: ["#1D1160", "#E56020"], era: "90s-00s",
-    sprite: { skin: 0, hair: "long", build: "normal", accessories: [] } },
+    sprite: { skin: 0, hair: "long", build: "normal", accessories: [], hairColor: "#8B6914" } },
   { id: "dirk", name: "Dirk Nowitzki", team: "Mavericks", number: 41, colors: ["#00538C", "#002B5E"], era: "90s-00s",
-    sprite: { skin: 0, hair: "flat", build: "big", accessories: [] } },
+    sprite: { skin: 0, hair: "flat", build: "big", accessories: [], hairColor: "#C4A24A" } },
   { id: "reggie", name: "Reggie Miller", team: "Pacers", number: 31, colors: ["#002D62", "#FDBB30"], era: "90s-00s",
     sprite: { skin: 4, hair: "flat", build: "normal", accessories: [] } },
   { id: "ray", name: "Ray Allen", team: "Sonics", number: 34, colors: ["#00653A", "#FFC200"], era: "90s-00s",
@@ -90,7 +90,7 @@ const LEGACY_PLAYERS = [
   { id: "dwight", name: "Dwight Howard", team: "Magic", number: 12, colors: ["#0077C0", "#000000"], era: "00s-10s",
     sprite: { skin: 4, hair: "fade", build: "big", accessories: [] } },
   { id: "pau", name: "Pau Gasol", team: "Lakers", number: 16, colors: ["#552583", "#FDB927"], era: "00s-10s",
-    sprite: { skin: 1, hair: "long", build: "big", accessories: [] } },
+    sprite: { skin: 1, hair: "long", build: "big", accessories: [], hairColor: "#3A2A1A" } },
   { id: "tony", name: "Tony Parker", team: "Spurs", number: 9, colors: ["#C4CED4", "#000000"], era: "00s-10s",
     sprite: { skin: 2, hair: "flat", build: "normal", accessories: [] } },
   { id: "manu", name: "Manu Ginobili", team: "Spurs", number: 20, colors: ["#C4CED4", "#000000"], era: "00s-10s",
@@ -113,12 +113,36 @@ const LEGACY_PLAYERS = [
     sprite: { skin: 4, hair: "afro", build: "normal", accessories: [] } },
   { id: "ljohnson", name: "Larry Johnson", team: "Hornets", number: 2, colors: ["#1D1160", "#00788C"], era: "80s-90s",
     sprite: { skin: 4, hair: "fade", build: "big", accessories: [] } },
+  // === Bench Warmers — Biggest Busts by Era ===
+  { id: "bensimmons", name: "Ben Simmons", team: "76ers", number: 25, colors: ["#006BB6", "#ED174C"], era: "bench-warmers",
+    sprite: { skin: 3, hair: "flat", build: "big", accessories: [] } },
+  { id: "bennett", name: "Anthony Bennett", team: "Cavaliers", number: 15, colors: ["#6F263D", "#FFB81C"], era: "bench-warmers",
+    sprite: { skin: 4, hair: "flat", build: "big", accessories: [] } },
+  { id: "sambowie", name: "Sam Bowie", team: "Blazers", number: 31, colors: ["#E03A3E", "#000000"], era: "bench-warmers",
+    sprite: { skin: 4, hair: "flat", build: "big", accessories: [] } },
+  { id: "washburn", name: "Chris Washburn", team: "Warriors", number: 54, colors: ["#1D428A", "#FFC72C"], era: "bench-warmers",
+    sprite: { skin: 4, hair: "fade", build: "big", accessories: [] } },
+  { id: "olowokandi", name: "Michael Olowokandi", team: "Clippers", number: 34, colors: ["#C8102E", "#1D42BA"], era: "bench-warmers",
+    sprite: { skin: 4, hair: "bald", build: "big", accessories: [] } },
+  { id: "kwame", name: "Kwame Brown", team: "Wizards", number: 5, colors: ["#002B5C", "#E31837"], era: "bench-warmers",
+    sprite: { skin: 4, hair: "bald", build: "big", accessories: [] } },
+  { id: "darko", name: "Darko Milicic", team: "Pistons", number: 31, colors: ["#C8102E", "#1D42BA"], era: "bench-warmers",
+    sprite: { skin: 1, hair: "flat", build: "big", accessories: [] } },
+  { id: "morrison", name: "Adam Morrison", team: "Bobcats", number: 35, colors: ["#F26532", "#1D1160"], era: "bench-warmers",
+    sprite: { skin: 0, hair: "long", build: "normal", accessories: [], hairColor: "#5A3A1A" } },
+  { id: "thabeet", name: "Hasheem Thabeet", team: "Grizzlies", number: 34, colors: ["#5D76A9", "#12173F"], era: "bench-warmers",
+    sprite: { skin: 4, hair: "bald", build: "big", accessories: [] } },
+  { id: "fultz", name: "Markelle Fultz", team: "76ers", number: 20, colors: ["#006BB6", "#ED174C"], era: "bench-warmers",
+    sprite: { skin: 4, hair: "flat", build: "normal", accessories: [] } },
+  { id: "laruemartin", name: "LaRue Martin", team: "Blazers", number: 44, colors: ["#E03A3E", "#000000"], era: "bench-warmers",
+    sprite: { skin: 4, hair: "afro", build: "big", accessories: [] } },
 ];
 
 export const ERAS = [
   { id: "80s-90s", label: "80s & 90s Legends" },
   { id: "90s-00s", label: "Late 90s & 2000s" },
   { id: "00s-10s", label: "2000s & Early 2010s" },
+  { id: "bench-warmers", label: "Bench Warmers" },
 ];
 
 export function getPlayerById(id) {
@@ -127,6 +151,10 @@ export function getPlayerById(id) {
 
 export function getPlayersByEra(era) {
   return LEGACY_PLAYERS.filter((p) => p.era === era);
+}
+
+export function getRandomPlayerId() {
+  return LEGACY_PLAYERS[Math.floor(Math.random() * LEGACY_PLAYERS.length)].id;
 }
 
 export default LEGACY_PLAYERS;

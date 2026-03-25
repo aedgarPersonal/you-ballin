@@ -1,12 +1,12 @@
 /**
- * Pixel Art Avatar — 16-Bit Style
- * ================================
+ * Pixel Art Avatar — Enhanced 32-Bit Style
+ * =========================================
  * Renders SVG pixel art basketball player sprites inspired by
- * NBA Jam and 16-bit era sports games. Each player gets a unique
- * look with proper shading, anatomy, and dynamic basketball stance.
+ * NBA Jam and 16-bit era sports games. Higher resolution (32x44)
+ * with detailed facial features, visible jersey numbers, and
+ * team-colored shoes.
  *
- * Grid: 22 wide x 30 tall with multi-level shading.
- * Material codes use hex digits for richer color mapping.
+ * Grid: 32 wide x 44 tall with multi-level shading.
  */
 
 import { memo } from "react";
@@ -22,108 +22,135 @@ const SKIN = [
   { hi: "#8A5A38", base: "#6B4226", mid: "#5A3620", shadow: "#3E2818", dark: "#2A1C10" }, // 4: dark
 ];
 
-// Darken/lighten a hex color by a factor
 function shade(hex, factor) {
   const r = parseInt(hex.slice(1, 3), 16);
   const g = parseInt(hex.slice(3, 5), 16);
   const b = parseInt(hex.slice(5, 7), 16);
-  const f = factor;
   const clamp = (v) => Math.max(0, Math.min(255, Math.round(v)));
-  return `#${clamp(r * f).toString(16).padStart(2, "0")}${clamp(g * f).toString(16).padStart(2, "0")}${clamp(b * f).toString(16).padStart(2, "0")}`;
+  return `#${clamp(r * factor).toString(16).padStart(2, "0")}${clamp(g * factor).toString(16).padStart(2, "0")}${clamp(b * factor).toString(16).padStart(2, "0")}`;
 }
 
 /*
- * Material Legend (hex chars for 16 unique materials):
+ * Material Legend:
  *  . = transparent
- *  0 = outline (black)
+ *  0 = outline (near-black)
  *  1 = skin base
  *  2 = skin shadow
  *  3 = skin highlight
  *  4 = jersey primary
- *  5 = jersey primary shadow (darker)
- *  6 = jersey secondary / accent
+ *  5 = jersey primary shadow
+ *  6 = jersey secondary / accent / number
  *  7 = shorts (secondary color)
  *  8 = shorts shadow
  *  9 = hair base
  *  a = hair highlight
  *  b = white (eyes, teeth, shoe accent)
- *  c = shoe dark
+ *  c = shoe base
  *  d = headband / accessory color
  *  e = skin mid-tone
- *  f = shoe sole / dark accent
+ *  f = sole / darkest
+ *  g = jersey trim (lighter primary)
+ *  h = shoe team color accent
  */
 
-// --- 22x30 Sprite Templates ---
-// Dynamic basketball stance — slightly crouched, arms out
+// --- 32x44 Sprite Templates ---
 
 const BODY_NORMAL = [
-  // 0         1         2
-  // 0123456789012345678901
-  "......00000000........", // 0  head outline top
-  ".....099999990........", // 1  hair top
-  "....09999999990.......", // 2  hair full
-  "....09999999990.......", // 3  hair sides
-  "....01111111110.......", // 4  forehead
-  "....0b1e0b1e010.......", // 5  eyes (b=white, e=iris area)
-  "....01111111110.......", // 6  nose bridge
-  "....0e111111e0........", // 7  cheeks
-  ".....011111110........", // 8  mouth/chin
-  "......0011100.........", // 9  neck
-  "......0011100.........", // 10 neck base
-  "...000044444000.......", // 11 shoulders
-  "..01100444440011.......", // 12 upper arms + chest
-  "..01100445440011.......", // 13 arms + jersey detail
-  "..0e100444440010.......", // 14 mid torso
-  "..01100466640011.......", // 15 jersey number area
-  "...0110444440110.......", // 16 lower torso
-  "....000444440000......", // 17 torso/waist
-  ".....00011000.........", // 18 waist
-  "....0077777770........", // 19 shorts top
-  "....0077777770........", // 20 shorts
-  "....0077887770........", // 21 shorts shadow
-  "....0077887770........", // 22 shorts bottom
-  ".....007007700........", // 23 leg gap
-  ".....012001200........", // 24 upper legs
-  ".....012001200........", // 25 legs
-  ".....001001100........", // 26 ankles
-  "....00cc00cc00........", // 27 shoes top
-  "....0cccc0cccc0.......", // 28 shoes
-  ".....0ff00.0ff0.......", // 29 soles
+  //0         1         2         3
+  //01234567890123456789012345678901
+  "........0000000000..............", // 0  head top
+  ".......0999999999900............", // 1  hair top
+  "......099999999999900...........", // 2  hair
+  "......099999999999900...........", // 3  hair sides
+  "......099999999999900...........", // 4  hair bottom
+  "......011111111111100...........", // 5  forehead
+  "......0b110b110111100...........", // 6  eyes (pupils)
+  "......011111111111100...........", // 7  nose bridge
+  "......0e1111e1111e00............", // 8  cheeks
+  ".......01111111111100............", // 9  mouth area
+  "........0011111100...............", // 10 chin
+  ".........00111100................", // 11 neck
+  ".........00111100................", // 12 neck base
+  ".......0004444440000............", // 13 shoulders
+  "......044444444444440...........", // 14 upper chest
+  ".....0114044444440411...........", // 15 arms + chest
+  ".....0114044666404411...........", // 16 arms + jersey number
+  ".....0114044666404411...........", // 17 arms + jersey number
+  ".....0e14044444404410...........", // 18 mid torso
+  "......014044444404410...........", // 19 lower torso
+  ".......01044444401100...........", // 20 waist
+  "........004444440000............", // 21 waist bottom
+  ".........00011000................", // 22 belt
+  "........007777777700............", // 23 shorts top
+  "........007777777700............", // 24 shorts
+  "........007788877700............", // 25 shorts detail
+  "........007788877700............", // 26 shorts shadow
+  "........007777777700............", // 27 shorts bottom
+  ".........00700070................", // 28 leg gap
+  ".........01200120................", // 29 upper legs
+  ".........01200120................", // 30 legs
+  ".........01200120................", // 31 legs
+  ".........01200120................", // 32 lower legs
+  ".........00100010................", // 33 ankles
+  "........00cc00cc00...............", // 34 shoe top
+  "........0cccc0cccc0..............", // 35 shoes
+  ".......0chccc0chccc0.............", // 36 shoes detail
+  "........0fff0..0fff0.............", // 37 soles
+  "................................", // 38
+  "................................", // 39
+  "................................", // 40
+  "................................", // 41
+  "................................", // 42
+  "................................", // 43
 ];
 
 const BODY_BIG = [
-  // 0         1         2
-  // 0123456789012345678901
-  ".....000000000........", // 0
-  "....0999999990........", // 1
-  "...09999999999........", // 2  -- note: intentionally asymmetric is fine
-  "...099999999990.......", // 3
-  "...0111111111100......", // 4
-  "...0b1e0b1e01100......", // 5
-  "...0111111111100......", // 6
-  "...0e11111111e0.......", // 7
-  "....01111111110.......", // 8
-  ".....001111000........", // 9
-  "......00110.0.........", // 10
-  "..00000444440000......", // 11
-  ".011100444444001100...", // 12
-  ".011100445544001100...", // 13
-  ".0e1100444444001e00...", // 14
-  ".011100466664001100...", // 15
-  "..01100444444001100...", // 16
-  "...0000444444000......", // 17
-  "......001110.0........", // 18
-  "....00777777770.......", // 19
-  "....00777777770.......", // 20
-  "....00778887770.......", // 21
-  "....00778887770.......", // 22
-  ".....0070007700.......", // 23
-  ".....0120001200.......", // 24
-  ".....0120001200.......", // 25
-  ".....00100011.........", // 26
-  "....00cc000cc00.......", // 27
-  "...0ccccc0ccccc0......", // 28
-  "....0fff0..0fff0......", // 29
+  //0         1         2         3
+  //01234567890123456789012345678901
+  ".......00000000000................", // 0
+  "......09999999999900..............", // 1
+  ".....0999999999999900.............", // 2
+  ".....0999999999999900.............", // 3
+  ".....0999999999999900.............", // 4
+  ".....0111111111111100.............", // 5
+  ".....0b110b110111110..............", // 6
+  ".....0111111111111100.............", // 7
+  ".....0e1111e11111e00..............", // 8
+  "......011111111111100.............", // 9
+  ".......001111111100...............", // 10
+  "........001111100.................", // 11
+  "........001111100.................", // 12
+  ".....000044444444000..............", // 13
+  "....04444444444444440.............", // 14
+  "...011404444444440411.............", // 15
+  "...011404466664404411.............", // 16
+  "...011404466664404411.............", // 17
+  "...0e1404444444404410.............", // 18
+  "....01404444444404410.............", // 19
+  ".....010444444440110..............", // 20
+  "......0044444444000...............", // 21
+  ".........000110000................", // 22
+  ".......00777777777700.............", // 23
+  ".......00777777777700.............", // 24
+  ".......00778888877700.............", // 25
+  ".......00778888877700.............", // 26
+  ".......00777777777700.............", // 27
+  "........0070000700................", // 28
+  "........0120001200................", // 29
+  "........0120001200................", // 30
+  "........0120001200................", // 31
+  "........0120001200................", // 32
+  "........0010000100................", // 33
+  ".......00cc000cc00................", // 34
+  "......0ccccc0ccccc0...............", // 35
+  ".....0chcccc0chcccc0..............", // 36
+  "......0ffff0..0ffff0..............", // 37
+  "................................", // 38
+  "................................", // 39
+  "................................", // 40
+  "................................", // 41
+  "................................", // 42
+  "................................", // 43
 ];
 
 // --- Hair Style Overlays ---
@@ -139,84 +166,92 @@ function getHairOverlay(style, isBig) {
   if (isBig) {
     switch (style) {
       case "bald":
-        push(0, ".....000000000........");
-        push(1, "....0111111110........");
-        push(2, "...0111111111100......");
-        push(3, "...011111111110.......");
+        push(0, ".......00000000000................");
+        push(1, "......01111111111100..............");
+        push(2, ".....0111111111111100.............");
+        push(3, ".....0111111111111100.............");
+        push(4, ".....0111111111111100.............");
         break;
       case "fade":
-        push(0, ".....09a9a9000........");
-        push(1, "....09a9a99990........");
-        push(2, "...0111111111100......");
-        push(3, "...011111111110.......");
+        push(0, ".......009a9a90000................");
+        push(1, "......09a9a99999900..............");
+        push(2, ".....0111111111111100.............");
+        push(3, ".....0111111111111100.............");
+        push(4, ".....0111111111111100.............");
         break;
       case "afro":
-        push(0, "...0099999990.........");
-        push(1, "..099999999999........");
-        push(2, ".09999999999990.......");
-        push(3, ".09999999999990.......");
-        push(4, ".091111111111900......");
+        push(0, ".....00999999990000..............");
+        push(1, "....099999999999990..............");
+        push(2, "...09999999999999990.............");
+        push(3, "...09999999999999990.............");
+        push(4, "...09111111111111990.............");
         break;
       case "mohawk":
-        push(0, "......009900..........");
-        push(1, ".....099999990........");
-        push(2, "...0111111111100......");
-        push(3, "...011111111110.......");
+        push(0, "..........009900..................");
+        push(1, ".........09999900................");
+        push(2, ".....0999999999999900.............");
+        push(3, ".....0111111111111100.............");
+        push(4, ".....0111111111111100.............");
         break;
       case "cornrows":
-        push(1, "....09a9a9a990........");
-        push(2, "...09a9a9a99990.......");
-        push(3, "...099999999990.......");
+        push(1, "......09a9a9a9a99900..............");
+        push(2, ".....09a9a9a9a999900.............");
+        push(3, ".....0999999999999900.............");
+        push(4, ".....0999999999999900.............");
         break;
       case "long":
-        push(0, "....0099999000........");
-        push(1, "...099999999990.......");
-        push(2, "..0999999999990.......");
-        push(3, "..0999999999990.......");
-        push(8, "..09011111110090......");
-        push(9, "...900111100090.......");
+        push(0, "......00999999900000..............");
+        push(1, ".....099999999999990..............");
+        push(2, "....09999999999999990.............");
+        push(3, "....09999999999999990.............");
+        push(9, "....090111111111190..............");
+        push(10, "....09001111111190...............");
         break;
-      default: break; // "flat" uses template default
+      default: break;
     }
   } else {
     switch (style) {
       case "bald":
-        push(0, "......00000000........");
-        push(1, ".....011111110........");
-        push(2, "....0111111110........");
-        push(3, "....01111111110.......");
+        push(0, "........0000000000..............");
+        push(1, ".......0111111111100............");
+        push(2, "......011111111111100...........");
+        push(3, "......011111111111100...........");
+        push(4, "......011111111111100...........");
         break;
       case "fade":
-        push(0, "......09a9a000........");
-        push(1, ".....09a9a9990........");
-        push(2, "....01111111110.......");
-        push(3, "....01111111110.......");
+        push(0, "........009a9a0000..............");
+        push(1, ".......09a9a999900..............");
+        push(2, "......011111111111100...........");
+        push(3, "......011111111111100...........");
+        push(4, "......011111111111100...........");
         break;
       case "afro":
-        push(0, "....009999990.........");
-        push(1, "...0999999999.........");
-        push(2, "..099999999990........");
-        push(3, "..099999999990........");
-        push(4, "..0911111111900.......");
+        push(0, "......009999990000..............");
+        push(1, ".....09999999999900.............");
+        push(2, "....0999999999999900............");
+        push(3, "....0999999999999900............");
+        push(4, "....0911111111111990............");
         break;
       case "mohawk":
-        push(0, ".......09900..........");
-        push(1, "......099990..........");
-        push(2, "....09999999990.......");
-        push(3, "....01111111110.......");
+        push(0, "..........009900................");
+        push(1, ".........09999900...............");
+        push(2, "......099999999999900...........");
+        push(3, "......011111111111100...........");
+        push(4, "......011111111111100...........");
         break;
       case "cornrows":
-        push(1, ".....09a9a990.........");
-        push(2, "....09a9a99990........");
-        push(3, "....09999999990.......");
+        push(1, ".......09a9a9a999900............");
+        push(2, "......09a9a9a9999900............");
+        push(3, "......099999999999900...........");
+        push(4, "......099999999999900...........");
         break;
       case "long":
-        push(0, ".....009999000........");
-        push(1, "....09999999990.......");
-        push(2, "...099999999990.......");
-        push(3, "...099999999990.......");
-        push(8, "...0901111110090......");
-        push(9, "....900111000090......");
+        push(0, ".......0099999900000............");
+        push(1, "......0999999999999.0...........");
+        push(2, ".....099999999999990............");
+        push(3, ".....099999999999990............");
+        push(9, ".....0901111111119.0............");
+        push(10, ".....090011111190...............");
         break;
       default: break;
     }
@@ -236,28 +271,66 @@ function getAccessoryOverlays(accessories, isBig) {
     switch (acc) {
       case "headband":
         if (isBig) {
-          push(4, "...0dddddddd00......");
+          push(5, ".....0ddddddddddddd0............");
         } else {
-          push(4, "....0ddddddd0........");
+          push(5, "......0dddddddddddd0............");
         }
         break;
       case "goggles":
         if (isBig) {
-          push(5, "...0b1e0b1e01100......");
-          push(6, "...00f00f0011100......");
+          push(6, ".....0b110b1101111100.............");
+          push(7, ".....00f000f00111100..............");
         } else {
-          push(5, "....0b1e0b1e010.......");
-          push(6, "....00f00f01110.......");
+          push(6, "......0b110b11011100...............");
+          push(7, "......00f000f0011100...............");
         }
         break;
       case "wristband":
         if (isBig) {
-          push(16, "..0d100444444001d0...");
+          push(19, "....0d404444444404d0.............");
         } else {
-          push(16, "...0d10444440d10.....");
+          push(19, "......0d4044444404d0.............");
         }
         break;
       default: break;
+    }
+  }
+  return overlays;
+}
+
+// --- Jersey Number Overlay ---
+
+// Simple 3x5 digit font for jersey numbers
+const DIGITS = {
+  0: ["666","6.6","6.6","6.6","666"],
+  1: [".6.",".6.",".6.",".6.",".6."],
+  2: ["666","..6","666","6..","666"],
+  3: ["666","..6","666","..6","666"],
+  4: ["6.6","6.6","666","..6","..6"],
+  5: ["666","6..","666","..6","666"],
+  6: ["666","6..","666","6.6","666"],
+  7: ["666","..6","..6","..6","..6"],
+  8: ["666","6.6","666","6.6","666"],
+  9: ["666","6.6","666","..6","666"],
+};
+
+function getNumberOverlay(number, isBig) {
+  if (number == null) return [];
+  const overlays = [];
+  const numStr = String(number);
+  const startRow = 16;
+  // Center the number on the jersey
+  const baseCol = isBig ? (numStr.length === 1 ? 12 : 10) : (numStr.length === 1 ? 11 : 9);
+
+  for (let d = 0; d < numStr.length; d++) {
+    const digit = DIGITS[numStr[d]];
+    if (!digit) continue;
+    for (let r = 0; r < digit.length; r++) {
+      for (let c = 0; c < digit[r].length; c++) {
+        if (digit[r][c] !== ".") {
+          overlays.push({ row: startRow + r, col: baseCol + d * 4 + c, mat: "6" });
+        }
+      }
     }
   }
   return overlays;
@@ -272,52 +345,53 @@ function buildSprite(player) {
   const isBig = sprite.build === "big";
   const template = isBig ? BODY_BIG : BODY_NORMAL;
 
-  // Parse template into 2D grid — pad all rows to same width
   const maxLen = Math.max(...template.map((r) => r.length));
   const grid = template.map((row) => row.padEnd(maxLen, ".").split(""));
 
   // Apply hair style
-  const hairOverlay = getHairOverlay(sprite.hair || "flat", isBig);
-  for (const { row, col, mat } of hairOverlay) {
-    if (row < grid.length && col < grid[0].length) {
-      grid[row][col] = mat;
-    }
+  for (const { row, col, mat } of getHairOverlay(sprite.hair || "flat", isBig)) {
+    if (row < grid.length && col < grid[0].length) grid[row][col] = mat;
   }
 
   // Apply accessories
-  const accOverlays = getAccessoryOverlays(sprite.accessories || [], isBig);
-  for (const { row, col, mat } of accOverlays) {
-    if (row < grid.length && col < grid[0].length) {
-      grid[row][col] = mat;
-    }
+  for (const { row, col, mat } of getAccessoryOverlays(sprite.accessories || [], isBig)) {
+    if (row < grid.length && col < grid[0].length) grid[row][col] = mat;
+  }
+
+  // Apply jersey number
+  for (const { row, col, mat } of getNumberOverlay(player.number, isBig)) {
+    if (row < grid.length && col < grid[0].length) grid[row][col] = mat;
   }
 
   return grid;
 }
 
-function getMaterialColor(mat, colors, skinIdx) {
+function getMaterialColor(mat, colors, skinIdx, hairColor) {
   const s = SKIN[skinIdx] || SKIN[3];
   const j1 = colors[0] || "#666666";
   const j2 = colors[1] || "#999999";
+  const hc = hairColor || "#1a1a1a";
 
   switch (mat) {
-    case "0": return "#0a0a0a";              // outline
-    case "1": return s.base;                  // skin
-    case "2": return s.shadow;                // skin shadow
-    case "3": return s.hi;                    // skin highlight
-    case "e": return s.mid;                   // skin mid
-    case "4": return j1;                      // jersey primary
-    case "5": return shade(j1, 0.65);         // jersey shadow
-    case "6": return j2;                      // jersey secondary/number
-    case "7": return j2;                      // shorts
-    case "8": return shade(j2, 0.6);          // shorts shadow
-    case "9": return "#1a1a1a";               // hair
-    case "a": return "#3a3a3a";               // hair highlight
-    case "b": return "#FFFFFF";               // white (eyes)
-    case "c": return "#2a2a2a";               // shoe base
-    case "d": return j2;                      // headband (secondary color)
-    case "f": return "#111111";               // sole / darkest
-    default:  return null;                    // transparent
+    case "0": return "#0a0a0a";
+    case "1": return s.base;
+    case "2": return s.shadow;
+    case "3": return s.hi;
+    case "e": return s.mid;
+    case "4": return j1;
+    case "5": return shade(j1, 0.65);
+    case "6": return j2;
+    case "g": return shade(j1, 1.3);
+    case "7": return j2;
+    case "8": return shade(j2, 0.6);
+    case "9": return hc;
+    case "a": return shade(hc, 1.6);
+    case "b": return "#FFFFFF";
+    case "c": return "#2a2a2a";
+    case "h": return j1;           // shoe accent = team primary
+    case "d": return j2;
+    case "f": return "#111111";
+    default:  return null;
   }
 }
 
@@ -342,12 +416,13 @@ const PixelAvatar = memo(function PixelAvatar({ playerId, size = 64, className =
   const rows = grid.length;
   const cols = grid[0].length;
   const skinIdx = player.sprite?.skin ?? 3;
+  const hairColor = player.sprite?.hairColor || "#1a1a1a";
 
   const rects = [];
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
       const mat = grid[r][c];
-      const color = getMaterialColor(mat, player.colors, skinIdx);
+      const color = getMaterialColor(mat, player.colors, skinIdx, hairColor);
       if (color) {
         rects.push(
           <rect key={`${r}-${c}`} x={c} y={r} width={1} height={1} fill={color} />
@@ -356,7 +431,6 @@ const PixelAvatar = memo(function PixelAvatar({ playerId, size = 64, className =
     }
   }
 
-  // Aspect ratio: width=cols, height=rows
   const aspectH = Math.round(size * (rows / cols));
 
   return (
