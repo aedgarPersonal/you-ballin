@@ -296,50 +296,32 @@ export default function GameDetailPage() {
         </div>
       )}
 
-      {/* Award Results (shown after voting closes) */}
+      {/* Award Results — compact chips (shown after voting closes) */}
       {awards && !awards.voting_open && (awards.mvp || awards.shaqtin || awards.xfactor) && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div className="flex flex-wrap items-center gap-2 mb-6">
           {awards.mvp && (
-            <div className="card border-2 border-yellow-400 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-900/20">
-              <div className="flex items-center gap-3 mb-2">
-                <span className="text-3xl">🏆</span>
-                <div>
-                  <p className="text-xs font-semibold text-yellow-600 uppercase tracking-wide">MVP</p>
-                  <Link to={`/players/${awards.mvp.player.id}`} className="text-lg font-bold text-gray-900 dark:text-gray-100 hover:text-court-600">
-                    {awards.mvp.player.full_name}
-                  </Link>
-                </div>
-              </div>
-              <p className="text-sm text-yellow-700">{awards.mvp.vote_count} vote{awards.mvp.vote_count !== 1 ? "s" : ""}</p>
-            </div>
+            <Link to={`/players/${awards.mvp.player.id}`}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-yellow-300 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-900/20 hover:bg-yellow-100 dark:hover:bg-yellow-900/40 transition-colors">
+              <span>🏆</span>
+              <span className="text-sm font-bold text-yellow-800 dark:text-yellow-300">{awards.mvp.player.full_name}</span>
+              <span className="text-xs text-yellow-600 dark:text-yellow-500">{awards.mvp.vote_count}v</span>
+            </Link>
           )}
           {awards.xfactor && (
-            <div className="card border-2 border-blue-400 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20">
-              <div className="flex items-center gap-3 mb-2">
-                <span className="text-3xl">⚡</span>
-                <div>
-                  <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide">X Factor</p>
-                  <Link to={`/players/${awards.xfactor.player.id}`} className="text-lg font-bold text-gray-900 dark:text-gray-100 hover:text-court-600">
-                    {awards.xfactor.player.full_name}
-                  </Link>
-                </div>
-              </div>
-              <p className="text-sm text-blue-700">{awards.xfactor.vote_count} vote{awards.xfactor.vote_count !== 1 ? "s" : ""}</p>
-            </div>
+            <Link to={`/players/${awards.xfactor.player.id}`}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors">
+              <span>⚡</span>
+              <span className="text-sm font-bold text-blue-800 dark:text-blue-300">{awards.xfactor.player.full_name}</span>
+              <span className="text-xs text-blue-600 dark:text-blue-500">{awards.xfactor.vote_count}v</span>
+            </Link>
           )}
           {awards.shaqtin && (
-            <div className="card border-2 border-purple-400 dark:border-purple-700 bg-purple-50 dark:bg-purple-900/20">
-              <div className="flex items-center gap-3 mb-2">
-                <span className="text-3xl">🤦</span>
-                <div>
-                  <p className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Shaqtin' a Fool</p>
-                  <Link to={`/players/${awards.shaqtin.player.id}`} className="text-lg font-bold text-gray-900 dark:text-gray-100 hover:text-court-600">
-                    {awards.shaqtin.player.full_name}
-                  </Link>
-                </div>
-              </div>
-              <p className="text-sm text-purple-700">{awards.shaqtin.vote_count} vote{awards.shaqtin.vote_count !== 1 ? "s" : ""}</p>
-            </div>
+            <Link to={`/players/${awards.shaqtin.player.id}`}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-purple-300 dark:border-purple-700 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-colors">
+              <span>🤦</span>
+              <span className="text-sm font-bold text-purple-800 dark:text-purple-300">{awards.shaqtin.player.full_name}</span>
+              <span className="text-xs text-purple-600 dark:text-purple-500">{awards.shaqtin.vote_count}v</span>
+            </Link>
           )}
         </div>
       )}
@@ -442,7 +424,7 @@ export default function GameDetailPage() {
       {/* Teams Display — NBA Jam Style */}
       {game.teams?.length > 0 && (
         <div className="mb-6">
-          <NbaJamTeams teams={game.teams} />
+          <NbaJamTeams teams={game.teams} gameResult={game.result} />
         </div>
       )}
 

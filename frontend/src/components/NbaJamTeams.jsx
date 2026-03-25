@@ -165,7 +165,7 @@ function JamPlayerCard({ player, isAdmin }) {
   );
 }
 
-export default function NbaJamTeams({ teams }) {
+export default function NbaJamTeams({ teams, gameResult }) {
   const userRole = useAuthStore((s) => s.user?.role);
   const isAdmin = userRole === "super_admin" || userRole === "admin";
 
@@ -183,6 +183,15 @@ export default function NbaJamTeams({ teams }) {
 
   const teamEntries = Object.entries(teamGroups);
   const odds = calculateOdds(teamEntries);
+
+  // Determine winning team from game result
+  let winningTeamId = null;
+  if (gameResult?.team_scores?.length >= 2) {
+    const sorted = [...gameResult.team_scores].sort((a, b) => b.wins - a.wins);
+    if (sorted[0].wins > sorted[1].wins) {
+      winningTeamId = sorted[0].team;
+    }
+  }
 
   // Build matchup header
   const teamCounts = teamEntries.map(
@@ -245,6 +254,7 @@ export default function NbaJamTeams({ teams }) {
               players={group.players}
               isAdmin={isAdmin}
               odds={odds ? odds[idx] : null}
+              isWinner={teamId === winningTeamId}
             />
           ))}
         </div>
@@ -253,24 +263,37 @@ export default function NbaJamTeams({ teams }) {
   );
 }
 
-function JamTeamPanel({ name, color, players, isAdmin, odds }) {
+function JamTeamPanel({ name, color, players, isAdmin, odds, isWinner }) {
   const isFav = odds && odds.winProb > 0.5;
   const isUnderdog = odds && odds.winProb < 0.5;
 
   return (
     <div
-      className="rounded-xl overflow-hidden border-2"
-      style={{ borderColor: color }}
+      className={`rounded-xl overflow-hidden border-2 ${isWinner ? "ring-2 ring-yellow-400 ring-offset-2 ring-offset-gray-950" : ""}`}
+      style={{ borderColor: isWinner ? "#facc15" : color }}
     >
       {/* Team Header */}
       <div
         className="py-2 px-4 text-center relative"
-        style={{ background: `linear-gradient(135deg, ${color}22, ${color}44)` }}
+        style={{ background: isWinner
+          ? "linear-gradient(135deg, #facc1522, #facc1544)"
+          : `linear-gradient(135deg, ${color}22, ${color}44)` }}
       >
-        <h3 className="text-lg font-black uppercase tracking-[0.2em]" style={{ color }}>
-          {name}
-        </h3>
-        {odds && (isFav || isUnderdog) && (
+        <div className="flex items-center justify-center gap-2">
+          {isWinner && <span className="text-xl">🏆</span>}
+          <h3 className="text-lg font-black uppercase tracking-[0.2em]" style={{ color: isWinner ? "#facc15" : color }}>
+            {name}
+          </h3>
+          {isWinner && <span className="text-xl">🏆</span>}
+        </div>
+        {isWinner && (
+          <div className="mt-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">
+              Winner
+            </span>
+          </div>
+        )}
+        {!isWinner && odds && (isFav || isUnderdog) && (
           <div className="mt-1">
             <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${
               isFav ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"
