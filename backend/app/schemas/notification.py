@@ -16,6 +16,7 @@ class NotificationResponse(BaseModel):
     title: str
     message: str
     read: bool
+    action_url: str | None = None
     email_sent: bool
     sms_sent: bool
     created_at: datetime

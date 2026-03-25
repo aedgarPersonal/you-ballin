@@ -52,6 +52,9 @@ class Notification(Base):
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     message: Mapped[str] = mapped_column(Text, nullable=False)
 
+    # --- Deep link for in-app navigation ---
+    action_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
     # --- Delivery tracking ---
     read: Mapped[bool] = mapped_column(Boolean, default=False)
     email_sent: Mapped[bool] = mapped_column(Boolean, default=False)

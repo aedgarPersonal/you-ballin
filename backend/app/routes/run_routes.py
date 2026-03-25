@@ -507,6 +507,7 @@ async def suggest_player(
         await send_bulk_notification(
             db, admin_users, NotificationType.PLAYER_SUGGESTED,
             f"Player Suggested for {run.name}", msg, run_id=run_id,
+            action_url="/players",
         )
 
     await db.flush()
@@ -599,6 +600,7 @@ async def handle_suggestion(
             f"You've been added to {suggestion.run.name}!",
             f"An admin suggested you for {suggestion.run.name} and you've been added as a drop-in player.",
             run_id=run_id,
+            action_url="/games",
         )
         # Notify the suggesting admin
         await send_notification(
@@ -606,6 +608,7 @@ async def handle_suggestion(
             f"Suggestion accepted for {suggestion.run.name}",
             f"Your suggestion to add {suggestion.suggested_user.full_name} to {suggestion.run.name} was accepted!",
             run_id=run_id,
+            action_url="/players",
         )
     else:
         # Notify the suggesting admin of decline

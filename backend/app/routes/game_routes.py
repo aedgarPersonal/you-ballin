@@ -103,6 +103,7 @@ async def create_game(
             title=f"New Game: {game.title}",
             message=f"A new game has been scheduled for {game_date_str} at {game.location}. RSVP now!",
             run_id=run_id,
+            action_url=f"/games/{game.id}",
         )
 
     return game
@@ -276,6 +277,7 @@ async def update_game(
                 f"Game Updated: {game.title}",
                 f"The {change_desc} for {game.title} has changed. "
                 f"New details: {game.game_date.strftime('%A, %B %d at %I:%M %p')} at {game.location}.",
+                action_url=f"/games/{game.id}",
             )
 
     await db.flush()
@@ -673,6 +675,7 @@ async def generate_teams(
         NotificationType.TEAMS_PUBLISHED,
         f"Teams Are Set: {game.title}",
         f"Teams have been published for {game.title}. Check the app to see your team!",
+        action_url=f"/games/{game.id}",
     )
 
     await db.flush()
@@ -841,6 +844,7 @@ async def record_result(
         NotificationType.GAME_COMPLETED,
         f"Game Complete: {game.title}",
         f"{winner_msg} Final: {score_summary}. Cast your MVP and Shaqtin' votes before noon tomorrow!",
+        action_url=f"/games/{game_id}",
     )
 
     await db.flush()

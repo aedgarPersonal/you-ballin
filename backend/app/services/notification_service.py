@@ -38,6 +38,7 @@ async def send_notification(
     send_email: bool = True,
     send_sms: bool = True,
     run_id: int | None = None,
+    action_url: str | None = None,
 ) -> Notification:
     """Send a notification to a user via all configured channels.
 
@@ -86,6 +87,7 @@ async def send_notification(
         type=notification_type,
         title=title,
         message=message,
+        action_url=action_url,
     )
     db.add(notification)
 
@@ -116,6 +118,7 @@ async def send_bulk_notification(
     title: str,
     message: str,
     run_id: int | None = None,
+    action_url: str | None = None,
 ) -> list[Notification]:
     """Send the same notification to multiple users.
 
@@ -127,7 +130,8 @@ async def send_bulk_notification(
     notifications = []
     for user in users:
         notif = await send_notification(
-            db, user, notification_type, title, message, run_id=run_id,
+            db, user, notification_type, title, message,
+            run_id=run_id, action_url=action_url,
         )
         notifications.append(notif)
     return notifications
