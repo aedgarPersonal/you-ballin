@@ -58,6 +58,11 @@ class Settings(BaseSettings):
     twilio_auth_token: str = ""
     twilio_phone_number: str = ""
 
+    # --- Web Push (VAPID) ---
+    vapid_public_key: str = ""
+    vapid_private_key: str = ""
+    vapid_claim_email: str = "mailto:admin@youballin.app"
+
     # --- Application ---
     frontend_url: str = "http://localhost:5173"
     backend_url: str = "http://localhost:8000"

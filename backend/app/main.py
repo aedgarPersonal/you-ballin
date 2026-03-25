@@ -30,6 +30,7 @@ from app.routes import (
     game_routes,
     notification_routes,
     player_routes,
+    push_routes,
     rating_routes,
     run_routes,
     stats_routes,
@@ -115,6 +116,7 @@ app.include_router(vote_routes.awards_router)
 app.include_router(algorithm_routes.router)
 app.include_router(stats_routes.router)
 app.include_router(game_action_routes.router)
+app.include_router(push_routes.router)
 
 
 # =============================================================================

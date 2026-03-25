@@ -107,6 +107,13 @@ async def send_notification(
         except Exception as e:
             logger.error(f"Failed to send SMS to {user.phone}: {e}")
 
+    # Attempt Web Push delivery
+    try:
+        push_count = await _send_web_push(user.id, title, message, action_url, db)
+        notification.push_sent = push_count > 0
+    except Exception as e:
+        logger.error(f"Failed to send web push to user {user.id}: {e}")
+
     await db.flush()
     return notification
 
@@ -193,13 +200,7 @@ async def _send_email(to_email: str, subject: str, body: str) -> bool:
 # =============================================================================
 
 async def _send_sms(to_phone: str, message: str) -> bool:
-    """Send an SMS via Twilio.
-
-    TEACHING NOTE:
-        Twilio's Python SDK is synchronous, so we'd normally run it
-        in a thread pool. For simplicity, we use it directly here.
-        In production, move to Celery tasks.
-    """
+    """Send an SMS via Twilio."""
     if not settings.twilio_account_sid or not settings.twilio_auth_token:
         logger.info(f"[DEV] SMS to {to_phone}: {message}")
         return False
@@ -217,3 +218,84 @@ async def _send_sms(to_phone: str, message: str) -> bool:
     except Exception as e:
         logger.error(f"SMS send failed: {e}")
         return False
+
+
+# =============================================================================
+# Web Push Delivery
+# =============================================================================
+
+async def _send_web_push(
+    user_id: int, title: str, message: str, action_url: str | None, db: AsyncSession
+) -> int:
+    """Send Web Push notifications to all of a user's subscribed devices.
+
+    Returns the number of successfully sent pushes.
+    Auto-deletes stale subscriptions on 404/410 responses.
+    """
+    if not settings.vapid_private_key or not settings.vapid_public_key:
+        logger.info(f"[DEV] Web push to user {user_id}: {title}")
+        return 0
+
+    from app.models.push_subscription import PushSubscription
+
+    result = await db.execute(
+        select(PushSubscription).where(PushSubscription.user_id == user_id)
+    )
+    subscriptions = result.scalars().all()
+
+    if not subscriptions:
+        return 0
+
+    import asyncio
+    import json
+    from pywebpush import webpush, WebPushException
+
+    payload = json.dumps({
+        "title": title,
+        "body": message[:200],
+        "url": action_url or "/",
+        "icon": "/pwa-192x192.png",
+        "badge": "/pwa-192x192.png",
+    })
+
+    sent = 0
+    stale_ids = []
+
+    for sub in subscriptions:
+        try:
+            await asyncio.to_thread(
+                webpush,
+                subscription_info={
+                    "endpoint": sub.endpoint,
+                    "keys": {
+                        "p256dh": sub.p256dh_key,
+                        "auth": sub.auth_key,
+                    },
+                },
+                data=payload,
+                vapid_private_key=settings.vapid_private_key,
+                vapid_claims={"sub": settings.vapid_claim_email},
+            )
+            sub.last_used_at = datetime.utcnow()
+            sent += 1
+        except WebPushException as e:
+            if hasattr(e, "response") and e.response is not None:
+                status = e.response.status_code
+                if status in (404, 410):
+                    stale_ids.append(sub.id)
+                    logger.info(f"Removing stale push subscription {sub.id}")
+                else:
+                    logger.error(f"Web push failed ({status}): {e}")
+            else:
+                logger.error(f"Web push failed: {e}")
+        except Exception as e:
+            logger.error(f"Web push failed: {e}")
+
+    # Clean up stale subscriptions
+    if stale_ids:
+        from sqlalchemy import delete
+        await db.execute(
+            delete(PushSubscription).where(PushSubscription.id.in_(stale_ids))
+        )
+
+    return sent

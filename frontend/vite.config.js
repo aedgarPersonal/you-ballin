@@ -27,6 +27,9 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
+      strategies: "injectManifest",
+      srcDir: "src",
+      filename: "sw.js",
       includeAssets: ["basketball.svg"],
       manifest: {
         name: "You Ballin - Pickup Basketball",
@@ -56,25 +59,9 @@ export default defineConfig({
           },
         ],
       },
-      workbox: {
+      injectManifest: {
         globPatterns: ["**/*.{js,css,html,ico,svg,woff2}"],
         globIgnores: ["**/logo.png"],
-        runtimeCaching: [
-          {
-            urlPattern: /^https?:\/\/.*\/api\/.*/,
-            handler: "NetworkFirst",
-            options: {
-              cacheName: "api-cache",
-              expiration: {
-                maxEntries: 50,
-                maxAgeSeconds: 300,
-              },
-              cacheableResponse: {
-                statuses: [0, 200],
-              },
-            },
-          },
-        ],
       },
     }),
   ],

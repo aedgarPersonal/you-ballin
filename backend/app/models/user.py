@@ -112,6 +112,7 @@ class User(Base):
     run_memberships = relationship("RunMembership", back_populates="user", lazy="selectin")
     run_admin_roles = relationship("RunAdmin", back_populates="user", lazy="selectin")
     run_stats = relationship("RunPlayerStats", back_populates="user", lazy="selectin")
+    push_subscriptions = relationship("PushSubscription", back_populates="user", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         return f"<User {self.username} ({self.role.value})>"

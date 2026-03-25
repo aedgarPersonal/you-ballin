@@ -59,6 +59,7 @@ class Notification(Base):
     read: Mapped[bool] = mapped_column(Boolean, default=False)
     email_sent: Mapped[bool] = mapped_column(Boolean, default=False)
     sms_sent: Mapped[bool] = mapped_column(Boolean, default=False)
+    push_sent: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # --- Timestamps ---
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())

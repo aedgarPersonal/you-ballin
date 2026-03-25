@@ -16,6 +16,7 @@ import useRunStore from "./stores/runStore";
 
 // Layout
 import Navbar from "./components/layout/Navbar";
+import PushPrompt from "./components/PushPrompt";
 
 // Pages
 import LoginPage from "./pages/LoginPage";
@@ -50,6 +51,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {isAuthenticated && <Navbar />}
+      {isAuthenticated && <PushPrompt />}
       <main className={isAuthenticated ? "pt-16" : ""}>
         <Routes>
           {/* Public routes */}
