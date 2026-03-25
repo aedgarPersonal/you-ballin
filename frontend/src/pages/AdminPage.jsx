@@ -110,7 +110,10 @@ export default function AdminPage() {
 
   // Quick Add Player state
   const [showAddPlayer, setShowAddPlayer] = useState(false);
-  const [addForm, setAddForm] = useState({ full_name: "", email: "", phone: "", wins: 0, losses: 0 });
+  const [addForm, setAddForm] = useState({
+    full_name: "", email: "", phone: "", wins: 0, losses: 0,
+    height_inches: 70, age: 30, mobility: 3.0, avg_offense: 3.0, avg_defense: 3.0, avg_overall: 3.0,
+  });
   const [adding, setAdding] = useState(false);
 
   const fetchPending = async () => {
@@ -388,16 +391,19 @@ export default function AdminPage() {
   };
 
   const handleQuickAddPlayer = async (e) => {
-    e.preventDefault();
-    if (!addForm.full_name.trim()) {
-      toast.error("Full name is required");
+    if (e) e.preventDefault();
+    if (!addForm.full_name.trim() || !addForm.email.trim()) {
+      toast.error("Name and email are required");
       return;
     }
     setAdding(true);
     try {
       await quickAddPlayer(runId, addForm);
       toast.success(`Player "${addForm.full_name}" added!`);
-      setAddForm({ full_name: "", email: "", phone: "", wins: 0, losses: 0 });
+      setAddForm({
+        full_name: "", email: "", phone: "", wins: 0, losses: 0,
+        height_inches: 70, age: 30, mobility: 3.0, avg_offense: 3.0, avg_defense: 3.0, avg_overall: 3.0,
+      });
       setShowAddPlayer(false);
       fetchPlayers();
     } catch (err) {
@@ -698,76 +704,113 @@ export default function AdminPage() {
               Import Players
             </button>
           </div>
+          {/* Add Player Modal */}
           {showAddPlayer && (
-            <form onSubmit={handleQuickAddPlayer} className="card border border-gray-200 dark:border-gray-600 p-4 space-y-3">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Quick Add Player</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Full Name *</label>
-                  <input
-                    type="text"
-                    required
-                    value={addForm.full_name}
-                    onChange={(e) => setAddForm({ ...addForm, full_name: e.target.value })}
-                    className="w-full text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1 dark:bg-gray-700 dark:text-gray-200"
-                    placeholder="John Doe"
-                  />
+            <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+              <div className="bg-white dark:bg-gray-800 rounded-xl max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 z-10">
+                  <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Add Player</h2>
+                  <button onClick={() => setShowAddPlayer(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-white text-2xl leading-none">&times;</button>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
-                  <input
-                    type="email"
-                    value={addForm.email}
-                    onChange={(e) => setAddForm({ ...addForm, email: e.target.value })}
-                    className="w-full text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1 dark:bg-gray-700 dark:text-gray-200"
-                    placeholder="john@example.com"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Phone</label>
-                  <input
-                    type="text"
-                    value={addForm.phone}
-                    onChange={(e) => setAddForm({ ...addForm, phone: e.target.value })}
-                    className="w-full text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1 dark:bg-gray-700 dark:text-gray-200"
-                    placeholder="555-1234"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Wins</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={addForm.wins}
-                    onChange={(e) => setAddForm({ ...addForm, wins: parseInt(e.target.value) || 0 })}
-                    className="w-full text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1 dark:bg-gray-700 dark:text-gray-200"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Losses</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={addForm.losses}
-                    onChange={(e) => setAddForm({ ...addForm, losses: parseInt(e.target.value) || 0 })}
-                    className="w-full text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1 dark:bg-gray-700 dark:text-gray-200"
-                  />
+                <div className="px-6 py-4 space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="col-span-2">
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Full Name *</label>
+                      <input type="text" value={addForm.full_name} onChange={(e) => setAddForm({ ...addForm, full_name: e.target.value })}
+                        className="input w-full" placeholder="John Doe" />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Email *</label>
+                      <input type="email" value={addForm.email} onChange={(e) => setAddForm({ ...addForm, email: e.target.value })}
+                        className="input w-full" placeholder="john@example.com" />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Phone</label>
+                      <input type="tel" value={addForm.phone} onChange={(e) => setAddForm({ ...addForm, phone: e.target.value })}
+                        className="input w-full" placeholder="Optional" />
+                    </div>
+                  </div>
+                  <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
+                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Record</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Wins</label>
+                        <input type="number" min="0" value={addForm.wins} onChange={(e) => setAddForm({ ...addForm, wins: parseInt(e.target.value) || 0 })}
+                          className="input w-full" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Losses</label>
+                        <input type="number" min="0" value={addForm.losses} onChange={(e) => setAddForm({ ...addForm, losses: parseInt(e.target.value) || 0 })}
+                          className="input w-full" />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
+                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Physical</p>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Height (in)</label>
+                        <input type="number" min="48" max="96" value={addForm.height_inches || 70}
+                          onChange={(e) => setAddForm({ ...addForm, height_inches: parseInt(e.target.value) || 70 })}
+                          className="input w-full" />
+                        <span className="text-[10px] text-gray-400">{addForm.height_inches ? `${Math.floor(addForm.height_inches/12)}'${addForm.height_inches%12}"` : `5'10"`}</span>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Age</label>
+                        <input type="number" min="16" max="70" value={addForm.age || 30}
+                          onChange={(e) => setAddForm({ ...addForm, age: parseInt(e.target.value) || 30 })}
+                          className="input w-full" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Mobility</label>
+                        <input type="number" min="1" max="5" step="0.5" value={addForm.mobility || 3.0}
+                          onChange={(e) => setAddForm({ ...addForm, mobility: parseFloat(e.target.value) || 3.0 })}
+                          className="input w-full" />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
+                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Ratings</p>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Offense</label>
+                        <input type="number" min="1" max="5" step="0.5" value={addForm.avg_offense || 3.0}
+                          onChange={(e) => setAddForm({ ...addForm, avg_offense: parseFloat(e.target.value) || 3.0 })}
+                          className="input w-full" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Defense</label>
+                        <input type="number" min="1" max="5" step="0.5" value={addForm.avg_defense || 3.0}
+                          onChange={(e) => setAddForm({ ...addForm, avg_defense: parseFloat(e.target.value) || 3.0 })}
+                          className="input w-full" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Overall</label>
+                        <input type="number" min="1" max="5" step="0.5" value={addForm.avg_overall || 3.0}
+                          onChange={(e) => setAddForm({ ...addForm, avg_overall: parseFloat(e.target.value) || 3.0 })}
+                          className="input w-full" />
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-400 dark:text-gray-500">
+                    Default password: <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">Password123</code>
+                  </p>
+                  <div className="flex justify-end gap-2 pt-2">
+                    <button onClick={() => setShowAddPlayer(false)} className="btn-secondary text-sm py-2 px-4">Cancel</button>
+                    <button
+                      onClick={handleQuickAddPlayer}
+                      disabled={adding || !addForm.full_name.trim() || !addForm.email.trim()}
+                      className={`font-medium py-2 px-6 rounded-lg text-sm transition-colors ${
+                        adding || !addForm.full_name.trim() || !addForm.email.trim()
+                          ? "bg-gray-200 dark:bg-gray-600 text-gray-400 cursor-not-allowed"
+                          : "bg-green-600 hover:bg-green-700 text-white"
+                      }`}>
+                      {adding ? "Adding..." : "Add Player"}
+                    </button>
+                  </div>
                 </div>
               </div>
-              <div className="flex justify-end">
-                <button
-                  type="submit"
-                  disabled={adding}
-                  className={`text-sm font-medium py-1.5 px-4 rounded-lg transition-colors ${
-                    adding
-                      ? "bg-gray-200 dark:bg-gray-600 text-gray-400 dark:text-gray-500 cursor-not-allowed"
-                      : "bg-green-500 hover:bg-green-600 text-white"
-                  }`}
-                >
-                  {adding ? "Adding..." : "Add Player"}
-                </button>
-              </div>
-            </form>
+            </div>
           )}
 
           {/* Players Table */}
