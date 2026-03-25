@@ -136,18 +136,12 @@ export default function AvatarPicker({ value, onChange, onClose }) {
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3 border-t border-cyan-900 bg-gray-950 flex justify-between items-center">
+        <div className="px-6 py-3 border-t border-cyan-900 bg-gray-950 flex justify-end items-center">
           <button
             onClick={() => { onChange(null); onClose(); }}
             className="text-sm text-gray-400 hover:text-white"
           >
             Clear Selection
-          </button>
-          <button
-            onClick={onClose}
-            className="bg-cyan-500 hover:bg-cyan-400 text-gray-900 font-bold py-2 px-6 rounded-lg text-sm uppercase tracking-wider"
-          >
-            Confirm
           </button>
         </div>
       </div>
