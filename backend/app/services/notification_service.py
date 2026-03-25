@@ -273,7 +273,7 @@ async def _send_web_push(
                     },
                 },
                 data=payload,
-                vapid_private_key=settings.vapid_private_key,
+                vapid_private_key=settings.vapid_private_key.strip(),
                 vapid_claims={"sub": settings.vapid_claim_email},
             )
             sub.last_used_at = datetime.utcnow()

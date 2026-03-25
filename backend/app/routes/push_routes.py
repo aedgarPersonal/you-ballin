@@ -26,7 +26,7 @@ router = APIRouter(prefix="/api/push", tags=["Push"])
 @router.get("/vapid-key", response_model=VapidPublicKeyResponse)
 async def get_vapid_key():
     """Get the VAPID public key for subscribing to push notifications."""
-    return VapidPublicKeyResponse(public_key=settings.vapid_public_key)
+    return VapidPublicKeyResponse(public_key=settings.vapid_public_key.strip())
 
 
 @router.post("/subscribe", response_model=PushSubscriptionResponse)
@@ -92,7 +92,7 @@ async def test_push(
                     "keys": {"p256dh": sub.p256dh_key, "auth": sub.auth_key},
                 },
                 data=payload,
-                vapid_private_key=settings.vapid_private_key,
+                vapid_private_key=settings.vapid_private_key.strip(),
                 vapid_claims={"sub": settings.vapid_claim_email},
             )
             results.append({"endpoint": sub.endpoint[:50], "status": "sent"})
