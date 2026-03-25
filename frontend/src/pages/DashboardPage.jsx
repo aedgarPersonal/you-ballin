@@ -1,19 +1,17 @@
 /**
  * Dashboard Page
  * ==============
- * Landing page after login showing upcoming game, player status, and quick actions.
- *
- * TEACHING NOTE:
- *   The dashboard fetches the next upcoming game and shows contextual
- *   content based on the user's player_status and the game's lifecycle.
+ * Landing page after login showing upcoming game with RSVP,
+ * last completed game with results/voting, and quick actions.
  */
 
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import toast from "react-hot-toast";
 import useAuthStore from "../stores/authStore";
 import useRunStore from "../stores/runStore";
-import { listGames } from "../api/games";
-import { getRecentAwards } from "../api/votes";
+import { listGames, getGame, rsvpToGame } from "../api/games";
+import { getRecentAwards, getGameAwards, getMyVotes, castVote } from "../api/votes";
 import { AvatarBadge } from "../components/AvatarPicker";
 import { getPlayerById } from "../data/legacyPlayers";
 
@@ -22,39 +20,75 @@ export default function DashboardPage() {
   const { currentRun } = useRunStore();
   const runId = currentRun?.id;
   const [nextGame, setNextGame] = useState(null);
-  const [recentAwards, setRecentAwards] = useState([]);
+  const [lastCompleted, setLastCompleted] = useState(null);
+  const [lastAwards, setLastAwards] = useState(null);
+  const [myVotes, setMyVotes] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (!runId) {
-      setLoading(false);
-      return;
-    }
-    const fetchData = async () => {
-      try {
-        const [gamesRes, awardsRes] = await Promise.allSettled([
-          listGames(runId),
-          getRecentAwards(runId),
-        ]);
+  const fetchData = async () => {
+    if (!runId) { setLoading(false); return; }
+    try {
+      const gamesRes = await listGames(runId);
+      const games = gamesRes.data;
 
-        if (gamesRes.status === "fulfilled") {
-          const upcoming = gamesRes.value.data.find(
-            (g) => g.status !== "completed" && g.status !== "cancelled"
-          );
-          setNextGame(upcoming);
-        }
-
-        if (awardsRes.status === "fulfilled") {
-          setRecentAwards(awardsRes.value.data);
-        }
-      } catch {
-        // User may be pending, no access yet
-      } finally {
-        setLoading(false);
+      // Find next upcoming game (not completed/cancelled/skipped)
+      const upcoming = games.find(
+        (g) => !["completed", "cancelled", "skipped"].includes(g.status)
+      );
+      if (upcoming) {
+        // Fetch full detail to get RSVPs
+        const { data } = await getGame(runId, upcoming.id);
+        setNextGame(data);
       }
-    };
-    fetchData();
-  }, [runId]);
+
+      // Find most recent completed game
+      const completed = games.find((g) => g.status === "completed");
+      if (completed) {
+        const [gameRes, awardsRes, votesRes] = await Promise.allSettled([
+          getGame(runId, completed.id),
+          getGameAwards(runId, completed.id),
+          getMyVotes(runId, completed.id),
+        ]);
+        if (gameRes.status === "fulfilled") setLastCompleted(gameRes.value.data);
+        if (awardsRes.status === "fulfilled") setLastAwards(awardsRes.value.data);
+        if (votesRes.status === "fulfilled") setMyVotes(votesRes.value.data);
+      }
+    } catch {
+      // User may be pending
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchData(); }, [runId]);
+
+  const handleRsvp = async (status) => {
+    if (!nextGame) return;
+    try {
+      await rsvpToGame(runId, nextGame.id, status);
+      toast.success(status === "accepted" ? "You're in!" : "RSVP updated");
+      const { data } = await getGame(runId, nextGame.id);
+      setNextGame(data);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "RSVP failed");
+    }
+  };
+
+  const handleVote = async (voteType, nomineeId) => {
+    if (!lastCompleted || !nomineeId) return;
+    try {
+      await castVote(runId, lastCompleted.id, { vote_type: voteType, nominee_id: parseInt(nomineeId) });
+      toast.success("Vote recorded!");
+      const [awardsRes, votesRes] = await Promise.all([
+        getGameAwards(runId, lastCompleted.id),
+        getMyVotes(runId, lastCompleted.id),
+      ]);
+      setLastAwards(awardsRes.data);
+      setMyVotes(votesRes.data);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Vote failed");
+    }
+  };
 
   if (!currentRun) {
     return (
@@ -70,6 +104,11 @@ export default function DashboardPage() {
     dropin: "You're a drop-in player. You'll be notified when spots open up on game day.",
     inactive: "Your account is currently inactive. Contact an admin for assistance.",
   };
+
+  const myRsvp = nextGame?.rsvps?.find((r) => r.user_id === user?.id);
+  const isParticipant = lastCompleted?.teams?.some((t) => t.user_id === user?.id);
+  const allParticipants = lastCompleted?.teams?.map((t) => t.user).filter(Boolean) || [];
+  const eligibleForVote = allParticipants.filter((p) => p.id !== user?.id);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -98,7 +137,6 @@ export default function DashboardPage() {
 
       {/* Status Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        {/* Player Status */}
         <div className="card">
           <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Your Status</h3>
           <div className="mt-2 flex items-center gap-2">
@@ -108,8 +146,6 @@ export default function DashboardPage() {
             </span>
           </div>
         </div>
-
-        {/* Win Rate */}
         <div className="card">
           <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Win Rate</h3>
           <div className="mt-2">
@@ -123,99 +159,165 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Next Game */}
-      <div className="card">
+      {/* Next Game with RSVP */}
+      <div className="card mb-6">
         <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Next Game</h2>
         {loading ? (
           <p className="text-gray-500 dark:text-gray-400">Loading...</p>
         ) : nextGame ? (
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div>
-              <h3 className="text-lg font-semibold">{nextGame.title}</h3>
-              <p className="text-gray-600 dark:text-gray-400">
-                {new Date(nextGame.game_date).toLocaleDateString("en-US", {
-                  weekday: "long",
-                  month: "long",
-                  day: "numeric",
-                  hour: "numeric",
-                  minute: "2-digit",
-                })}
-              </p>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                {nextGame.location} &middot; {nextGame.accepted_count}/{nextGame.roster_size} players
-              </p>
-              <span className={`badge mt-2 ${
-                nextGame.status === "teams_set" ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" :
-                nextGame.status === "dropin_open" ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400" :
-                "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
-              }`}>
-                {nextGame.status.replace("_", " ")}
-              </span>
+          <div>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-semibold">{nextGame.title}</h3>
+                <p className="text-gray-600 dark:text-gray-400">
+                  {new Date(nextGame.game_date).toLocaleDateString("en-US", {
+                    weekday: "long", month: "long", day: "numeric",
+                    hour: "numeric", minute: "2-digit",
+                  })}
+                </p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  {nextGame.location} &middot; {nextGame.accepted_count}/{nextGame.roster_size} players
+                </p>
+                <span className={`badge mt-2 inline-block ${
+                  nextGame.status === "teams_set" ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" :
+                  nextGame.status === "dropin_open" ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400" :
+                  "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
+                }`}>
+                  {nextGame.status.replace("_", " ")}
+                </span>
+              </div>
+              <Link to={`/games/${nextGame.id}`} className="text-sm text-court-600 hover:text-court-700 font-medium">
+                View Details &rarr;
+              </Link>
             </div>
-            <Link to={`/games/${nextGame.id}`} className="btn-primary">
-              View Details
-            </Link>
+
+            {/* RSVP Action */}
+            {nextGame.status !== "teams_set" && (
+              <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+                {myRsvp ? (
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm text-gray-500 dark:text-gray-400">Your RSVP:</span>
+                    <span className={`badge ${
+                      myRsvp.status === "accepted" ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" :
+                      myRsvp.status === "declined" ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400" :
+                      "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
+                    }`}>{myRsvp.status}</span>
+                    {myRsvp.status !== "accepted" && (
+                      <button onClick={() => handleRsvp("accepted")} className="btn-primary text-sm py-1.5 px-3">
+                        I'm In!
+                      </button>
+                    )}
+                    {myRsvp.status !== "declined" && (
+                      <button onClick={() => handleRsvp("declined")} className="btn-secondary text-sm py-1.5 px-3">
+                        Can't Make It
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm text-gray-500 dark:text-gray-400">Are you playing?</span>
+                    <button onClick={() => handleRsvp("accepted")} className="btn-primary text-sm py-1.5 px-4">
+                      I'm In!
+                    </button>
+                    <button onClick={() => handleRsvp("declined")} className="btn-secondary text-sm py-1.5 px-4">
+                      Can't Make It
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         ) : (
           <p className="text-gray-500 dark:text-gray-400">No upcoming games scheduled.</p>
         )}
       </div>
 
-      {/* Recent Award Winners */}
-      {recentAwards.length > 0 && (
-        <div className="mt-8">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Recent Award Winners</h2>
-          <div className="space-y-4">
-            {recentAwards.map((game) => (
-              <Link
-                key={game.game_id}
-                to={`/games/${game.game_id}`}
-                className="card hover:shadow-md transition-shadow block"
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-semibold text-gray-900 dark:text-gray-100">{game.game_title}</h3>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                    {new Date(game.game_date).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                    })}
-                  </span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {/* MVP */}
-                  <AwardCard
-                    label="MVP"
-                    emoji="🏆"
-                    winner={game.mvp}
-                    gradient="from-yellow-50 to-amber-50"
-                    border="border-yellow-300"
-                    labelColor="text-yellow-700"
-                    nameColor="text-yellow-900"
-                  />
-                  {/* X Factor */}
-                  <AwardCard
-                    label="X Factor"
-                    emoji="⚡"
-                    winner={game.xfactor}
-                    gradient="from-blue-50 to-indigo-50"
-                    border="border-blue-300"
-                    labelColor="text-blue-700"
-                    nameColor="text-blue-900"
-                  />
-                  {/* Shaqtin' */}
-                  <AwardCard
-                    label="Shaqtin'"
-                    emoji="🤦"
-                    winner={game.shaqtin}
-                    gradient="from-purple-50 to-fuchsia-50"
-                    border="border-purple-300"
-                    labelColor="text-purple-700"
-                    nameColor="text-purple-900"
-                  />
-                </div>
-              </Link>
-            ))}
+      {/* Last Completed Game */}
+      {lastCompleted && (
+        <div className="card mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Last Game</h2>
+            <Link to={`/games/${lastCompleted.id}`} className="text-sm text-court-600 hover:text-court-700 font-medium">
+              View Details &rarr;
+            </Link>
           </div>
+
+          <h3 className="font-semibold text-gray-800 dark:text-gray-200">{lastCompleted.title}</h3>
+
+          {/* Score */}
+          {lastCompleted.result?.team_scores?.length > 0 && (
+            <div className="flex items-center gap-3 mt-2 flex-wrap">
+              {[...lastCompleted.result.team_scores]
+                .sort((a, b) => b.wins - a.wins)
+                .map((ts, idx) => (
+                  <div key={ts.team} className="flex items-center gap-1">
+                    {idx > 0 && <span className="text-gray-400 font-bold mr-1">-</span>}
+                    <span className="font-medium text-gray-700 dark:text-gray-300">{ts.team_name}</span>
+                    <span className="text-xl font-black text-court-600">{ts.wins}</span>
+                  </div>
+                ))}
+            </div>
+          )}
+
+          {/* Commentary */}
+          {lastCompleted.commentary && (
+            <p className="text-sm text-gray-600 dark:text-gray-400 italic mt-3">{lastCompleted.commentary}</p>
+          )}
+
+          {/* Voting (dropdowns) or Award Results */}
+          {lastAwards && (
+            <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+              {lastAwards.voting_open && isParticipant ? (
+                <>
+                  <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                    Cast your votes ({lastAwards.votes_cast}/{lastAwards.total_voters} voted)
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <VoteDropdown
+                      label="MVP"
+                      emoji="🏆"
+                      voteType="mvp"
+                      players={eligibleForVote}
+                      currentVoteId={myVotes?.mvp_vote?.nominee_id}
+                      onVote={handleVote}
+                    />
+                    <VoteDropdown
+                      label="X Factor"
+                      emoji="⚡"
+                      voteType="xfactor"
+                      players={eligibleForVote}
+                      currentVoteId={myVotes?.xfactor_vote?.nominee_id}
+                      onVote={handleVote}
+                    />
+                    <VoteDropdown
+                      label="Shaqtin'"
+                      emoji="🤦"
+                      voteType="shaqtin"
+                      players={eligibleForVote}
+                      currentVoteId={myVotes?.shaqtin_vote?.nominee_id}
+                      onVote={handleVote}
+                    />
+                  </div>
+                </>
+              ) : !lastAwards.voting_open ? (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <AwardCard label="MVP" emoji="🏆" winner={lastAwards.mvp}
+                    gradient="from-yellow-50 to-amber-50" border="border-yellow-300"
+                    labelColor="text-yellow-700" nameColor="text-yellow-900" />
+                  <AwardCard label="X Factor" emoji="⚡" winner={lastAwards.xfactor}
+                    gradient="from-blue-50 to-indigo-50" border="border-blue-300"
+                    labelColor="text-blue-700" nameColor="text-blue-900" />
+                  <AwardCard label="Shaqtin'" emoji="🤦" winner={lastAwards.shaqtin}
+                    gradient="from-purple-50 to-fuchsia-50" border="border-purple-300"
+                    labelColor="text-purple-700" nameColor="text-purple-900" />
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Voting is open. {lastAwards.votes_cast}/{lastAwards.total_voters} participants have voted.
+                </p>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -242,6 +344,30 @@ export default function DashboardPage() {
           <p className="mt-2 font-medium">My Profile</p>
         </Link>
       </div>
+    </div>
+  );
+}
+
+
+/**
+ * VoteDropdown — dropdown select for casting a vote on the dashboard.
+ */
+function VoteDropdown({ label, emoji, voteType, players, currentVoteId, onVote }) {
+  return (
+    <div>
+      <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 mb-1">
+        {emoji} {label}
+      </label>
+      <select
+        value={currentVoteId || ""}
+        onChange={(e) => onVote(voteType, e.target.value)}
+        className="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 dark:bg-gray-800 dark:text-gray-100 focus:border-court-500 focus:outline-none"
+      >
+        <option value="">Select player...</option>
+        {players.map((p) => (
+          <option key={p.id} value={p.id}>{p.full_name}</option>
+        ))}
+      </select>
     </div>
   );
 }
