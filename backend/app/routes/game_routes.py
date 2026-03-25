@@ -663,6 +663,36 @@ async def generate_teams(
 
     game.status = GameStatus.TEAMS_SET
 
+    # Calculate Vegas-style odds from composite team scores
+    if game.num_teams == 2 and len(balanced_teams) == 2:
+        import math
+
+        def _composite(u):
+            off = (u.avg_offense or 3) / 5
+            dfe = (u.avg_defense or 3) / 5
+            ovr = (u.avg_overall or 3) / 5
+            jf = u.jordan_factor or 0.5
+            ht = min((u.height_inches or 70) / 84, 1)
+            ag = 1 - min(max(((u.age or 30) - 18), 0) / 32, 1)
+            mob = (u.mobility or 3) / 5
+            return ovr * 0.35 + jf * 0.20 + off * 0.15 + dfe * 0.15 + ht * 0.05 + ag * 0.05 + mob * 0.05
+
+        avgs = []
+        for team_players in balanced_teams:
+            scores = [_composite(p) for p in team_players]
+            avgs.append(sum(scores) / len(scores) if scores else 0)
+
+        diff = avgs[0] - avgs[1]
+        prob0 = 1 / (1 + math.exp(-diff * 8))
+        prob1 = 1 - prob0
+
+        def _ml(prob):
+            if prob >= 0.5:
+                return str(round(-prob / (1 - prob) * 100))
+            return "+" + str(round((1 - prob) / prob * 100))
+
+        game.odds_line = f"{team_names[0]} {_ml(prob0)} ({round(prob0*100)}%) | {team_names[1]} {_ml(prob1)} ({round(prob1*100)}%)"
+
     # Notify all players about their team assignments
     team_lookup = {}
     for team_idx, team_players in enumerate(balanced_teams):

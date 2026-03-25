@@ -15,8 +15,58 @@
  */
 
 import { Link } from "react-router-dom";
+import useAuthStore from "../stores/authStore";
 import { getPlayerById } from "../data/legacyPlayers";
 import PixelAvatar from "./PixelAvatar";
+
+/**
+ * Calculate a player's composite score using the same weights as team_balancer.py
+ */
+function playerComposite(user) {
+  const off = (user.avg_offense || 3) / 5;
+  const def = (user.avg_defense || 3) / 5;
+  const ovr = (user.avg_overall || 3) / 5;
+  const jf = user.jordan_factor || 0.5;
+  const height = Math.min((user.height_inches || 70) / 84, 1); // 7ft = 1.0
+  const age = 1 - Math.min(Math.max((user.age || 30) - 18, 0) / 32, 1); // younger slightly better
+  const mob = (user.mobility || 3) / 5;
+  return ovr * 0.35 + jf * 0.20 + off * 0.15 + def * 0.15 + height * 0.05 + age * 0.05 + mob * 0.05;
+}
+
+/**
+ * Calculate Vegas-style odds from two team composite averages.
+ * Returns { favoriteIdx, spread, moneyline, winProb } for each team.
+ */
+function calculateOdds(teamEntries) {
+  if (teamEntries.length !== 2) return null;
+
+  const teamScores = teamEntries.map(([, group]) => {
+    const players = group.players.map((t) => t.user).filter(Boolean);
+    if (players.length === 0) return 0;
+    return players.reduce((sum, u) => sum + playerComposite(u), 0) / players.length;
+  });
+
+  const diff = teamScores[0] - teamScores[1];
+  // Convert composite difference to implied win probability (sigmoid-like)
+  const prob0 = 1 / (1 + Math.exp(-diff * 8)); // scale factor for sensitivity
+  const prob1 = 1 - prob0;
+
+  // Convert to American moneyline
+  const toMoneyline = (prob) => {
+    if (prob >= 0.5) return Math.round(-prob / (1 - prob) * 100);
+    return "+" + Math.round((1 - prob) / prob * 100);
+  };
+
+  // Spread (points-style, scaled to ~5pt range for fun)
+  const spread = (diff * 15).toFixed(1);
+
+  return [
+    { winProb: prob0, moneyline: toMoneyline(prob0), spread: diff >= 0 ? `-${Math.abs(spread)}` : `+${Math.abs(spread)}` },
+    { winProb: prob1, moneyline: toMoneyline(prob1), spread: diff <= 0 ? `-${Math.abs(spread)}` : `+${Math.abs(spread)}` },
+  ];
+}
+
+export { calculateOdds, playerComposite };
 
 // Color palette for team panels — cycles if more teams than colors
 const TEAM_COLORS = [
@@ -47,13 +97,15 @@ function StatBar({ label, value, max = 5.0, color = "#22d3ee" }) {
   );
 }
 
-function JamPlayerCard({ player }) {
+function JamPlayerCard({ player, isAdmin }) {
   const legacy = getPlayerById(player.avatar_url);
   const initial = player.full_name?.charAt(0) || "?";
 
   const bgGradient = legacy
     ? `linear-gradient(160deg, ${legacy.colors[0]}dd, ${legacy.colors[1]}dd)`
     : "linear-gradient(160deg, #374151, #1f2937)";
+
+  const winPct = ((player.jordan_factor || 0.5) * 100).toFixed(0);
 
   return (
     <Link
@@ -89,17 +141,24 @@ function JamPlayerCard({ player }) {
           )}
         </div>
 
-        {/* Stat bars */}
-        <div className="bg-gray-900 px-2 pb-2 space-y-1">
-          <StatBar label="OFF" value={player.avg_offense || 3} max={5} color="#4ade80" />
-          <StatBar label="DEF" value={player.avg_defense || 3} max={5} color="#60a5fa" />
-          <StatBar label="OVR" value={player.avg_overall || 3} max={5} color="#facc15" />
-          <StatBar
-            label="WIN"
-            value={(player.jordan_factor || 0.5) * 100}
-            max={100}
-            color="#f97316"
-          />
+        {/* Player info — visible to all */}
+        <div className="bg-gray-900 px-2 pb-2">
+          <div className="flex justify-between text-[10px] text-gray-400 py-1">
+            {player.height_inches && (
+              <span>{Math.floor(player.height_inches / 12)}'{player.height_inches % 12}"</span>
+            )}
+            {player.age && <span>Age {player.age}</span>}
+            <span className="text-court-500 font-bold">{winPct}% W</span>
+          </div>
+
+          {/* Admin-only stat bars */}
+          {isAdmin && (
+            <div className="space-y-1 mt-1 pt-1 border-t border-gray-700">
+              <StatBar label="OFF" value={player.avg_offense || 3} max={5} color="#4ade80" />
+              <StatBar label="DEF" value={player.avg_defense || 3} max={5} color="#60a5fa" />
+              <StatBar label="OVR" value={player.avg_overall || 3} max={5} color="#facc15" />
+            </div>
+          )}
         </div>
       </div>
     </Link>
@@ -107,6 +166,9 @@ function JamPlayerCard({ player }) {
 }
 
 export default function NbaJamTeams({ teams }) {
+  const userRole = useAuthStore((s) => s.user?.role);
+  const isAdmin = userRole === "super_admin" || userRole === "admin";
+
   // Group assignments by team identifier and collect team names
   const teamGroups = {};
   for (const assignment of teams) {
@@ -120,6 +182,7 @@ export default function NbaJamTeams({ teams }) {
   }
 
   const teamEntries = Object.entries(teamGroups);
+  const odds = calculateOdds(teamEntries);
 
   // Build matchup header
   const teamCounts = teamEntries.map(
@@ -144,6 +207,29 @@ export default function NbaJamTeams({ teams }) {
               </span>
             ))}
           </div>
+
+          {/* Vegas Odds Line */}
+          {odds && (
+            <div className="mt-3 flex items-center justify-center gap-6 text-xs">
+              {teamEntries.map(([, group], idx) => {
+                const o = odds[idx];
+                const isFav = o.winProb > 0.5;
+                return (
+                  <span key={idx} className="flex items-center gap-2">
+                    <span className={`font-black ${isFav ? "text-green-400" : "text-gray-500"}`}>
+                      {group.name}
+                    </span>
+                    <span className={`font-mono font-bold ${isFav ? "text-green-400" : "text-red-400"}`}>
+                      {o.moneyline}
+                    </span>
+                    <span className="text-gray-600">
+                      ({(o.winProb * 100).toFixed(0)}%)
+                    </span>
+                  </span>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         <div className={`grid grid-cols-1 ${
@@ -157,6 +243,8 @@ export default function NbaJamTeams({ teams }) {
               name={group.name}
               color={TEAM_COLORS[idx % TEAM_COLORS.length]}
               players={group.players}
+              isAdmin={isAdmin}
+              odds={odds ? odds[idx] : null}
             />
           ))}
         </div>
@@ -165,7 +253,10 @@ export default function NbaJamTeams({ teams }) {
   );
 }
 
-function JamTeamPanel({ name, color, players }) {
+function JamTeamPanel({ name, color, players, isAdmin, odds }) {
+  const isFav = odds && odds.winProb > 0.5;
+  const isUnderdog = odds && odds.winProb < 0.5;
+
   return (
     <div
       className="rounded-xl overflow-hidden border-2"
@@ -173,19 +264,33 @@ function JamTeamPanel({ name, color, players }) {
     >
       {/* Team Header */}
       <div
-        className="py-2 px-4 text-center"
+        className="py-2 px-4 text-center relative"
         style={{ background: `linear-gradient(135deg, ${color}22, ${color}44)` }}
       >
         <h3 className="text-lg font-black uppercase tracking-[0.2em]" style={{ color }}>
           {name}
         </h3>
+        {odds && (
+          <div className="flex items-center justify-center gap-2 mt-1">
+            <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${
+              isFav ? "bg-green-500/20 text-green-400" :
+              isUnderdog ? "bg-red-500/20 text-red-400" :
+              "bg-gray-500/20 text-gray-400"
+            }`}>
+              {isFav ? "Favorite" : isUnderdog ? "Underdog" : "Even"}
+            </span>
+            <span className="text-[10px] font-mono font-bold text-gray-400">
+              {odds.spread}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Players Grid */}
       <div className="p-3 bg-gray-900">
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           {players.map((t) => (
-            <JamPlayerCard key={t.id} player={t.user} />
+            <JamPlayerCard key={t.id} player={t.user} isAdmin={isAdmin} />
           ))}
         </div>
       </div>

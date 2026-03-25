@@ -105,7 +105,12 @@ class QuickAddPlayer(BaseModel):
 
 
 class UserResponse(BaseModel):
-    """Public user profile returned by the API."""
+    """Public user profile returned by the API.
+
+    Note: mobility, avg_offense, avg_defense, avg_overall are included
+    for admin use (team balancing). The frontend is responsible for
+    hiding these from non-admin users.
+    """
     id: int
     email: str
     username: str

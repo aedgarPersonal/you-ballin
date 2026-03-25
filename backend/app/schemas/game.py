@@ -46,6 +46,7 @@ class GameResponse(BaseModel):
     accepted_count: int
     spots_remaining: int
     commentary: str | None = None
+    odds_line: str | None = None
     created_at: datetime
 
     model_config = {"from_attributes": True}

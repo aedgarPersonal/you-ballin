@@ -115,6 +115,14 @@ export default function GamesPage() {
                   </span>
                 </div>
               </div>
+              {/* Vegas Odds Line */}
+              {game.odds_line && (
+                <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
+                  <span className="text-xs font-mono text-gray-500 dark:text-gray-400">
+                    📊 {game.odds_line}
+                  </span>
+                </div>
+              )}
             </Link>
           ))}
         </div>
