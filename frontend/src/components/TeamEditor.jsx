@@ -1,9 +1,9 @@
 /**
  * TeamEditor — Mobile-friendly drag-and-drop team editor for admins.
- * Allows moving players between teams, removing no-shows, and adding players.
+ * All changes are local until the admin clicks Save.
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { DndContext, PointerSensor, TouchSensor, useSensor, useSensors, DragOverlay, rectIntersection } from "@dnd-kit/core";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import toast from "react-hot-toast";
@@ -31,14 +31,11 @@ function DraggableCard({ assignment, onRemove }) {
         isDragging ? "shadow-lg ring-2 ring-cyan-400" : ""
       }`}
     >
-      {/* Drag handle */}
       <div {...listeners} {...attributes} className="cursor-grab active:cursor-grabbing text-gray-500 hover:text-gray-300 touch-none">
         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
           <path d="M7 2a2 2 0 10.001 4.001A2 2 0 007 2zm0 6a2 2 0 10.001 4.001A2 2 0 007 8zm0 6a2 2 0 10.001 4.001A2 2 0 007 14zm6-8a2 2 0 10-.001-4.001A2 2 0 0013 6zm0 2a2 2 0 10.001 4.001A2 2 0 0013 8zm0 6a2 2 0 10.001 4.001A2 2 0 0013 14z" />
         </svg>
       </div>
-
-      {/* Avatar */}
       {player?.avatar_url ? (
         <AvatarBadge avatarId={player.avatar_url} size="sm" />
       ) : (
@@ -46,16 +43,12 @@ function DraggableCard({ assignment, onRemove }) {
           {player?.full_name?.charAt(0) || "?"}
         </div>
       )}
-
-      {/* Name + stats */}
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-white truncate">{player?.full_name}</p>
         <p className="text-[10px] text-gray-400">
           {((player?.jordan_factor || 0.5) * 100).toFixed(0)}% W
         </p>
       </div>
-
-      {/* Remove button */}
       <button
         onClick={(e) => { e.stopPropagation(); onRemove(); }}
         className="text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity p-1"
@@ -69,7 +62,7 @@ function DraggableCard({ assignment, onRemove }) {
   );
 }
 
-function DroppableColumn({ teamId, teamName, color, children, onAddClick }) {
+function DroppableColumn({ teamId, teamName, color, children, onAddClick, playerCount }) {
   const { isOver, setNodeRef } = useDroppable({ id: teamId });
 
   return (
@@ -84,12 +77,14 @@ function DroppableColumn({ teamId, teamName, color, children, onAddClick }) {
         <h3 className="text-sm font-black uppercase tracking-[0.15em]" style={{ color }}>
           {teamName}
         </h3>
+        <p className="text-[10px] text-gray-500">{playerCount} player{playerCount !== 1 ? "s" : ""}</p>
       </div>
 
-      <div className="p-3 bg-gray-900 space-y-2 min-h-[80px]">
+      <div className="p-3 bg-gray-900 space-y-2 min-h-[100px]">
         {children}
-
-        {/* Add Player button */}
+        {playerCount === 0 && (
+          <p className="text-xs text-gray-600 text-center py-4 italic">Drop players here</p>
+        )}
         <button
           onClick={onAddClick}
           className="w-full flex items-center justify-center gap-2 px-3 py-2 border-2 border-dashed border-gray-600 rounded-lg text-gray-500 hover:text-gray-300 hover:border-gray-400 transition-colors text-sm"
@@ -133,7 +128,7 @@ function AddPlayerModal({ teamName, players, onAdd, onClose }) {
             {filtered.map((p) => (
               <button
                 key={p.id}
-                onClick={() => onAdd(p.id)}
+                onClick={() => onAdd(p.id, p)}
                 className="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-700 transition-colors text-left"
               >
                 {p.avatar_url ? (
@@ -160,17 +155,31 @@ const TEAM_COLORS = [
 ];
 
 export default function TeamEditor({ teams, runId, gameId, onSave, onCancel }) {
+  // Capture the original team structure (team IDs + names) so empty teams persist
+  const teamStructure = useRef({});
+  if (Object.keys(teamStructure.current).length === 0) {
+    for (const a of teams) {
+      if (!teamStructure.current[a.team]) {
+        teamStructure.current[a.team] = a.team_name;
+      }
+    }
+  }
+
   const [localTeams, setLocalTeams] = useState(teams);
+  const [removedIds, setRemovedIds] = useState([]); // assignment IDs to delete on save
+  const [addedPlayers, setAddedPlayers] = useState([]); // { user_id, team, user } objects to add on save
+  const [movedPlayers, setMovedPlayers] = useState({}); // { assignmentId: newTeam } moves to apply on save
   const [availablePlayers, setAvailablePlayers] = useState([]);
-  const [addingTeam, setAddingTeam] = useState(null); // team_id or null
+  const [addingTeam, setAddingTeam] = useState(null);
   const [activeId, setActiveId] = useState(null);
+  const [saving, setSaving] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(TouchSensor, { activationConstraint: { distance: 8 } }),
   );
 
-  // Fetch available players (run members not already assigned)
+  // Fetch available players
   useEffect(() => {
     const assignedIds = new Set(localTeams.map((t) => t.user_id));
     listPlayers(runId, { include_inactive: false })
@@ -181,77 +190,114 @@ export default function TeamEditor({ teams, runId, gameId, onSave, onCancel }) {
       .catch(() => setAvailablePlayers([]));
   }, [runId, localTeams]);
 
-  // Group by team
+  // Build team groups using the fixed structure (so empty teams always appear)
   const teamGroups = {};
+  for (const [teamId, teamName] of Object.entries(teamStructure.current)) {
+    teamGroups[teamId] = { name: teamName, players: [] };
+  }
   for (const a of localTeams) {
     if (!teamGroups[a.team]) teamGroups[a.team] = { name: a.team_name, players: [] };
     teamGroups[a.team].players.push(a);
   }
   const teamEntries = Object.entries(teamGroups);
 
+  const hasChanges = removedIds.length > 0 || addedPlayers.length > 0 || Object.keys(movedPlayers).length > 0;
+
   const handleDragStart = (event) => setActiveId(event.active.id);
 
-  // Custom collision detection: only detect droppable team columns, not draggable cards
   const teamOnlyCollision = (args) => {
     const collisions = rectIntersection(args);
-    // Filter to only droppable columns (team IDs like "team_1", "team_2")
     return collisions.filter((c) => !String(c.id).startsWith("assignment-"));
   };
 
-  const handleDragEnd = async (event) => {
+  const handleDragEnd = (event) => {
     setActiveId(null);
     const { active, over } = event;
     if (!over) return;
 
     const assignment = active.data.current.assignment;
     const targetTeam = over.id;
-
     if (assignment.team === targetTeam) return;
 
-    // Optimistic update
+    // Local-only move
     setLocalTeams((prev) =>
       prev.map((t) =>
         t.id === assignment.id
-          ? { ...t, team: targetTeam, team_name: teamGroups[targetTeam]?.name || targetTeam }
+          ? { ...t, team: targetTeam, team_name: teamStructure.current[targetTeam] || targetTeam }
           : t
       )
     );
 
-    try {
-      await moveTeamAssignment(runId, gameId, assignment.id, targetTeam);
-      toast.success(`${assignment.user.full_name} moved`);
-    } catch (err) {
-      // Revert
-      setLocalTeams((prev) =>
-        prev.map((t) => (t.id === assignment.id ? assignment : t))
+    // Track the move (only for original assignments, not newly added ones)
+    if (typeof assignment.id === "number") {
+      setMovedPlayers((prev) => ({ ...prev, [assignment.id]: targetTeam }));
+    } else {
+      // For added players, update their team in addedPlayers
+      setAddedPlayers((prev) =>
+        prev.map((p) => p._tempId === assignment.id ? { ...p, team: targetTeam } : p)
       );
-      toast.error(err.response?.data?.detail || "Move failed");
     }
   };
 
-  const handleRemove = async (assignment) => {
-    if (!confirm(`Mark ${assignment.user.full_name} as a no-show? They won't get game stats.`)) return;
-
+  const handleRemove = (assignment) => {
+    if (!confirm(`Mark ${assignment.user.full_name} as a no-show?`)) return;
     setLocalTeams((prev) => prev.filter((t) => t.id !== assignment.id));
-    try {
-      await removeTeamAssignment(runId, gameId, assignment.id);
-      toast.success(`${assignment.user.full_name} removed`);
-    } catch (err) {
-      setLocalTeams((prev) => [...prev, assignment]);
-      toast.error(err.response?.data?.detail || "Remove failed");
+
+    if (typeof assignment.id === "number") {
+      setRemovedIds((prev) => [...prev, assignment.id]);
+      // Remove from moves if it was moved
+      setMovedPlayers((prev) => { const n = { ...prev }; delete n[assignment.id]; return n; });
+    } else {
+      // Remove from added players
+      setAddedPlayers((prev) => prev.filter((p) => p._tempId !== assignment.id));
     }
   };
 
-  const handleAdd = async (userId) => {
+  const handleAdd = (userId, playerData) => {
     const team = addingTeam;
     setAddingTeam(null);
 
+    // Check not already in local teams
+    if (localTeams.some((t) => t.user_id === userId)) {
+      toast.error("Player is already on a team");
+      return;
+    }
+
+    const tempId = `temp-${Date.now()}-${userId}`;
+    const fakeAssignment = {
+      id: tempId,
+      game_id: gameId,
+      user_id: userId,
+      team,
+      team_name: teamStructure.current[team] || team,
+      user: playerData,
+    };
+
+    setLocalTeams((prev) => [...prev, fakeAssignment]);
+    setAddedPlayers((prev) => [...prev, { _tempId: tempId, user_id: userId, team }]);
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
     try {
-      const { data } = await addTeamAssignment(runId, gameId, userId, team);
-      setLocalTeams((prev) => [...prev, data]);
-      toast.success(`${data.user.full_name} added`);
+      // 1. Remove no-shows
+      for (const id of removedIds) {
+        await removeTeamAssignment(runId, gameId, id);
+      }
+      // 2. Move players
+      for (const [assignmentId, newTeam] of Object.entries(movedPlayers)) {
+        await moveTeamAssignment(runId, gameId, parseInt(assignmentId), newTeam);
+      }
+      // 3. Add new players
+      for (const p of addedPlayers) {
+        await addTeamAssignment(runId, gameId, p.user_id, p.team);
+      }
+      toast.success("Team changes saved!");
+      onSave();
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Add failed");
+      toast.error(err.response?.data?.detail || "Failed to save changes");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -262,30 +308,40 @@ export default function TeamEditor({ teams, runId, gameId, onSave, onCancel }) {
   return (
     <div className="rounded-2xl p-1 bg-gradient-to-b from-cyan-500 via-cyan-600 to-cyan-700 shadow-2xl shadow-cyan-500/20">
       <div className="bg-gray-950 rounded-xl p-4">
-        {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-black text-cyan-400 uppercase tracking-wider">
             Edit Teams
           </h2>
           <div className="flex gap-2">
-            <button
-              onClick={onCancel}
-              className="text-sm text-gray-400 hover:text-white px-3 py-1.5"
-            >
+            <button onClick={onCancel} className="text-sm text-gray-400 hover:text-white px-3 py-1.5">
               Cancel
             </button>
             <button
-              onClick={onSave}
-              className="text-sm bg-cyan-600 hover:bg-cyan-500 text-white font-semibold px-4 py-1.5 rounded-lg"
+              onClick={handleSave}
+              disabled={saving || !hasChanges}
+              className={`text-sm font-semibold px-4 py-1.5 rounded-lg ${
+                saving || !hasChanges
+                  ? "bg-gray-700 text-gray-500 cursor-not-allowed"
+                  : "bg-cyan-600 hover:bg-cyan-500 text-white"
+              }`}
             >
-              Done
+              {saving ? "Saving..." : hasChanges ? "Save Changes" : "No Changes"}
             </button>
           </div>
         </div>
 
         <p className="text-xs text-gray-500 mb-4">
-          Drag players between teams. Use X to remove no-shows. Use + to add players.
+          Drag players between teams. Changes are saved when you click Save.
         </p>
+
+        {hasChanges && (
+          <div className="text-xs text-cyan-400 mb-3">
+            {Object.keys(movedPlayers).length > 0 && <span>{Object.keys(movedPlayers).length} moved </span>}
+            {removedIds.length > 0 && <span>{removedIds.length} removed </span>}
+            {addedPlayers.length > 0 && <span>{addedPlayers.length} added </span>}
+            — unsaved
+          </div>
+        )}
 
         <DndContext
           sensors={sensors}
@@ -303,6 +359,7 @@ export default function TeamEditor({ teams, runId, gameId, onSave, onCancel }) {
                 teamName={group.name}
                 color={TEAM_COLORS[idx % TEAM_COLORS.length]}
                 onAddClick={() => setAddingTeam(teamId)}
+                playerCount={group.players.length}
               >
                 {group.players.map((assignment) => (
                   <DraggableCard
@@ -328,7 +385,6 @@ export default function TeamEditor({ teams, runId, gameId, onSave, onCancel }) {
         </DndContext>
       </div>
 
-      {/* Add Player Modal */}
       {addingTeam && (
         <AddPlayerModal
           teamName={teamGroups[addingTeam]?.name || addingTeam}
