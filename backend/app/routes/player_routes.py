@@ -49,18 +49,22 @@ def _redact_user(user_response: dict) -> dict:
 async def list_run_players(
     run_id: int,
     search: str | None = None,
+    include_inactive: bool = False,
     skip: int = 0,
     limit: int = 50,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """List all approved players in a specific run."""
+    statuses = [PlayerStatus.REGULAR, PlayerStatus.DROPIN]
+    if include_inactive:
+        statuses.append(PlayerStatus.INACTIVE)
     query = (
         select(User)
         .join(RunMembership, RunMembership.user_id == User.id)
         .where(
             RunMembership.run_id == run_id,
-            RunMembership.player_status.in_([PlayerStatus.REGULAR, PlayerStatus.DROPIN]),
+            RunMembership.player_status.in_(statuses),
         )
     )
 

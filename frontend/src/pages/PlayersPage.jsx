@@ -68,6 +68,7 @@ export default function PlayersPage() {
   const [importText, setImportText] = useState("");
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState(null);
+  const [statusFilters, setStatusFilters] = useState(new Set(["regular", "dropin"]));
   const [showAddPlayer, setShowAddPlayer] = useState(false);
   const [addForm, setAddForm] = useState({
     full_name: "", email: "", phone: "", wins: 0, losses: 0,
@@ -86,7 +87,10 @@ export default function PlayersPage() {
   const fetchPlayers = async () => {
     if (!runId) { setLoading(false); return; }
     try {
-      const { data } = await listPlayers(runId, { search: search || undefined });
+      const { data } = await listPlayers(runId, {
+        search: search || undefined,
+        include_inactive: isAdmin ? true : undefined,
+      });
       setPlayers(data.users);
 
       if (isAdmin && customMetrics.length > 0) {
@@ -164,12 +168,25 @@ export default function PlayersPage() {
     );
   }
 
-  const sortedPlayers = [...players].sort((a, b) => {
+  const filteredPlayers = players.filter((p) => statusFilters.has(p.player_status));
+  const sortedPlayers = [...filteredPlayers].sort((a, b) => {
     if (sortBy === "name") return a.full_name.localeCompare(b.full_name);
     return (b[sortBy] || 0) - (a[sortBy] || 0);
   });
 
   const isRanked = sortBy !== "name";
+
+  const toggleFilter = (status) => {
+    setStatusFilters((prev) => {
+      const next = new Set(prev);
+      if (next.has(status)) next.delete(status);
+      else next.add(status);
+      return next;
+    });
+  };
+
+  const statusCounts = { regular: 0, dropin: 0, inactive: 0 };
+  for (const p of players) statusCounts[p.player_status] = (statusCounts[p.player_status] || 0) + 1;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -212,6 +229,40 @@ export default function PlayersPage() {
             className="input w-48"
           />
         </div>
+      </div>
+
+      {/* Status Filter Chips */}
+      <div className="flex items-center gap-2 mb-4">
+        {[
+          { key: "regular", label: "Regular", color: "green" },
+          { key: "dropin", label: "Drop-in", color: "yellow" },
+          ...(isAdmin ? [{ key: "inactive", label: "Inactive", color: "gray" }] : []),
+        ].map(({ key, label, color }) => {
+          const active = statusFilters.has(key);
+          const count = statusCounts[key] || 0;
+          const colors = {
+            green: active
+              ? "bg-green-100 text-green-800 border-green-400 dark:bg-green-900/30 dark:text-green-400 dark:border-green-600"
+              : "bg-gray-100 text-gray-400 border-gray-300 dark:bg-gray-800 dark:text-gray-500 dark:border-gray-600",
+            yellow: active
+              ? "bg-yellow-100 text-yellow-800 border-yellow-400 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-600"
+              : "bg-gray-100 text-gray-400 border-gray-300 dark:bg-gray-800 dark:text-gray-500 dark:border-gray-600",
+            gray: active
+              ? "bg-gray-200 text-gray-700 border-gray-400 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500"
+              : "bg-gray-100 text-gray-400 border-gray-300 dark:bg-gray-800 dark:text-gray-500 dark:border-gray-600",
+          };
+          return (
+            <button
+              key={key}
+              onClick={() => toggleFilter(key)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold transition-colors ${colors[color]}`}
+            >
+              {active && <span>&#10003;</span>}
+              {label}
+              <span className="opacity-70">({count})</span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Import Modal */}
