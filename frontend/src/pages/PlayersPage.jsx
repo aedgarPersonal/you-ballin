@@ -69,7 +69,10 @@ export default function PlayersPage() {
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState(null);
   const [showAddPlayer, setShowAddPlayer] = useState(false);
-  const [addForm, setAddForm] = useState({ full_name: "", email: "", phone: "", wins: 0, losses: 0 });
+  const [addForm, setAddForm] = useState({
+    full_name: "", email: "", phone: "", wins: 0, losses: 0,
+    height_inches: 70, age: 30, mobility: 3.0, avg_offense: 3.0, avg_defense: 3.0, avg_overall: 3.0,
+  });
   const [adding, setAdding] = useState(false);
 
   // Load custom metrics definitions for this run
@@ -140,7 +143,10 @@ export default function PlayersPage() {
     try {
       await quickAddPlayer(runId, addForm);
       toast.success(`${addForm.full_name} added!`);
-      setAddForm({ full_name: "", email: "", phone: "", wins: 0, losses: 0 });
+      setAddForm({
+        full_name: "", email: "", phone: "", wins: 0, losses: 0,
+        height_inches: 70, age: 30, mobility: 3.0, avg_offense: 3.0, avg_defense: 3.0, avg_overall: 3.0,
+      });
       setShowAddPlayer(false);
       fetchPlayers();
     } catch (err) {
@@ -284,39 +290,95 @@ export default function PlayersPage() {
       {/* Add Player Modal */}
       {showAddPlayer && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl max-w-md w-full shadow-2xl">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="bg-white dark:bg-gray-800 rounded-xl max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 z-10">
               <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Add Player</h2>
               <button onClick={() => setShowAddPlayer(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-white text-2xl leading-none">&times;</button>
             </div>
             <div className="px-6 py-4 space-y-3">
-              <div>
-                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Full Name *</label>
-                <input type="text" value={addForm.full_name} onChange={(e) => setAddForm({ ...addForm, full_name: e.target.value })}
-                  className="input w-full" placeholder="John Doe" />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Email *</label>
-                <input type="email" value={addForm.email} onChange={(e) => setAddForm({ ...addForm, email: e.target.value })}
-                  className="input w-full" placeholder="john@example.com" />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Phone</label>
-                <input type="tel" value={addForm.phone} onChange={(e) => setAddForm({ ...addForm, phone: e.target.value })}
-                  className="input w-full" placeholder="Optional" />
-              </div>
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Wins</label>
-                  <input type="number" min="0" value={addForm.wins} onChange={(e) => setAddForm({ ...addForm, wins: parseInt(e.target.value) || 0 })}
-                    className="input w-full" />
+                <div className="col-span-2">
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Full Name *</label>
+                  <input type="text" value={addForm.full_name} onChange={(e) => setAddForm({ ...addForm, full_name: e.target.value })}
+                    className="input w-full" placeholder="John Doe" />
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Losses</label>
-                  <input type="number" min="0" value={addForm.losses} onChange={(e) => setAddForm({ ...addForm, losses: parseInt(e.target.value) || 0 })}
-                    className="input w-full" />
+                <div className="col-span-2">
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Email *</label>
+                  <input type="email" value={addForm.email} onChange={(e) => setAddForm({ ...addForm, email: e.target.value })}
+                    className="input w-full" placeholder="john@example.com" />
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Phone</label>
+                  <input type="tel" value={addForm.phone} onChange={(e) => setAddForm({ ...addForm, phone: e.target.value })}
+                    className="input w-full" placeholder="Optional" />
                 </div>
               </div>
+
+              <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
+                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Record</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Wins</label>
+                    <input type="number" min="0" value={addForm.wins} onChange={(e) => setAddForm({ ...addForm, wins: parseInt(e.target.value) || 0 })}
+                      className="input w-full" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Losses</label>
+                    <input type="number" min="0" value={addForm.losses} onChange={(e) => setAddForm({ ...addForm, losses: parseInt(e.target.value) || 0 })}
+                      className="input w-full" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
+                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Physical</p>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Height (in)</label>
+                    <input type="number" min="48" max="96" value={addForm.height_inches}
+                      onChange={(e) => setAddForm({ ...addForm, height_inches: parseInt(e.target.value) || 70 })}
+                      className="input w-full" />
+                    <span className="text-[10px] text-gray-400">{formatHeight(addForm.height_inches)}</span>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Age</label>
+                    <input type="number" min="16" max="70" value={addForm.age}
+                      onChange={(e) => setAddForm({ ...addForm, age: parseInt(e.target.value) || 30 })}
+                      className="input w-full" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Mobility</label>
+                    <input type="number" min="1" max="5" step="0.5" value={addForm.mobility}
+                      onChange={(e) => setAddForm({ ...addForm, mobility: parseFloat(e.target.value) || 3.0 })}
+                      className="input w-full" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
+                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Ratings</p>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Offense</label>
+                    <input type="number" min="1" max="5" step="0.5" value={addForm.avg_offense}
+                      onChange={(e) => setAddForm({ ...addForm, avg_offense: parseFloat(e.target.value) || 3.0 })}
+                      className="input w-full" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Defense</label>
+                    <input type="number" min="1" max="5" step="0.5" value={addForm.avg_defense}
+                      onChange={(e) => setAddForm({ ...addForm, avg_defense: parseFloat(e.target.value) || 3.0 })}
+                      className="input w-full" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Overall</label>
+                    <input type="number" min="1" max="5" step="0.5" value={addForm.avg_overall}
+                      onChange={(e) => setAddForm({ ...addForm, avg_overall: parseFloat(e.target.value) || 3.0 })}
+                      className="input w-full" />
+                  </div>
+                </div>
+              </div>
+
               <p className="text-xs text-gray-400 dark:text-gray-500">
                 Default password: <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">Password123</code>
               </p>

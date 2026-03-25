@@ -102,6 +102,12 @@ class QuickAddPlayer(BaseModel):
     phone: str | None = None
     wins: int = Field(default=0, ge=0)
     losses: int = Field(default=0, ge=0)
+    height_inches: int | None = Field(default=70, ge=48, le=96)
+    age: int | None = Field(default=30, ge=16, le=70)
+    mobility: float | None = Field(default=3.0, ge=1.0, le=5.0)
+    avg_offense: float = Field(default=3.0, ge=1.0, le=5.0)
+    avg_defense: float = Field(default=3.0, ge=1.0, le=5.0)
+    avg_overall: float = Field(default=3.0, ge=1.0, le=5.0)
 
 
 class UserResponse(BaseModel):

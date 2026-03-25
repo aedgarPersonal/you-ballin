@@ -533,6 +533,12 @@ async def quick_add_player(
         games_played=games_played,
         games_won=data.wins,
         jordan_factor=jordan_factor,
+        height_inches=data.height_inches,
+        age=data.age,
+        mobility=data.mobility,
+        avg_offense=data.avg_offense,
+        avg_defense=data.avg_defense,
+        avg_overall=data.avg_overall,
     )
     db.add(user)
     await db.flush()
