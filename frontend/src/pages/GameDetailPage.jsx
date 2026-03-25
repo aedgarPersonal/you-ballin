@@ -261,10 +261,19 @@ export default function GameDetailPage() {
         </div>
       )}
 
-      {/* Game Commentary */}
-      {game.status === "completed" && game.commentary && (
+      {/* Game Commentary / Keys to Victory */}
+      {game.commentary && (
         <div className="card mb-6 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700">
-          <p className="text-gray-700 dark:text-gray-300 italic leading-relaxed">{game.commentary}</p>
+          {game.status === "teams_set" && (
+            <h3 className="text-sm font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-3">Keys to Victory</h3>
+          )}
+          <div className="space-y-2">
+            {game.commentary.split("\n").map((line, i) => (
+              <p key={i} className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                {line}
+              </p>
+            ))}
+          </div>
         </div>
       )}
 
