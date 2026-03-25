@@ -19,7 +19,8 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import useAuthStore from "../stores/authStore";
 import useRunStore from "../stores/runStore";
-import { getGame, updateGame, rsvpToGame, generateTeams, recordResult, cancelGame } from "../api/games";
+import { getGame, updateGame, rsvpToGame, generateTeams, recordResult, cancelGame, adminRsvp } from "../api/games";
+import { listPlayers } from "../api/players";
 import { castVote, getMyVotes, getGameAwards } from "../api/votes";
 import NbaJamTeams from "../components/NbaJamTeams";
 import TeamEditor from "../components/TeamEditor";
@@ -476,6 +477,33 @@ export default function GameDetailPage() {
         <div className="card">
           <h2 className="text-lg font-semibold mb-3">Admin Actions</h2>
 
+          {/* Game Status Override */}
+          <div className="flex items-center gap-3 mb-4 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
+            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Status</label>
+            <select
+              value={game.status}
+              onChange={async (e) => {
+                const newStatus = e.target.value;
+                if (!confirm(`Change game status to "${newStatus.replace("_", " ")}"?`)) return;
+                try {
+                  await updateGame(runId, id, { status: newStatus });
+                  toast.success(`Status changed to ${newStatus.replace("_", " ")}`);
+                  fetchGame();
+                } catch (err) {
+                  toast.error(err.response?.data?.detail || "Failed to change status");
+                }
+              }}
+              className="text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-lg px-3 py-1.5"
+            >
+              {["scheduled", "invites_sent", "dropin_open", "teams_set", "completed", "cancelled", "skipped"].map((s) => (
+                <option key={s} value={s}>{s.replace("_", " ")}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Admin RSVP on behalf of player */}
+          <AdminRsvpSection runId={runId} gameId={id} onUpdate={fetchGame} />
+
           {/* Edit Game Form */}
           {editing ? (
             <div className="space-y-3 mb-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
@@ -596,6 +624,90 @@ export default function GameDetailPage() {
     </div>
   );
 }
+
+/**
+ * AdminRsvpSection — Allows admin to RSVP on behalf of players.
+ */
+function AdminRsvpSection({ runId, gameId, onUpdate }) {
+  const [showRsvp, setShowRsvp] = useState(false);
+  const [players, setPlayers] = useState([]);
+  const [search, setSearch] = useState("");
+  const [rsvpStatus, setRsvpStatus] = useState("accepted");
+
+  useEffect(() => {
+    if (!showRsvp || !runId) return;
+    listPlayers(runId, { include_inactive: true })
+      .then(({ data }) => setPlayers(data.users))
+      .catch(() => setPlayers([]));
+  }, [showRsvp, runId]);
+
+  const filtered = players.filter((p) =>
+    p.full_name.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const handleRsvp = async (userId, name) => {
+    try {
+      await adminRsvp(runId, gameId, userId, rsvpStatus);
+      toast.success(`${name} marked as ${rsvpStatus}`);
+      onUpdate();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "RSVP failed");
+    }
+  };
+
+  if (!showRsvp) {
+    return (
+      <button
+        onClick={() => setShowRsvp(true)}
+        className="mb-4 text-sm text-cyan-500 hover:text-cyan-400 font-medium"
+      >
+        + RSVP on behalf of a player
+      </button>
+    );
+  }
+
+  return (
+    <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Admin RSVP</h3>
+        <button onClick={() => setShowRsvp(false)} className="text-gray-400 hover:text-white text-lg leading-none">&times;</button>
+      </div>
+      <div className="flex items-center gap-2 mb-2">
+        <input
+          type="text"
+          placeholder="Search player..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="flex-1 text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 dark:bg-gray-800 dark:text-gray-100"
+        />
+        <select
+          value={rsvpStatus}
+          onChange={(e) => setRsvpStatus(e.target.value)}
+          className="text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 dark:bg-gray-800 dark:text-gray-200"
+        >
+          <option value="accepted">Accept</option>
+          <option value="declined">Decline</option>
+          <option value="waitlist">Waitlist</option>
+        </select>
+      </div>
+      {search && (
+        <div className="max-h-32 overflow-y-auto space-y-1">
+          {filtered.slice(0, 8).map((p) => (
+            <button
+              key={p.id}
+              onClick={() => handleRsvp(p.id, p.full_name)}
+              className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-left text-sm"
+            >
+              <span className="font-medium text-gray-800 dark:text-gray-200">{p.full_name}</span>
+              <span className="text-xs text-gray-400 ml-auto">{p.player_status}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 
 /**
  * VotingCard Component

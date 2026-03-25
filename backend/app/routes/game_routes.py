@@ -30,6 +30,7 @@ from app.models.team import GameResult, TeamAssignment, TeamScore, pick_team_nam
 from app.models.user import PlayerStatus, User
 from app.models.notification import NotificationType
 from app.schemas.game import (
+    AdminRSVPCreate,
     GameCreate,
     GameDetailResponse,
     GameResponse,
@@ -613,6 +614,54 @@ async def get_game_rsvps(
         .order_by(RSVP.responded_at)
     )
     return result.scalars().all()
+
+
+@router.post("/{game_id}/rsvp/admin", response_model=RSVPResponse)
+async def admin_rsvp(
+    run_id: int,
+    game_id: int,
+    data: AdminRSVPCreate,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(require_run_admin()),
+):
+    """RSVP on behalf of a player (admin only). No status restrictions."""
+    game_result = await db.execute(select(Game).where(Game.id == game_id))
+    game = game_result.scalar_one_or_none()
+    if not game or game.run_id != run_id:
+        raise HTTPException(status_code=404, detail="Game not found in this run")
+
+    # Verify user is a run member
+    membership = await db.execute(
+        select(RunMembership).where(
+            RunMembership.run_id == run_id,
+            RunMembership.user_id == data.user_id,
+        )
+    )
+    if not membership.scalar_one_or_none():
+        raise HTTPException(status_code=400, detail="Player is not a member of this run")
+
+    rsvp_status = RSVPStatus(data.status)
+
+    existing = await db.execute(
+        select(RSVP).where(RSVP.game_id == game_id, RSVP.user_id == data.user_id)
+    )
+    rsvp = existing.scalar_one_or_none()
+
+    if rsvp:
+        rsvp.status = rsvp_status
+        rsvp.responded_at = datetime.utcnow()
+    else:
+        rsvp = RSVP(
+            game_id=game_id,
+            user_id=data.user_id,
+            status=rsvp_status,
+            responded_at=datetime.utcnow(),
+        )
+        db.add(rsvp)
+
+    await db.flush()
+    await db.refresh(rsvp, ["user"])
+    return rsvp
 
 
 # =============================================================================

@@ -68,6 +68,12 @@ class RSVPCreate(BaseModel):
     status: str = Field(description="accepted, declined, or waitlist")
 
 
+class AdminRSVPCreate(BaseModel):
+    """Admin RSVPing on behalf of a player."""
+    user_id: int
+    status: str = Field(description="accepted, declined, or waitlist")
+
+
 class RSVPResponse(BaseModel):
     """RSVP data returned by the API."""
     id: int

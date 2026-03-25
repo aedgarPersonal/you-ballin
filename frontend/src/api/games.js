@@ -10,6 +10,8 @@ export const updateGame = (runId, id, data) => api.patch(`/runs/${runId}/games/$
 export const rsvpToGame = (runId, gameId, status) =>
   api.post(`/runs/${runId}/games/${gameId}/rsvp`, { status });
 export const getGameRsvps = (runId, gameId) => api.get(`/runs/${runId}/games/${gameId}/rsvps`);
+export const adminRsvp = (runId, gameId, userId, status) =>
+  api.post(`/runs/${runId}/games/${gameId}/rsvp/admin`, { user_id: userId, status });
 
 export const generateTeams = (runId, gameId) => api.post(`/runs/${runId}/games/${gameId}/teams`);
 export const getTeams = (runId, gameId) => api.get(`/runs/${runId}/games/${gameId}/teams`);
