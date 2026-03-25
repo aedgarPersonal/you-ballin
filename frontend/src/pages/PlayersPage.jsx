@@ -2,6 +2,7 @@
  * Players List Page with Leaderboard
  * ===================================
  * Browse all approved players with sortable leaderboard view.
+ * Admins can import players via a modal and edit ratings inline.
  */
 
 import { useState, useEffect } from "react";
@@ -9,7 +10,7 @@ import { Link } from "react-router-dom";
 import useRunStore from "../stores/runStore";
 import useAuthStore from "../stores/authStore";
 import { listPlayers } from "../api/players";
-import { updatePlayerAdmin } from "../api/admin";
+import { updatePlayerAdmin, importPlayers } from "../api/admin";
 import { listCustomMetrics } from "../api/algorithm";
 import { getPlayerMetrics, updatePlayerMetrics } from "../api/algorithm";
 import { AvatarBadge } from "../components/AvatarPicker";
@@ -29,6 +30,28 @@ const ADMIN_SORT_OPTIONS = [
   { value: "avg_overall", label: "Overall Rating" },
 ];
 
+function formatHeight(inches) {
+  if (!inches) return null;
+  const ft = Math.floor(inches / 12);
+  const rem = inches % 12;
+  return `${ft}'${rem}"`;
+}
+
+function parseImportText(text) {
+  if (!text.trim()) return [];
+  return text
+    .trim()
+    .split("\n")
+    .map((line) => {
+      const parts = line.includes("\t") ? line.split("\t") : line.split(",");
+      const name = (parts[0] || "").trim();
+      const wins = parseInt(parts[1]) || 0;
+      const losses = parseInt(parts[2]) || 0;
+      return name ? { name, wins, losses } : null;
+    })
+    .filter(Boolean);
+}
+
 export default function PlayersPage() {
   const { currentRun, isRunAdmin } = useRunStore();
   const runId = currentRun?.id;
@@ -40,6 +63,10 @@ export default function PlayersPage() {
   const [loading, setLoading] = useState(true);
   const [customMetrics, setCustomMetrics] = useState([]);
   const [playerMetricsMap, setPlayerMetricsMap] = useState({});
+  const [showImport, setShowImport] = useState(false);
+  const [importText, setImportText] = useState("");
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState(null);
 
   // Load custom metrics definitions for this run
   useEffect(() => {
@@ -49,39 +76,56 @@ export default function PlayersPage() {
       .catch(() => setCustomMetrics([]));
   }, [runId, isAdmin]);
 
-  useEffect(() => {
-    if (!runId) {
-      setLoading(false);
-      return;
-    }
-    const fetch = async () => {
-      try {
-        const { data } = await listPlayers(runId, { search: search || undefined });
-        setPlayers(data.users);
+  const fetchPlayers = async () => {
+    if (!runId) { setLoading(false); return; }
+    try {
+      const { data } = await listPlayers(runId, { search: search || undefined });
+      setPlayers(data.users);
 
-        // Load custom metric values for each player if admin and custom metrics exist
-        if (isAdmin && customMetrics.length > 0) {
-          const metricsEntries = await Promise.all(
-            data.users.map(async (p) => {
-              try {
-                const { data: pm } = await getPlayerMetrics(runId, p.id);
-                return [p.id, pm.metrics];
-              } catch {
-                return [p.id, []];
-              }
-            })
-          );
-          setPlayerMetricsMap(Object.fromEntries(metricsEntries));
-        }
-      } catch {
-        setPlayers([]);
-      } finally {
-        setLoading(false);
+      if (isAdmin && customMetrics.length > 0) {
+        const metricsEntries = await Promise.all(
+          data.users.map(async (p) => {
+            try {
+              const { data: pm } = await getPlayerMetrics(runId, p.id);
+              return [p.id, pm.metrics];
+            } catch {
+              return [p.id, []];
+            }
+          })
+        );
+        setPlayerMetricsMap(Object.fromEntries(metricsEntries));
       }
-    };
-    const debounce = setTimeout(fetch, 300);
+    } catch {
+      setPlayers([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const debounce = setTimeout(fetchPlayers, 300);
     return () => clearTimeout(debounce);
   }, [runId, search, isAdmin, customMetrics.length]);
+
+  const handleImport = async () => {
+    const parsed = parseImportText(importText);
+    if (parsed.length === 0) return;
+    if (!confirm(`Import ${parsed.length} player(s) with default password 'Password123'?`)) return;
+    setImporting(true);
+    try {
+      const { data } = await importPlayers(runId, { players: parsed });
+      setImportResult(data);
+      toast.success(`${data.created_count} player(s) imported`);
+      if (data.created_count > 0) {
+        setImportText("");
+        fetchPlayers();
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Import failed");
+    } finally {
+      setImporting(false);
+    }
+  };
 
   if (!currentRun) {
     return (
@@ -93,7 +137,6 @@ export default function PlayersPage() {
 
   const sortedPlayers = [...players].sort((a, b) => {
     if (sortBy === "name") return a.full_name.localeCompare(b.full_name);
-    // Sort descending for numeric stats
     return (b[sortBy] || 0) - (a[sortBy] || 0);
   });
 
@@ -107,6 +150,14 @@ export default function PlayersPage() {
           {currentRun && <p className="text-sm text-court-600">{currentRun.name}</p>}
         </div>
         <div className="flex items-center gap-3">
+          {isAdmin && (
+            <button
+              onClick={() => { setShowImport(true); setImportResult(null); }}
+              className="bg-court-500 hover:bg-court-600 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors"
+            >
+              Import Players
+            </button>
+          )}
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
@@ -126,6 +177,79 @@ export default function PlayersPage() {
         </div>
       </div>
 
+      {/* Import Modal */}
+      {showImport && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl max-w-lg w-full shadow-2xl">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Import Players</h2>
+              <button onClick={() => setShowImport(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-white text-2xl leading-none">&times;</button>
+            </div>
+            <div className="px-6 py-4">
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                Paste player data below (one per line):
+              </p>
+              <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-2 mb-3 text-xs font-mono text-gray-600 dark:text-gray-400 space-y-0.5">
+                <p>Name, Wins, Losses</p>
+                <p>Name{"\t"}Wins{"\t"}Losses</p>
+              </div>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">
+                Players get a random avatar, default password <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">Password123</code>, and Regular status.
+              </p>
+              <textarea
+                rows={10}
+                value={importText}
+                onChange={(e) => setImportText(e.target.value)}
+                className="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 font-mono focus:ring-2 focus:ring-court-500 focus:border-court-500 dark:bg-gray-700 dark:text-gray-200"
+                placeholder={`Bryan, 26, 14\nJulien, 23, 12\nDenis, 23, 17`}
+              />
+              <div className="flex items-center justify-between mt-4">
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                  {parseImportText(importText).length} player(s) detected
+                </span>
+                <button
+                  onClick={handleImport}
+                  disabled={importing || !importText.trim()}
+                  className={`font-medium py-2 px-6 rounded-lg transition-colors ${
+                    importing || !importText.trim()
+                      ? "bg-gray-200 dark:bg-gray-600 text-gray-400 cursor-not-allowed"
+                      : "bg-court-500 hover:bg-court-600 text-white"
+                  }`}
+                >
+                  {importing ? "Importing..." : "Import Players"}
+                </button>
+              </div>
+
+              {/* Import Results */}
+              {importResult && (
+                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <div className="grid grid-cols-2 gap-3 mb-3">
+                    <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-2 text-center">
+                      <div className="text-xl font-bold text-green-700 dark:text-green-400">{importResult.created_count}</div>
+                      <div className="text-xs text-green-600 dark:text-green-500">Created</div>
+                    </div>
+                    <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg p-2 text-center">
+                      <div className="text-xl font-bold text-yellow-700 dark:text-yellow-400">{importResult.skipped_count}</div>
+                      <div className="text-xs text-yellow-600 dark:text-yellow-500">Skipped</div>
+                    </div>
+                  </div>
+                  {importResult.created_players.length > 0 && (
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                      <span className="font-medium text-green-700 dark:text-green-400">Created:</span> {importResult.created_players.join(", ")}
+                    </p>
+                  )}
+                  {importResult.skipped_players.length > 0 && (
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                      <span className="font-medium text-yellow-700 dark:text-yellow-400">Skipped:</span> {importResult.skipped_players.join(", ")}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <p className="text-gray-500 dark:text-gray-400">Loading players...</p>
       ) : (
@@ -136,6 +260,7 @@ export default function PlayersPage() {
               ? { className: "card hover:shadow-md transition-shadow" }
               : { to: `/players/${player.id}`, className: "card hover:shadow-md transition-shadow" };
             const pMetrics = playerMetricsMap[player.id] || [];
+            const height = formatHeight(player.height_inches);
 
             return (
               <Wrapper key={player.id} {...wrapperProps}>
@@ -158,11 +283,21 @@ export default function PlayersPage() {
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-gray-900 dark:text-gray-100 truncate">{player.full_name}</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">@{player.username}</p>
-                    <span className={`badge-${player.player_status} mt-1`}>
-                      {player.player_status}
-                    </span>
+                    <h3 className="font-semibold text-gray-900 dark:text-gray-100 truncate">
+                      {player.full_name}
+                      {player.email && (
+                        <span className="text-xs font-normal text-gray-400 dark:text-gray-500 ml-1">
+                          ({player.email})
+                        </span>
+                      )}
+                    </h3>
+                    <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                      <span className={`badge-${player.player_status}`}>
+                        {player.player_status}
+                      </span>
+                      {height && <span>{height}</span>}
+                      {player.age && <span>Age {player.age}</span>}
+                    </div>
                   </div>
                 </Link>
 
@@ -255,7 +390,6 @@ export default function PlayersPage() {
                               updatePlayerMetrics(runId, player.id, [{ metric_id: m.metric_id, value: val }])
                                 .then(() => {
                                   toast.success("Updated");
-                                  // Update local state
                                   setPlayerMetricsMap((prev) => ({
                                     ...prev,
                                     [player.id]: prev[player.id].map((pm) =>
