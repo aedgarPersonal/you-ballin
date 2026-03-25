@@ -57,6 +57,51 @@ async def subscribe(
     return sub
 
 
+@router.post("/test")
+async def test_push(
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Send a test push notification to the current user's devices."""
+    import asyncio
+    import json as jsonlib
+
+    subs_result = await db.execute(
+        select(PushSubscription).where(PushSubscription.user_id == user.id)
+    )
+    subs = subs_result.scalars().all()
+
+    if not subs:
+        return {"error": "No push subscriptions found", "vapid_private_key_set": bool(settings.vapid_private_key)}
+
+    results = []
+    for sub in subs:
+        try:
+            from pywebpush import webpush, WebPushException
+
+            payload = jsonlib.dumps({
+                "title": "Test Notification",
+                "body": "Push notifications are working!",
+                "url": "/",
+            })
+
+            await asyncio.to_thread(
+                webpush,
+                subscription_info={
+                    "endpoint": sub.endpoint,
+                    "keys": {"p256dh": sub.p256dh_key, "auth": sub.auth_key},
+                },
+                data=payload,
+                vapid_private_key=settings.vapid_private_key,
+                vapid_claims={"sub": settings.vapid_claim_email},
+            )
+            results.append({"endpoint": sub.endpoint[:50], "status": "sent"})
+        except Exception as e:
+            results.append({"endpoint": sub.endpoint[:50], "status": "failed", "error": str(e)})
+
+    return {"subscriptions": len(subs), "results": results, "vapid_key_len": len(settings.vapid_private_key)}
+
+
 @router.post("/unsubscribe")
 async def unsubscribe(
     data: dict,
