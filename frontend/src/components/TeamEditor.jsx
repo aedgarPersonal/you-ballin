@@ -210,31 +210,46 @@ export default function TeamEditor({ teams, runId, gameId, onSave, onCancel }) {
     return collisions.filter((c) => !String(c.id).startsWith("assignment-"));
   };
 
+  // Find original team for an assignment (what the DB currently has)
+  const originalTeamFor = (assignmentId) => {
+    const orig = teams.find((t) => t.id === assignmentId);
+    return orig ? orig.team : null;
+  };
+
   const handleDragEnd = (event) => {
     setActiveId(null);
     const { active, over } = event;
     if (!over) return;
 
-    const assignment = active.data.current.assignment;
+    const assignmentId = active.data.current.assignment.id;
     const targetTeam = over.id;
-    if (assignment.team === targetTeam) return;
+
+    // Use current local state to check current team (not stale drag data)
+    const current = localTeams.find((t) => t.id === assignmentId);
+    if (!current || current.team === targetTeam) return;
 
     // Local-only move
     setLocalTeams((prev) =>
       prev.map((t) =>
-        t.id === assignment.id
+        t.id === assignmentId
           ? { ...t, team: targetTeam, team_name: teamStructure.current[targetTeam] || targetTeam }
           : t
       )
     );
 
-    // Track the move (only for original assignments, not newly added ones)
-    if (typeof assignment.id === "number") {
-      setMovedPlayers((prev) => ({ ...prev, [assignment.id]: targetTeam }));
+    // Track the move for original assignments
+    if (typeof assignmentId === "number") {
+      const origTeam = originalTeamFor(assignmentId);
+      if (origTeam === targetTeam) {
+        // Moved back to original position — remove from pending moves
+        setMovedPlayers((prev) => { const n = { ...prev }; delete n[assignmentId]; return n; });
+      } else {
+        setMovedPlayers((prev) => ({ ...prev, [assignmentId]: targetTeam }));
+      }
     } else {
       // For added players, update their team in addedPlayers
       setAddedPlayers((prev) =>
-        prev.map((p) => p._tempId === assignment.id ? { ...p, team: targetTeam } : p)
+        prev.map((p) => p._tempId === assignmentId ? { ...p, team: targetTeam } : p)
       );
     }
   };
