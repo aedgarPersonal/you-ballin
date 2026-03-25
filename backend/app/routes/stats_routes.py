@@ -4,7 +4,7 @@ Run Stats Routes
 Aggregated stats and leaderboards for a run.
 """
 
-from collections import Counter
+from collections import Counter, defaultdict
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import select, func as sqlfunc
@@ -15,13 +15,15 @@ from app.auth.dependencies import get_current_user
 from app.database import get_db
 from app.models.game import Game, GameStatus, RSVP, RSVPStatus
 from app.models.run import RunMembership, RunPlayerStats
-from app.models.team import GameResult, TeamScore
+from app.models.team import GameResult, TeamAssignment, TeamScore
 from app.models.user import PlayerStatus, User
 from app.models.vote import GameVote, VoteType
 from app.schemas.stats import (
     AwardWinnerInfo,
     LeaderboardEntry,
     Leaderboards,
+    MatchupEntry,
+    MatchupsResponse,
     PersonalStats,
     RecentGameSummary,
     RunOverview,
@@ -102,8 +104,9 @@ async def get_run_stats(
 
     leaderboards = Leaderboards(
         jordan_factor=make_leaderboard(all_stats, "jordan_factor", min_games=3),
-        overall_rating=make_leaderboard(all_stats, "avg_overall", min_games=1),
         mvp_leaders=make_leaderboard(all_stats, "mvp_count"),
+        xfactor_leaders=make_leaderboard(all_stats, "xfactor_count"),
+        shaqtin_leaders=make_leaderboard(all_stats, "shaqtin_count"),
         most_games=make_leaderboard(all_stats, "games_played"),
     )
 
@@ -176,22 +179,15 @@ async def get_run_stats(
     user_stats = user_stats_result.scalar_one_or_none()
 
     if user_stats:
-        # Calculate ranks
         jf_rank = 1 + sum(
             1 for s in all_stats
             if s.games_played >= 3 and s.jordan_factor > user_stats.jordan_factor
-        )
-        ovr_rank = 1 + sum(
-            1 for s in all_stats
-            if s.games_played >= 1 and s.avg_overall > user_stats.avg_overall
         )
         personal = PersonalStats(
             games_played=user_stats.games_played,
             games_won=user_stats.games_won,
             jordan_factor=round(user_stats.jordan_factor, 3),
             jordan_factor_rank=jf_rank,
-            avg_overall=round(user_stats.avg_overall, 1),
-            overall_rank=ovr_rank,
             mvp_count=user_stats.mvp_count,
             xfactor_count=user_stats.xfactor_count,
             shaqtin_count=user_stats.shaqtin_count,
@@ -202,4 +198,106 @@ async def get_run_stats(
         leaderboards=leaderboards,
         recent_games=recent_games,
         personal=personal,
+    )
+
+
+@router.get("/my-matchups", response_model=MatchupsResponse)
+async def get_my_matchups(
+    run_id: int,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get the current user's best teammates and toughest opponents."""
+
+    # Get all completed game IDs in this run
+    completed_ids_result = await db.execute(
+        select(Game.id).where(Game.run_id == run_id, Game.status == GameStatus.COMPLETED)
+    )
+    completed_game_ids = [row[0] for row in completed_ids_result.all()]
+
+    if not completed_game_ids:
+        return MatchupsResponse(best_teammates=[], toughest_opponents=[])
+
+    # Get all team assignments for completed games
+    assignments_result = await db.execute(
+        select(TeamAssignment).where(TeamAssignment.game_id.in_(completed_game_ids))
+    )
+    all_assignments = assignments_result.scalars().all()
+
+    # Group assignments by game
+    game_teams: dict[int, list[tuple[int, str]]] = defaultdict(list)
+    for a in all_assignments:
+        game_teams[a.game_id].append((a.user_id, a.team))
+
+    # Get winning team per game
+    results_result = await db.execute(
+        select(GameResult)
+        .where(GameResult.game_id.in_(completed_game_ids))
+        .options(selectinload(GameResult.team_scores))
+    )
+    game_winners: dict[int, str] = {}
+    for result in results_result.scalars().all():
+        if result.team_scores:
+            winner = max(result.team_scores, key=lambda ts: ts.wins)
+            if winner.wins > 0:
+                game_winners[result.game_id] = winner.team
+
+    # Aggregate teammate and opponent stats
+    teammate_stats: dict[int, dict] = defaultdict(lambda: {"games": 0, "wins": 0})
+    opponent_stats: dict[int, dict] = defaultdict(lambda: {"games": 0, "wins": 0})
+
+    for game_id, players in game_teams.items():
+        user_team = None
+        for uid, team in players:
+            if uid == user.id:
+                user_team = team
+                break
+        if user_team is None:
+            continue
+
+        winning_team = game_winners.get(game_id)
+        user_won = (user_team == winning_team)
+
+        for uid, team in players:
+            if uid == user.id:
+                continue
+            if team == user_team:
+                teammate_stats[uid]["games"] += 1
+                if user_won:
+                    teammate_stats[uid]["wins"] += 1
+            else:
+                opponent_stats[uid]["games"] += 1
+                if user_won:
+                    opponent_stats[uid]["wins"] += 1
+
+    # Load user names for all player IDs we need
+    all_player_ids = set(teammate_stats.keys()) | set(opponent_stats.keys())
+    if not all_player_ids:
+        return MatchupsResponse(best_teammates=[], toughest_opponents=[])
+
+    users_result = await db.execute(
+        select(User).where(User.id.in_(all_player_ids))
+    )
+    user_map = {u.id: u for u in users_result.scalars().all()}
+
+    def build_entries(stats_dict, sort_reverse, min_games=3, top_n=5):
+        entries = []
+        for pid, data in stats_dict.items():
+            if data["games"] < min_games:
+                continue
+            u = user_map.get(pid)
+            entries.append(MatchupEntry(
+                player_id=pid,
+                full_name=u.full_name if u else "Unknown",
+                avatar_url=u.avatar_url if u else None,
+                games=data["games"],
+                wins=data["wins"],
+                win_rate=round(data["wins"] / data["games"], 3),
+            ))
+        entries.sort(key=lambda e: e.win_rate, reverse=sort_reverse)
+        return entries[:top_n]
+
+    return MatchupsResponse(
+        best_teammates=build_entries(teammate_stats, sort_reverse=True),
+        toughest_opponents=build_entries(opponent_stats, sort_reverse=False),
     )

@@ -20,9 +20,13 @@ const SORT_OPTIONS = [
   { value: "jordan_factor", label: "Win Rate" },
   { value: "games_won", label: "Total Wins" },
   { value: "games_played", label: "Games Played" },
-  { value: "avg_overall", label: "Overall Rating" },
   { value: "mvp_count", label: "MVP Awards" },
   { value: "xfactor_count", label: "X Factor Awards" },
+];
+
+const ADMIN_SORT_OPTIONS = [
+  ...SORT_OPTIONS,
+  { value: "avg_overall", label: "Overall Rating" },
 ];
 
 export default function PlayersPage() {
@@ -108,7 +112,7 @@ export default function PlayersPage() {
             onChange={(e) => setSortBy(e.target.value)}
             className="text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-lg px-3 py-2"
           >
-            {SORT_OPTIONS.map((opt) => (
+            {(isAdmin ? ADMIN_SORT_OPTIONS : SORT_OPTIONS).map((opt) => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
           </select>
@@ -196,33 +200,29 @@ export default function PlayersPage() {
                 )}
 
                 {/* Stats Grid */}
-                <div className="grid grid-cols-5 gap-2 mt-3 text-center">
-                  {[
+                <div className={`grid gap-2 mt-3 text-center ${isAdmin ? "grid-cols-5" : "grid-cols-2"}`}>
+                  {isAdmin && [
                     { key: "avg_offense", label: "OFF", val: player.avg_offense, min: 1, max: 5, step: 0.5 },
                     { key: "avg_defense", label: "DEF", val: player.avg_defense, min: 1, max: 5, step: 0.5 },
                     { key: "avg_overall", label: "OVR", val: player.avg_overall, min: 1, max: 5, step: 0.5 },
                   ].map((stat) => (
                     <div key={stat.key}>
-                      {isAdmin ? (
-                        <input
-                          type="number"
-                          step={stat.step}
-                          min={stat.min}
-                          max={stat.max}
-                          defaultValue={stat.val?.toFixed(1)}
-                          onBlur={(e) => {
-                            const val = parseFloat(e.target.value);
-                            if (!isNaN(val) && val !== stat.val) {
-                              updatePlayerAdmin(runId, player.id, { [stat.key]: val })
-                                .then(() => toast.success("Updated"))
-                                .catch(() => toast.error("Failed"));
-                            }
-                          }}
-                          className="w-full text-sm font-bold text-court-600 text-center border border-transparent hover:border-gray-300 dark:hover:border-gray-600 rounded bg-transparent focus:border-court-500 focus:outline-none"
-                        />
-                      ) : (
-                        <div className="text-sm font-bold text-court-600">{stat.val?.toFixed(1)}</div>
-                      )}
+                      <input
+                        type="number"
+                        step={stat.step}
+                        min={stat.min}
+                        max={stat.max}
+                        defaultValue={stat.val?.toFixed(1)}
+                        onBlur={(e) => {
+                          const val = parseFloat(e.target.value);
+                          if (!isNaN(val) && val !== stat.val) {
+                            updatePlayerAdmin(runId, player.id, { [stat.key]: val })
+                              .then(() => toast.success("Updated"))
+                              .catch(() => toast.error("Failed"));
+                          }
+                        }}
+                        className="w-full text-sm font-bold text-court-600 text-center border border-transparent hover:border-gray-300 dark:hover:border-gray-600 rounded bg-transparent focus:border-court-500 focus:outline-none"
+                      />
                       <div className="text-xs text-gray-400 dark:text-gray-500">{stat.label}</div>
                     </div>
                   ))}

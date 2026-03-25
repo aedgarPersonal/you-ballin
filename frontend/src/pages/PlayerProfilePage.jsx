@@ -37,7 +37,9 @@ export default function PlayerProfilePage() {
   const updateUser = useAuthStore((s) => s.updateUser);
 
   const isOwnProfile = currentUser?.id === parseInt(id);
-  const isAdmin = currentUser?.role === "super_admin";
+  const { isRunAdmin } = useRunStore();
+  const isAdmin = currentUser?.role === "super_admin" || currentUser?.role === "admin" || isRunAdmin;
+  const canEditPhysical = isAdmin || isOwnProfile;
 
   useEffect(() => {
     const fetch = async () => {
@@ -163,11 +165,12 @@ export default function PlayerProfilePage() {
       )}
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <StatCard label="Offense" value={summary?.avg_offense?.toFixed(1)} max="5.0" />
-        <StatCard label="Defense" value={summary?.avg_defense?.toFixed(1)} max="5.0" />
-        <StatCard label="Overall" value={summary?.avg_overall?.toFixed(1)} max="5.0" highlight />
+      <div className={`grid gap-4 mb-6 ${isAdmin ? "grid-cols-2 md:grid-cols-4" : "grid-cols-1 md:grid-cols-2"}`}>
+        {isAdmin && <StatCard label="Offense" value={summary?.avg_offense?.toFixed(1)} max="5.0" />}
+        {isAdmin && <StatCard label="Defense" value={summary?.avg_defense?.toFixed(1)} max="5.0" />}
+        {isAdmin && <StatCard label="Overall" value={summary?.avg_overall?.toFixed(1)} max="5.0" highlight />}
         <StatCard label="Win Rate" value={`${((summary?.jordan_factor || 0.5) * 100).toFixed(0)}%`} subtitle={`${summary?.games_won || 0}W - ${(summary?.games_played || 0) - (summary?.games_won || 0)}L`} />
+        <StatCard label="Games" value={summary?.games_played || 0} subtitle={`${summary?.games_won || 0} wins`} />
       </div>
 
       {/* Physical Stats */}
@@ -176,7 +179,7 @@ export default function PlayerProfilePage() {
         <div className="grid grid-cols-3 gap-4">
           <div>
             <p className="text-sm text-gray-500 dark:text-gray-400">Height</p>
-            {isAdmin ? (
+            {canEditPhysical ? (
               <div className="flex items-center gap-1">
                 <input
                   type="number"
@@ -190,7 +193,10 @@ export default function PlayerProfilePage() {
                     const inch = parseInt(inchesEl?.value) || 0;
                     const totalInches = ft * 12 + inch;
                     if (totalInches > 0 && totalInches !== player.height_inches) {
-                      updatePlayerAdmin(runId, player.id, { height_inches: totalInches })
+                      const save = isOwnProfile
+                        ? updateMyProfile({ height_inches: totalInches }).then(() => updateUser({ height_inches: totalInches }))
+                        : updatePlayerAdmin(runId, player.id, { height_inches: totalInches });
+                      save
                         .then(() => { setPlayer({ ...player, height_inches: totalInches }); toast.success("Height updated"); })
                         .catch(() => toast.error("Failed to update"));
                     }
@@ -211,7 +217,10 @@ export default function PlayerProfilePage() {
                     const ft = parseInt(ftEl?.value) || 0;
                     const totalInches = ft * 12 + inch;
                     if (totalInches > 0 && totalInches !== player.height_inches) {
-                      updatePlayerAdmin(runId, player.id, { height_inches: totalInches })
+                      const save = isOwnProfile
+                        ? updateMyProfile({ height_inches: totalInches }).then(() => updateUser({ height_inches: totalInches }))
+                        : updatePlayerAdmin(runId, player.id, { height_inches: totalInches });
+                      save
                         .then(() => { setPlayer({ ...player, height_inches: totalInches }); toast.success("Height updated"); })
                         .catch(() => toast.error("Failed to update"));
                     }
@@ -228,7 +237,7 @@ export default function PlayerProfilePage() {
           </div>
           <div>
             <p className="text-sm text-gray-500 dark:text-gray-400">Age</p>
-            {isAdmin ? (
+            {canEditPhysical ? (
               <input
                 type="number"
                 defaultValue={player.age || ""}
@@ -236,7 +245,10 @@ export default function PlayerProfilePage() {
                 onBlur={(e) => {
                   const val = parseInt(e.target.value);
                   if (val && val !== player.age) {
-                    updatePlayerAdmin(runId, player.id, { age: val })
+                    const save = isOwnProfile
+                      ? updateMyProfile({ age: val }).then(() => updateUser({ age: val }))
+                      : updatePlayerAdmin(runId, player.id, { age: val });
+                    save
                       .then(() => { setPlayer({ ...player, age: val }); toast.success("Age updated"); })
                       .catch(() => toast.error("Failed to update"));
                   }
@@ -247,33 +259,31 @@ export default function PlayerProfilePage() {
               <p className="text-lg font-semibold">{player.age || "N/A"}</p>
             )}
           </div>
+          {isAdmin && (
           <div>
             <p className="text-sm text-gray-500 dark:text-gray-400">Mobility</p>
-            {isAdmin ? (
-              <input
-                type="number"
-                step="0.5"
-                min="1"
-                max="5"
-                defaultValue={player.mobility || ""}
-                placeholder="1-5"
-                onBlur={(e) => {
-                  const val = parseFloat(e.target.value);
-                  if (val && val !== player.mobility) {
-                    updatePlayerAdmin(runId, player.id, { mobility: val })
-                      .then(() => { setPlayer({ ...player, mobility: val }); toast.success("Mobility updated"); })
-                      .catch(() => toast.error("Failed to update"));
-                  }
-                }}
-                className="w-full text-lg font-semibold border border-transparent hover:border-gray-300 dark:hover:border-gray-600 rounded px-1 py-0.5 bg-transparent dark:text-gray-100 focus:border-court-500 focus:outline-none"
-              />
-            ) : (
-              <p className="text-lg font-semibold">{player.mobility?.toFixed(1) || "N/A"} / 5.0</p>
-            )}
+            <input
+              type="number"
+              step="0.5"
+              min="1"
+              max="5"
+              defaultValue={player.mobility || ""}
+              placeholder="1-5"
+              onBlur={(e) => {
+                const val = parseFloat(e.target.value);
+                if (val && val !== player.mobility) {
+                  updatePlayerAdmin(runId, player.id, { mobility: val })
+                    .then(() => { setPlayer({ ...player, mobility: val }); toast.success("Mobility updated"); })
+                    .catch(() => toast.error("Failed to update"));
+                }
+              }}
+              className="w-full text-lg font-semibold border border-transparent hover:border-gray-300 dark:hover:border-gray-600 rounded px-1 py-0.5 bg-transparent dark:text-gray-100 focus:border-court-500 focus:outline-none"
+            />
           </div>
+          )}
         </div>
         <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">
-          {isAdmin ? "Click a value to edit. Changes save on blur." : "Physical stats are maintained by admins."}
+          {canEditPhysical ? "Click a value to edit. Changes save on blur." : "Physical stats are maintained by admins."}
         </p>
       </div>
 

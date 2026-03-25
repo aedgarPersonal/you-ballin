@@ -109,25 +109,6 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Your Ratings */}
-        <div className="card">
-          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Your Ratings</h3>
-          <div className="mt-2 grid grid-cols-3 gap-2 text-center">
-            <div>
-              <div className="text-lg font-bold text-court-600">{user?.avg_offense?.toFixed(1)}</div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">Offense</div>
-            </div>
-            <div>
-              <div className="text-lg font-bold text-court-600">{user?.avg_defense?.toFixed(1)}</div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">Defense</div>
-            </div>
-            <div>
-              <div className="text-lg font-bold text-court-600">{user?.avg_overall?.toFixed(1)}</div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">Overall</div>
-            </div>
-          </div>
-        </div>
-
         {/* Win Rate */}
         <div className="card">
           <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Win Rate</h3>

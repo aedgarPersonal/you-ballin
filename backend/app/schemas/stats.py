@@ -25,8 +25,9 @@ class LeaderboardEntry(BaseModel):
 
 class Leaderboards(BaseModel):
     jordan_factor: list[LeaderboardEntry]
-    overall_rating: list[LeaderboardEntry]
     mvp_leaders: list[LeaderboardEntry]
+    xfactor_leaders: list[LeaderboardEntry]
+    shaqtin_leaders: list[LeaderboardEntry]
     most_games: list[LeaderboardEntry]
 
 
@@ -56,11 +57,23 @@ class PersonalStats(BaseModel):
     games_won: int
     jordan_factor: float
     jordan_factor_rank: int
-    avg_overall: float
-    overall_rank: int
     mvp_count: int
     xfactor_count: int
     shaqtin_count: int
+
+
+class MatchupEntry(BaseModel):
+    player_id: int
+    full_name: str
+    avatar_url: str | None
+    games: int
+    wins: int
+    win_rate: float
+
+
+class MatchupsResponse(BaseModel):
+    best_teammates: list[MatchupEntry]
+    toughest_opponents: list[MatchupEntry]
 
 
 class RunStatsResponse(BaseModel):

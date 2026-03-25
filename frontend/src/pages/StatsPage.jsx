@@ -1,14 +1,14 @@
 /**
  * Stats Page
  * ==========
- * Run-level stats dashboard with leaderboards, recent games, and personal stats.
+ * Run-level stats dashboard with leaderboards, recent games, personal stats, and matchups.
  */
 
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import useAuthStore from "../stores/authStore";
 import useRunStore from "../stores/runStore";
-import { getRunStats } from "../api/stats";
+import { getRunStats, getMyMatchups } from "../api/stats";
 import { AvatarBadge } from "../components/AvatarPicker";
 
 export default function StatsPage() {
@@ -16,6 +16,7 @@ export default function StatsPage() {
   const { currentRun } = useRunStore();
   const runId = currentRun?.id;
   const [stats, setStats] = useState(null);
+  const [matchups, setMatchups] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -25,8 +26,12 @@ export default function StatsPage() {
     }
     const fetchStats = async () => {
       try {
-        const { data } = await getRunStats(runId);
-        setStats(data);
+        const [statsRes, matchupsRes] = await Promise.all([
+          getRunStats(runId),
+          getMyMatchups(runId).catch(() => ({ data: null })),
+        ]);
+        setStats(statsRes.data);
+        setMatchups(matchupsRes.data);
       } catch {
         setStats(null);
       } finally {
@@ -70,7 +75,7 @@ export default function StatsPage() {
       {stats.personal && (
         <div className="card mb-6 border-2 border-court-300 dark:border-court-700">
           <h2 className="text-sm font-semibold text-court-600 uppercase tracking-wide mb-3">Your Stats</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
             <div className="text-center">
               <div className="text-2xl font-bold text-court-600">
                 {(stats.personal.jordan_factor * 100).toFixed(0)}%
@@ -85,11 +90,6 @@ export default function StatsPage() {
               <div className="text-xs text-gray-500 dark:text-gray-400">W-L Record</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-court-600">{stats.personal.avg_overall.toFixed(1)}</div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">Overall Rating</div>
-              <div className="text-xs text-gray-400 dark:text-gray-500">Rank #{stats.personal.overall_rank}</div>
-            </div>
-            <div className="text-center">
               <div className="text-2xl font-bold text-yellow-600">
                 {stats.personal.mvp_count}
               </div>
@@ -101,6 +101,80 @@ export default function StatsPage() {
               </div>
               <div className="text-xs text-gray-500 dark:text-gray-400">X Factors</div>
             </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-purple-600">
+                {stats.personal.shaqtin_count}
+              </div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">Shaqtin'</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Your Matchups */}
+      {matchups && (matchups.best_teammates.length > 0 || matchups.toughest_opponents.length > 0) && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <div className="card">
+            <h3 className="text-sm font-semibold text-green-600 dark:text-green-400 uppercase tracking-wide mb-3">
+              Best Teammates
+            </h3>
+            {matchups.best_teammates.length === 0 ? (
+              <p className="text-sm text-gray-400 italic">Not enough games yet</p>
+            ) : (
+              <div className="space-y-2">
+                {matchups.best_teammates.map((m) => (
+                  <Link
+                    key={m.player_id}
+                    to={`/players/${m.player_id}`}
+                    className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+                  >
+                    {m.avatar_url ? (
+                      <AvatarBadge avatarId={m.avatar_url} size="sm" />
+                    ) : (
+                      <div className="w-7 h-7 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600 font-bold text-xs">
+                        {m.full_name.charAt(0)}
+                      </div>
+                    )}
+                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate flex-1">
+                      {m.full_name}
+                    </span>
+                    <span className="text-sm font-bold text-green-600">{(m.win_rate * 100).toFixed(0)}%</span>
+                    <span className="text-xs text-gray-400">{m.wins}W-{m.games - m.wins}L</span>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="card">
+            <h3 className="text-sm font-semibold text-red-600 dark:text-red-400 uppercase tracking-wide mb-3">
+              Toughest Opponents
+            </h3>
+            {matchups.toughest_opponents.length === 0 ? (
+              <p className="text-sm text-gray-400 italic">Not enough games yet</p>
+            ) : (
+              <div className="space-y-2">
+                {matchups.toughest_opponents.map((m) => (
+                  <Link
+                    key={m.player_id}
+                    to={`/players/${m.player_id}`}
+                    className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+                  >
+                    {m.avatar_url ? (
+                      <AvatarBadge avatarId={m.avatar_url} size="sm" />
+                    ) : (
+                      <div className="w-7 h-7 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600 font-bold text-xs">
+                        {m.full_name.charAt(0)}
+                      </div>
+                    )}
+                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate flex-1">
+                      {m.full_name}
+                    </span>
+                    <span className="text-sm font-bold text-red-600">{(m.win_rate * 100).toFixed(0)}%</span>
+                    <span className="text-xs text-gray-400">{m.wins}W-{m.games - m.wins}L</span>
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -123,22 +197,29 @@ export default function StatsPage() {
 
       {/* Leaderboards */}
       <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Leaderboards</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         <LeaderboardCard
           title="Win Rate"
           entries={stats.leaderboards.jordan_factor}
           formatValue={(v) => `${(v * 100).toFixed(0)}%`}
         />
         <LeaderboardCard
-          title="Overall Rating"
-          entries={stats.leaderboards.overall_rating}
-          formatValue={(v) => v.toFixed(1)}
-        />
-        <LeaderboardCard
           title="MVP Awards"
           entries={stats.leaderboards.mvp_leaders}
           formatValue={(v) => `${v}`}
           emoji="🏆"
+        />
+        <LeaderboardCard
+          title="X Factor Awards"
+          entries={stats.leaderboards.xfactor_leaders}
+          formatValue={(v) => `${v}`}
+          emoji="⚡"
+        />
+        <LeaderboardCard
+          title="Shaqtin' Awards"
+          entries={stats.leaderboards.shaqtin_leaders}
+          formatValue={(v) => `${v}`}
+          emoji="🤦"
         />
         <LeaderboardCard
           title="Most Games"
