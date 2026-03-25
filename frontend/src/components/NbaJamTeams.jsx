@@ -270,17 +270,12 @@ function JamTeamPanel({ name, color, players, isAdmin, odds }) {
         <h3 className="text-lg font-black uppercase tracking-[0.2em]" style={{ color }}>
           {name}
         </h3>
-        {odds && (
-          <div className="flex items-center justify-center gap-2 mt-1">
+        {odds && (isFav || isUnderdog) && (
+          <div className="mt-1">
             <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${
-              isFav ? "bg-green-500/20 text-green-400" :
-              isUnderdog ? "bg-red-500/20 text-red-400" :
-              "bg-gray-500/20 text-gray-400"
+              isFav ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"
             }`}>
-              {isFav ? "Favorite" : isUnderdog ? "Underdog" : "Even"}
-            </span>
-            <span className="text-[10px] font-mono font-bold text-gray-400">
-              {odds.spread}
+              {isFav ? "Favorite" : "Underdog"}
             </span>
           </div>
         )}
