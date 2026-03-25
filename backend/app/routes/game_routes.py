@@ -716,43 +716,43 @@ async def generate_teams(
             other = stats[1 - i]
             points = []
 
-            # Offensive advantage
+            # Offensive advantage (team-level only, no individual ratings)
             if s["off"] > other["off"] + 0.2:
-                points.append(f"Push the pace — {s['best_off'].full_name} leads a scoring edge ({s['off']:.1f} vs {other['off']:.1f} avg offense)")
+                points.append("Push the pace — this squad has a clear offensive edge")
             elif s["off"] > other["off"]:
-                points.append(f"Move the ball — slight offensive edge with {s['best_off'].full_name} as the go-to scorer")
+                points.append("Move the ball — slight scoring advantage when the offense clicks")
 
-            # Defensive advantage
+            # Defensive advantage (team-level only)
             if s["def"] > other["def"] + 0.2:
-                points.append(f"Lock down on D — {s['best_def'].full_name} anchors a defensive wall ({s['def']:.1f} vs {other['def']:.1f} avg defense)")
+                points.append("Lock down on D — this team's defensive identity is their weapon")
             elif s["def"] > other["def"]:
-                points.append(f"Stay disciplined on defense — {s['best_def'].full_name} sets the tone")
+                points.append("Stay disciplined on defense — the edge is there if they commit")
 
             # Height advantage
             if s["height"] > other["height"] + 1:
                 points.append(f"Dominate the boards — size advantage ({s['height']:.0f}\" vs {other['height']:.0f}\" avg height)")
 
-            # Mobility advantage
+            # Mobility advantage (team-level only)
             if s["mob"] > other["mob"] + 0.3:
-                points.append("Run the fast break — superior speed and agility")
+                points.append("Run the fast break — superior team speed and agility")
 
             # Depth advantage
             if s["size"] > other["size"]:
                 points.append(f"Use the bench — {s['size']} players means fresher legs")
 
-            # Clutch factor
+            # Clutch factor (win rate is public info)
             if s["jf"] > other["jf"] + 0.05:
                 points.append(f"Trust the closer — {s['best_jf'].full_name} has a {(s['best_jf'].jordan_factor or 0.5)*100:.0f}% win rate")
 
-            # MVP firepower
+            # MVP firepower (award counts are public)
             if s["mvps"] > other["mvps"] and s["mvps"] > 0:
-                points.append(f"Star power — {s['mvps']} combined MVP awards")
+                points.append(f"Star power — {s['mvps']} combined MVP awards on the roster")
 
             # Underdog grit
             if not points:
                 if s["jf"] < other["jf"]:
                     points.append("Play with nothing to lose — underdogs bite hardest")
-                    points.append(f"Rally behind {s['best_ovr'].full_name if hasattr(s, 'best_ovr') else s['best_off'].full_name} and keep it close")
+                    points.append("Keep it physical and grind out every possession")
                 else:
                     points.append("Stay balanced and execute — no single weakness to exploit")
 
