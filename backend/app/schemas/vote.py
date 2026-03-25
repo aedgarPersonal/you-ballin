@@ -51,6 +51,7 @@ class GameAwardsResponse(BaseModel):
     mvp: AwardWinner | None = None
     shaqtin: AwardWinner | None = None
     xfactor: AwardWinner | None = None
+    commentary: str | None = None
 
 
 class RecentGameAwards(BaseModel):

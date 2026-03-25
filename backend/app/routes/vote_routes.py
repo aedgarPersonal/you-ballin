@@ -259,6 +259,8 @@ async def get_game_awards(
         response.shaqtin = await _get_winner(db, game_id, VoteType.SHAQTIN)
         response.xfactor = await _get_winner(db, game_id, VoteType.XFACTOR)
 
+        response.commentary = game.commentary
+
     return response
 
 

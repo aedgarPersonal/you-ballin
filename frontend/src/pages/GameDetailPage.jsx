@@ -261,6 +261,13 @@ export default function GameDetailPage() {
         </div>
       )}
 
+      {/* Game Commentary */}
+      {game.status === "completed" && game.commentary && (
+        <div className="card mb-6 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700">
+          <p className="text-gray-700 dark:text-gray-300 italic leading-relaxed">{game.commentary}</p>
+        </div>
+      )}
+
       {/* Cancelled Banner */}
       {game.status === "cancelled" && (
         <div className="card mb-6 border-2 border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20">

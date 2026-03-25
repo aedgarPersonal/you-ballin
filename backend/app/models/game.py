@@ -61,6 +61,7 @@ class Game(Base):
     )
     roster_size: Mapped[int] = mapped_column(Integer, default=16)  # Total player slots
     num_teams: Mapped[int] = mapped_column(Integer, default=2)    # How many teams to create
+    commentary: Mapped[str | None] = mapped_column(Text, nullable=True)  # Post-game recap
 
     # --- Timestamps ---
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
