@@ -98,7 +98,7 @@ class AdminUserUpdate(BaseModel):
 class QuickAddPlayer(BaseModel):
     """Quick add a single player to a run."""
     full_name: str = Field(min_length=1, max_length=200)
-    email: str | None = None
+    email: str = Field(min_length=3, max_length=255)
     phone: str | None = None
     wins: int = Field(default=0, ge=0)
     losses: int = Field(default=0, ge=0)
@@ -149,6 +149,7 @@ class UserListResponse(BaseModel):
 class ImportPlayerEntry(BaseModel):
     """A single player to import."""
     name: str = Field(min_length=1, max_length=200)
+    email: str = Field(min_length=3, max_length=255)
     wins: int = Field(default=0, ge=0)
     losses: int = Field(default=0, ge=0)
 

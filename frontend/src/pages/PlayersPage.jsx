@@ -10,7 +10,7 @@ import { Link } from "react-router-dom";
 import useRunStore from "../stores/runStore";
 import useAuthStore from "../stores/authStore";
 import { listPlayers } from "../api/players";
-import { updatePlayerAdmin, importPlayers } from "../api/admin";
+import { updatePlayerAdmin, importPlayers, quickAddPlayer } from "../api/admin";
 import { listCustomMetrics } from "../api/algorithm";
 import { getPlayerMetrics, updatePlayerMetrics } from "../api/algorithm";
 import { AvatarBadge } from "../components/AvatarPicker";
@@ -45,9 +45,10 @@ function parseImportText(text) {
     .map((line) => {
       const parts = line.includes("\t") ? line.split("\t") : line.split(",");
       const name = (parts[0] || "").trim();
-      const wins = parseInt(parts[1]) || 0;
-      const losses = parseInt(parts[2]) || 0;
-      return name ? { name, wins, losses } : null;
+      const email = (parts[1] || "").trim();
+      const wins = parseInt(parts[2]) || 0;
+      const losses = parseInt(parts[3]) || 0;
+      return name && email ? { name, email, wins, losses } : null;
     })
     .filter(Boolean);
 }
@@ -67,6 +68,9 @@ export default function PlayersPage() {
   const [importText, setImportText] = useState("");
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState(null);
+  const [showAddPlayer, setShowAddPlayer] = useState(false);
+  const [addForm, setAddForm] = useState({ full_name: "", email: "", phone: "", wins: 0, losses: 0 });
+  const [adding, setAdding] = useState(false);
 
   // Load custom metrics definitions for this run
   useEffect(() => {
@@ -127,6 +131,25 @@ export default function PlayersPage() {
     }
   };
 
+  const handleAddPlayer = async () => {
+    if (!addForm.full_name.trim() || !addForm.email.trim()) {
+      toast.error("Name and email are required");
+      return;
+    }
+    setAdding(true);
+    try {
+      await quickAddPlayer(runId, addForm);
+      toast.success(`${addForm.full_name} added!`);
+      setAddForm({ full_name: "", email: "", phone: "", wins: 0, losses: 0 });
+      setShowAddPlayer(false);
+      fetchPlayers();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Failed to add player");
+    } finally {
+      setAdding(false);
+    }
+  };
+
   if (!currentRun) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-8 text-center">
@@ -151,12 +174,20 @@ export default function PlayersPage() {
         </div>
         <div className="flex items-center gap-3">
           {isAdmin && (
-            <button
-              onClick={() => { setShowImport(true); setImportResult(null); }}
-              className="bg-court-500 hover:bg-court-600 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors"
-            >
-              Import Players
-            </button>
+            <>
+              <button
+                onClick={() => setShowAddPlayer(true)}
+                className="bg-green-600 hover:bg-green-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors"
+              >
+                Add Player
+              </button>
+              <button
+                onClick={() => { setShowImport(true); setImportResult(null); }}
+                className="bg-court-500 hover:bg-court-600 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors"
+              >
+                Import Players
+              </button>
+            </>
           )}
           <select
             value={sortBy}
@@ -190,18 +221,18 @@ export default function PlayersPage() {
                 Paste player data below (one per line):
               </p>
               <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-2 mb-3 text-xs font-mono text-gray-600 dark:text-gray-400 space-y-0.5">
-                <p>Name, Wins, Losses</p>
-                <p>Name{"\t"}Wins{"\t"}Losses</p>
+                <p>Name, Email, Wins, Losses</p>
+                <p>Name{"\t"}Email{"\t"}Wins{"\t"}Losses</p>
               </div>
               <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">
-                Players get a random avatar, default password <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">Password123</code>, and Regular status.
+                Email is required and must be unique. Players get a random avatar, default password <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">Password123</code>, and Regular status.
               </p>
               <textarea
                 rows={10}
                 value={importText}
                 onChange={(e) => setImportText(e.target.value)}
                 className="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 font-mono focus:ring-2 focus:ring-court-500 focus:border-court-500 dark:bg-gray-700 dark:text-gray-200"
-                placeholder={`Bryan, 26, 14\nJulien, 23, 12\nDenis, 23, 17`}
+                placeholder={`Bryan, bryan@email.com, 26, 14\nJulien, julien@email.com, 23, 12\nDenis, denis@email.com, 23, 17`}
               />
               <div className="flex items-center justify-between mt-4">
                 <span className="text-sm text-gray-500 dark:text-gray-400">
@@ -245,6 +276,61 @@ export default function PlayersPage() {
                   )}
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Player Modal */}
+      {showAddPlayer && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl max-w-md w-full shadow-2xl">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Add Player</h2>
+              <button onClick={() => setShowAddPlayer(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-white text-2xl leading-none">&times;</button>
+            </div>
+            <div className="px-6 py-4 space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Full Name *</label>
+                <input type="text" value={addForm.full_name} onChange={(e) => setAddForm({ ...addForm, full_name: e.target.value })}
+                  className="input w-full" placeholder="John Doe" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Email *</label>
+                <input type="email" value={addForm.email} onChange={(e) => setAddForm({ ...addForm, email: e.target.value })}
+                  className="input w-full" placeholder="john@example.com" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Phone</label>
+                <input type="tel" value={addForm.phone} onChange={(e) => setAddForm({ ...addForm, phone: e.target.value })}
+                  className="input w-full" placeholder="Optional" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Wins</label>
+                  <input type="number" min="0" value={addForm.wins} onChange={(e) => setAddForm({ ...addForm, wins: parseInt(e.target.value) || 0 })}
+                    className="input w-full" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Losses</label>
+                  <input type="number" min="0" value={addForm.losses} onChange={(e) => setAddForm({ ...addForm, losses: parseInt(e.target.value) || 0 })}
+                    className="input w-full" />
+                </div>
+              </div>
+              <p className="text-xs text-gray-400 dark:text-gray-500">
+                Default password: <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">Password123</code>
+              </p>
+              <div className="flex justify-end gap-2 pt-2">
+                <button onClick={() => setShowAddPlayer(false)} className="btn-secondary text-sm py-2 px-4">Cancel</button>
+                <button onClick={handleAddPlayer} disabled={adding || !addForm.full_name.trim() || !addForm.email.trim()}
+                  className={`font-medium py-2 px-6 rounded-lg text-sm transition-colors ${
+                    adding || !addForm.full_name.trim() || !addForm.email.trim()
+                      ? "bg-gray-200 dark:bg-gray-600 text-gray-400 cursor-not-allowed"
+                      : "bg-green-600 hover:bg-green-700 text-white"
+                  }`}>
+                  {adding ? "Adding..." : "Add Player"}
+                </button>
+              </div>
             </div>
           </div>
         </div>

@@ -408,19 +408,22 @@ async def import_players(
 
     for entry in data.players:
         name = entry.name.strip()
-        # Generate username and email from the player's name
+        email = entry.email.strip().lower()
+        # Generate username from the player's name
         username = name.lower().replace(" ", "").replace("'", "")
-        email = f"{username}@youballin.app"
 
-        # Check if username or email already exists
+        # Check if email already exists (email is the uniqueness key)
         existing = await db.execute(
-            select(User).where(
-                (User.username == username) | (User.email == email)
-            )
+            select(User).where(User.email == email)
         )
         if existing.scalar_one_or_none():
-            skipped.append(f"{name} (already exists as '{username}')")
+            skipped.append(f"{name} ({email} already exists)")
             continue
+
+        # If username conflicts, append a number
+        uname_check = await db.execute(select(User).where(User.username == username))
+        if uname_check.scalar_one_or_none():
+            username = f"{username}{random.randint(1, 999)}"
 
         # Pick a random avatar that hasn't been used in this batch yet
         available = [a for a in AVATAR_IDS if a not in used_avatars]
@@ -495,19 +498,20 @@ async def quick_add_player(
     member of the run. If no email is provided, generates one from the name.
     """
     name = data.full_name.strip()
+    email = data.email.strip().lower()
     username = name.lower().replace(" ", "").replace("'", "")
 
-    if data.email:
-        email = data.email.strip()
-    else:
-        email = f"{username}@youballin.app"
-
-    # Check for existing user
+    # Check if email already exists (email is the uniqueness key)
     existing = await db.execute(
-        select(User).where((User.username == username) | (User.email == email))
+        select(User).where(User.email == email)
     )
     if existing.scalar_one_or_none():
-        raise HTTPException(status_code=400, detail=f"User '{username}' or email '{email}' already exists")
+        raise HTTPException(status_code=400, detail=f"A player with email '{email}' already exists")
+
+    # If username conflicts, append a number
+    uname_check = await db.execute(select(User).where(User.username == username))
+    if uname_check.scalar_one_or_none():
+        username = f"{username}{random.randint(1, 999)}"
 
     # Pick random avatar
     available = [a for a in AVATAR_IDS]
