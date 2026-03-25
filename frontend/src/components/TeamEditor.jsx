@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect } from "react";
-import { DndContext, PointerSensor, TouchSensor, useSensor, useSensors, DragOverlay } from "@dnd-kit/core";
+import { DndContext, PointerSensor, TouchSensor, useSensor, useSensors, DragOverlay, rectIntersection } from "@dnd-kit/core";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import toast from "react-hot-toast";
 import { moveTeamAssignment, removeTeamAssignment, addTeamAssignment } from "../api/games";
@@ -191,22 +191,20 @@ export default function TeamEditor({ teams, runId, gameId, onSave, onCancel }) {
 
   const handleDragStart = (event) => setActiveId(event.active.id);
 
+  // Custom collision detection: only detect droppable team columns, not draggable cards
+  const teamOnlyCollision = (args) => {
+    const collisions = rectIntersection(args);
+    // Filter to only droppable columns (team IDs like "team_1", "team_2")
+    return collisions.filter((c) => !String(c.id).startsWith("assignment-"));
+  };
+
   const handleDragEnd = async (event) => {
     setActiveId(null);
     const { active, over } = event;
     if (!over) return;
 
     const assignment = active.data.current.assignment;
-
-    // Determine target team: if dropped on a droppable column, use its ID directly.
-    // If dropped on another draggable card, find what team that card belongs to.
-    let targetTeam = over.id;
-    if (String(targetTeam).startsWith("assignment-")) {
-      // Dropped on a player card — find their team
-      const targetAssignment = localTeams.find((t) => `assignment-${t.id}` === targetTeam);
-      if (targetAssignment) targetTeam = targetAssignment.team;
-      else return;
-    }
+    const targetTeam = over.id;
 
     if (assignment.team === targetTeam) return;
 
@@ -291,6 +289,7 @@ export default function TeamEditor({ teams, runId, gameId, onSave, onCancel }) {
 
         <DndContext
           sensors={sensors}
+          collisionDetection={teamOnlyCollision}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
