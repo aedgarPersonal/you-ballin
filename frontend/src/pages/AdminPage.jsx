@@ -108,6 +108,10 @@ export default function AdminPage() {
   const [importing, setImporting] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
 
+  // Admin players table state
+  const [adminStatusFilters, setAdminStatusFilters] = useState(new Set(["regular", "dropin", "inactive"]));
+  const [adminSort, setAdminSort] = useState({ key: "full_name", dir: "asc" });
+
   // Quick Add Player state
   const [showAddPlayer, setShowAddPlayer] = useState(false);
   const [addForm, setAddForm] = useState({
@@ -813,126 +817,141 @@ export default function AdminPage() {
             </div>
           )}
 
-          {/* Players Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead>
-                <tr className="border-b border-gray-200 dark:border-gray-700">
-                  <th className="py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Name</th>
-                  <th className="py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Email</th>
-                  <th className="py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Status</th>
-                  <th className="py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Height</th>
-                  <th className="py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Age</th>
-                  <th className="py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Mobility</th>
-                  <th className="py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">GP</th>
-                  <th className="py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">W</th>
-                  {isSuperAdmin && (
-                    <th className="py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Role</th>
-                  )}
-                </tr>
-              </thead>
-              <tbody>
-                {players.map((player) => (
-                  <tr key={player.id} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
-                    <td className="py-3 px-4">
-                      <input
-                        type="text"
-                        defaultValue={player.full_name}
-                        onBlur={(e) => {
-                          const val = e.target.value.trim();
-                          if (val && val !== player.full_name) handleUpdatePlayer(player.id, "full_name", val);
-                        }}
-                        className="w-32 text-sm font-medium border border-transparent hover:border-gray-300 dark:hover:border-gray-600 rounded px-2 py-1 bg-transparent dark:bg-transparent dark:text-gray-200 focus:border-gray-300 dark:focus:border-gray-600 focus:bg-white dark:focus:bg-gray-700"
-                      />
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className="text-xs text-gray-500 dark:text-gray-400">{player.email}</span>
-                    </td>
-                    <td className="py-3 px-4">
-                      <select
-                        value={player.player_status}
-                        onChange={(e) => handleUpdatePlayer(player.id, "player_status", e.target.value)}
-                        className="text-sm border rounded px-2 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
-                      >
-                        <option value="regular">Regular</option>
-                        <option value="dropin">Drop-in</option>
-                        <option value="inactive">Inactive</option>
-                      </select>
-                    </td>
-                    <td className="py-3 px-4">
-                      <input
-                        type="number"
-                        defaultValue={player.height_inches || ""}
-                        onBlur={(e) => e.target.value && handleUpdatePlayer(player.id, "height_inches", parseInt(e.target.value))}
-                        className="w-16 text-sm border rounded px-2 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
-                        placeholder="in"
-                      />
-                    </td>
-                    <td className="py-3 px-4">
-                      <input
-                        type="number"
-                        defaultValue={player.age || ""}
-                        onBlur={(e) => e.target.value && handleUpdatePlayer(player.id, "age", parseInt(e.target.value))}
-                        className="w-16 text-sm border rounded px-2 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
-                        placeholder="yrs"
-                      />
-                    </td>
-                    <td className="py-3 px-4">
-                      <input
-                        type="number"
-                        min="1"
-                        max="5"
-                        step="0.5"
-                        defaultValue={player.mobility || ""}
-                        onBlur={(e) => e.target.value && handleUpdatePlayer(player.id, "mobility", parseFloat(e.target.value))}
-                        className="w-16 text-sm border rounded px-2 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
-                        placeholder="1-5"
-                      />
-                    </td>
-                    <td className="py-3 px-4">
-                      <input
-                        type="number"
-                        min="0"
-                        defaultValue={player.games_played ?? ""}
-                        onBlur={(e) => {
-                          const val = parseInt(e.target.value);
-                          if (!isNaN(val)) handleUpdatePlayer(player.id, "games_played", val);
-                        }}
-                        className="w-14 text-sm border rounded px-2 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
-                        placeholder="0"
-                      />
-                    </td>
-                    <td className="py-3 px-4">
-                      <input
-                        type="number"
-                        min="0"
-                        defaultValue={player.games_won ?? ""}
-                        onBlur={(e) => {
-                          const val = parseInt(e.target.value);
-                          if (!isNaN(val)) handleUpdatePlayer(player.id, "games_won", val);
-                        }}
-                        className="w-14 text-sm border rounded px-2 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
-                        placeholder="0"
-                      />
-                    </td>
-                    {isSuperAdmin && (
-                      <td className="py-3 px-4">
-                        <select
-                          value={player.role}
-                          onChange={(e) => handleUpdatePlayer(player.id, "role", e.target.value)}
-                          className="text-sm border rounded px-2 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
-                        >
-                          <option value="player">Player</option>
-                          <option value="admin">Admin</option>
-                          <option value="super_admin">Super Admin</option>
-                        </select>
-                      </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          {/* Status Filter Chips */}
+          <div className="flex items-center gap-2 mb-4">
+            {[
+              { key: "regular", label: "Regular", color: "green" },
+              { key: "dropin", label: "Drop-in", color: "yellow" },
+              { key: "inactive", label: "Inactive", color: "gray" },
+            ].map(({ key, label, color }) => {
+              const active = adminStatusFilters.has(key);
+              const count = players.filter((p) => p.player_status === key).length;
+              const colorMap = {
+                green: active ? "bg-green-100 text-green-800 border-green-400 dark:bg-green-900/30 dark:text-green-400 dark:border-green-600" : "bg-gray-100 text-gray-400 border-gray-300 dark:bg-gray-800 dark:text-gray-500 dark:border-gray-600",
+                yellow: active ? "bg-yellow-100 text-yellow-800 border-yellow-400 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-600" : "bg-gray-100 text-gray-400 border-gray-300 dark:bg-gray-800 dark:text-gray-500 dark:border-gray-600",
+                gray: active ? "bg-gray-200 text-gray-700 border-gray-400 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500" : "bg-gray-100 text-gray-400 border-gray-300 dark:bg-gray-800 dark:text-gray-500 dark:border-gray-600",
+              };
+              return (
+                <button key={key} onClick={() => setAdminStatusFilters((prev) => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n; })}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold transition-colors ${colorMap[color]}`}>
+                  {active && <span>&#10003;</span>} {label} <span className="opacity-70">({count})</span>
+                </button>
+              );
+            })}
           </div>
+
+          {/* Players Table */}
+          {(() => {
+            const filtered = players.filter((p) => adminStatusFilters.has(p.player_status));
+            const sorted = [...filtered].sort((a, b) => {
+              const { key, dir } = adminSort;
+              let av = a[key], bv = b[key];
+              if (typeof av === "string") return dir === "asc" ? av.localeCompare(bv) : bv.localeCompare(av);
+              av = av ?? 0; bv = bv ?? 0;
+              return dir === "asc" ? av - bv : bv - av;
+            });
+            const SortTh = ({ field, children }) => {
+              const active = adminSort.key === field;
+              return (
+                <th className="py-3 px-2 text-xs font-medium text-gray-500 dark:text-gray-400 cursor-pointer select-none hover:text-gray-700 dark:hover:text-gray-200 whitespace-nowrap"
+                  onClick={() => setAdminSort((prev) => prev.key === field ? { key: field, dir: prev.dir === "asc" ? "desc" : "asc" } : { key: field, dir: "desc" })}>
+                  {children} {active ? (adminSort.dir === "asc" ? "▲" : "▼") : ""}
+                </th>
+              );
+            };
+            const inputCls = "w-14 text-sm border rounded px-1 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 text-center";
+            return (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-200 dark:border-gray-700">
+                      <SortTh field="full_name">Player</SortTh>
+                      <SortTh field="player_status">Status</SortTh>
+                      <SortTh field="height_inches">Ht</SortTh>
+                      <SortTh field="age">Age</SortTh>
+                      <SortTh field="mobility">Mob</SortTh>
+                      <SortTh field="avg_offense">OFF</SortTh>
+                      <SortTh field="avg_defense">DEF</SortTh>
+                      <SortTh field="avg_overall">OVR</SortTh>
+                      <SortTh field="games_played">GP</SortTh>
+                      <SortTh field="games_won">W</SortTh>
+                      {isSuperAdmin && <SortTh field="role">Role</SortTh>}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sorted.map((player) => (
+                      <tr key={player.id} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td className="py-2 px-2">
+                          <input type="text" defaultValue={player.full_name}
+                            onBlur={(e) => { const v = e.target.value.trim(); if (v && v !== player.full_name) handleUpdatePlayer(player.id, "full_name", v); }}
+                            className="w-28 text-sm font-medium border border-transparent hover:border-gray-300 dark:hover:border-gray-600 rounded px-1 py-1 bg-transparent dark:text-gray-200 focus:border-gray-300 dark:focus:border-gray-600" />
+                          <div className="text-[10px] text-gray-400 dark:text-gray-500 truncate max-w-[140px]">{player.email}</div>
+                        </td>
+                        <td className="py-2 px-2">
+                          <select value={player.player_status} onChange={(e) => handleUpdatePlayer(player.id, "player_status", e.target.value)}
+                            className="text-xs border rounded px-1 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600">
+                            <option value="regular">Regular</option>
+                            <option value="dropin">Drop-in</option>
+                            <option value="inactive">Inactive</option>
+                          </select>
+                        </td>
+                        <td className="py-2 px-2">
+                          <input type="number" defaultValue={player.height_inches || ""} placeholder="in"
+                            onBlur={(e) => e.target.value && handleUpdatePlayer(player.id, "height_inches", parseInt(e.target.value))}
+                            className={inputCls} />
+                        </td>
+                        <td className="py-2 px-2">
+                          <input type="number" defaultValue={player.age || ""} placeholder="yrs"
+                            onBlur={(e) => e.target.value && handleUpdatePlayer(player.id, "age", parseInt(e.target.value))}
+                            className={inputCls} />
+                        </td>
+                        <td className="py-2 px-2">
+                          <input type="number" min="1" max="5" step="0.5" defaultValue={player.mobility || ""} placeholder="1-5"
+                            onBlur={(e) => e.target.value && handleUpdatePlayer(player.id, "mobility", parseFloat(e.target.value))}
+                            className={inputCls} />
+                        </td>
+                        <td className="py-2 px-2">
+                          <input type="number" min="1" max="5" step="0.5" defaultValue={player.avg_offense?.toFixed(1) || ""} placeholder="1-5"
+                            onBlur={(e) => { const v = parseFloat(e.target.value); if (!isNaN(v)) handleUpdatePlayer(player.id, "avg_offense", v); }}
+                            className={inputCls} />
+                        </td>
+                        <td className="py-2 px-2">
+                          <input type="number" min="1" max="5" step="0.5" defaultValue={player.avg_defense?.toFixed(1) || ""} placeholder="1-5"
+                            onBlur={(e) => { const v = parseFloat(e.target.value); if (!isNaN(v)) handleUpdatePlayer(player.id, "avg_defense", v); }}
+                            className={inputCls} />
+                        </td>
+                        <td className="py-2 px-2">
+                          <input type="number" min="1" max="5" step="0.5" defaultValue={player.avg_overall?.toFixed(1) || ""} placeholder="1-5"
+                            onBlur={(e) => { const v = parseFloat(e.target.value); if (!isNaN(v)) handleUpdatePlayer(player.id, "avg_overall", v); }}
+                            className={inputCls} />
+                        </td>
+                        <td className="py-2 px-2">
+                          <input type="number" min="0" defaultValue={player.games_played ?? ""}
+                            onBlur={(e) => { const v = parseInt(e.target.value); if (!isNaN(v)) handleUpdatePlayer(player.id, "games_played", v); }}
+                            className={inputCls} />
+                        </td>
+                        <td className="py-2 px-2">
+                          <input type="number" min="0" defaultValue={player.games_won ?? ""}
+                            onBlur={(e) => { const v = parseInt(e.target.value); if (!isNaN(v)) handleUpdatePlayer(player.id, "games_won", v); }}
+                            className={inputCls} />
+                        </td>
+                        {isSuperAdmin && (
+                          <td className="py-2 px-2">
+                            <select value={player.role} onChange={(e) => handleUpdatePlayer(player.id, "role", e.target.value)}
+                              className="text-xs border rounded px-1 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600">
+                              <option value="player">Player</option>
+                              <option value="admin">Admin</option>
+                              <option value="super_admin">Super Admin</option>
+                            </select>
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })()}
 
           {/* Suggestions Section */}
           {suggestions.length > 0 && (
