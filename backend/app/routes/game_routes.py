@@ -93,34 +93,35 @@ def _build_commentary(
     # Build color pieces
     pieces = [seed.rstrip(".")]
 
+    # Scores represent games won in a series (e.g., 3-2 means won 3 games, lost 2)
     if is_tie:
         pieces.append(random.choice([
-            "Neither squad could pull away — a draw felt right",
+            f"Split the series {winner_score}-{loser_score} — neither squad could pull away",
             "Dead even. Sometimes the basketball gods just call it square",
-            "Two teams, same fire, same result",
+            f"Both teams took {winner_score} games apiece. A draw felt right",
         ]))
     elif is_sweep:
         pieces.append(random.choice([
-            f"{winner_name} sent {loser_name} home without a single W",
-            f"A clean sweep — {loser_name} never found their rhythm",
-            f"Total domination from {winner_name}. {loser_name} had no answer",
+            f"{winner_name} swept the series {winner_score}-0 — {loser_name} couldn't buy a win",
+            f"A clean sweep — {loser_name} never found their rhythm across {winner_score} games",
+            f"Total domination. {winner_name} took every game and {loser_name} had no answer",
         ]))
     elif is_blowout:
         pieces.append(random.choice([
-            f"{winner_name} ran away with it, {winner_score}-{loser_score}",
-            f"It wasn't even close. {winner_name} had {loser_name}'s number all night",
-            f"{loser_name} fought hard but {winner_name} was on another level tonight",
+            f"{winner_name} took the series {winner_score}-{loser_score} — it wasn't even close",
+            f"{loser_name} managed only {loser_score} game{'s' if loser_score != 1 else ''} as {winner_name} cruised to a {winner_score}-{loser_score} series win",
+            f"{loser_name} fought hard but {winner_name} was on another level, taking {winner_score} of {total_games} games",
         ]))
     elif is_close:
         pieces.append(random.choice([
-            f"A nail-biter that came down to the wire — {winner_name} edges it {winner_score}-{loser_score}",
-            f"Could've gone either way. {winner_name} held on by the slimmest of margins",
-            f"{loser_name} pushed {winner_name} to the limit but came up just short",
+            f"A nail-biter series that came down to the final game — {winner_name} edges it {winner_score}-{loser_score}",
+            f"Could've gone either way. {winner_name} took the series {winner_score}-{loser_score} by the slimmest margin",
+            f"{loser_name} pushed {winner_name} to the limit but fell one game short at {loser_score}-{winner_score}",
         ]))
     else:
         pieces.append(random.choice([
-            f"{winner_name} takes it {winner_score}-{loser_score}",
-            f"Solid effort from both sides, but {winner_name} had the edge tonight",
+            f"{winner_name} takes the series {winner_score}-{loser_score}",
+            f"Solid effort from both sides across {total_games} games, but {winner_name} had the edge tonight",
         ]))
 
     if was_outnumbered and not is_tie:
@@ -132,8 +133,8 @@ def _build_commentary(
     # Fun total games flavor
     if total_games >= 7:
         pieces.append(random.choice([
-            f"{total_games} games played — legs were burning by the end",
-            f"A marathon session of {total_games} games. Everyone left it on the court",
+            f"{total_games} games in one night — legs were burning by the end",
+            f"A marathon {total_games}-game session. Everyone left it on the court",
         ]))
 
     return ". ".join(pieces) + "."
