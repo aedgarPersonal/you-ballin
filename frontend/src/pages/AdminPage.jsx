@@ -1328,17 +1328,35 @@ export default function AdminPage() {
 
               {/* Season */}
               <SettingsSection title="Season">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Start Date</label>
-                    <input type="date" value={runForm.start_date || ""}
-                      onChange={(e) => setRunForm({ ...runForm, start_date: e.target.value })} className="input" />
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Start Date</label>
+                      <input type="date" value={runForm.start_date || ""}
+                        onChange={(e) => setRunForm({ ...runForm, start_date: e.target.value })} className="input" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">End Date</label>
+                      <input type="date" value={runForm.end_date || ""}
+                        onChange={(e) => setRunForm({ ...runForm, end_date: e.target.value })} className="input" />
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">End Date</label>
-                    <input type="date" value={runForm.end_date || ""}
-                      onChange={(e) => setRunForm({ ...runForm, end_date: e.target.value })} className="input" />
-                  </div>
+                  {hasFullSchedule ? (
+                    <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                        Every <strong>{DAY_NAMES[currentRun.default_game_day]}</strong> at <strong>{currentRun.default_game_time}</strong>,
+                        from <strong>{new Date(currentRun.start_date + "T00:00").toLocaleDateString()}</strong> to <strong>{new Date(currentRun.end_date + "T00:00").toLocaleDateString()}</strong>
+                      </p>
+                      <button type="button" onClick={handleGenerateSeasonGames}
+                        className="bg-court-600 hover:bg-court-700 text-white font-semibold py-2 px-4 rounded-lg text-sm">
+                        Generate Season Games
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-amber-600 dark:text-amber-400">
+                      Set game day, time, and season dates to enable season generation.
+                    </p>
+                  )}
                 </div>
               </SettingsSection>
 
@@ -1417,28 +1435,6 @@ export default function AdminPage() {
             </form>
           )}
 
-          {/* Season Schedule Section */}
-          <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wide mb-3">Season Schedule</h3>
-            {hasFullSchedule ? (
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                  Every <strong>{DAY_NAMES[currentRun.default_game_day]}</strong> at <strong>{currentRun.default_game_time}</strong>,
-                  from <strong>{new Date(currentRun.start_date + "T00:00").toLocaleDateString()}</strong> to <strong>{new Date(currentRun.end_date + "T00:00").toLocaleDateString()}</strong>
-                </p>
-                <button
-                  onClick={handleGenerateSeasonGames}
-                  className="bg-court-600 hover:bg-court-700 text-white font-semibold py-2 px-4 rounded-lg"
-                >
-                  Generate Season Games
-                </button>
-              </div>
-            ) : (
-              <p className="text-sm text-amber-600 dark:text-amber-400">
-                Fill in Game Day, Game Time, Season Start Date, and Season End Date above, then save to enable season generation.
-              </p>
-            )}
-          </div>
         </div>
       ) : (
         /* ===== Balancer Tab ===== */
