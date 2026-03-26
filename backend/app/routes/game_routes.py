@@ -54,6 +54,91 @@ router = APIRouter(prefix="/api/runs/{run_id}/games", tags=["Games"])
 # Helpers
 # =============================================================================
 
+def _build_commentary(
+    seed: str | None,
+    score_map: dict,
+    team_name_lookup: dict,
+    game,
+    total_games: int,
+) -> str | None:
+    """Expand admin commentary seed into a fun game recap using game data.
+
+    If no seed is provided, returns None (no commentary).
+    """
+    if not seed:
+        return None
+
+    import random
+
+    # Sort teams by score
+    sorted_teams = sorted(score_map.items(), key=lambda x: x[1], reverse=True)
+    winner_id, winner_score = sorted_teams[0]
+    loser_id, loser_score = sorted_teams[-1]
+    winner_name = team_name_lookup.get(winner_id, winner_id)
+    loser_name = team_name_lookup.get(loser_id, loser_id)
+    is_tie = winner_score == loser_score
+    margin = winner_score - loser_score
+    is_blowout = margin >= 3
+    is_sweep = loser_score == 0
+    is_close = margin == 1
+
+    # Count players per team
+    team_players = {}
+    for t in game.teams:
+        team_players.setdefault(t.team, []).append(t)
+    winner_count = len(team_players.get(winner_id, []))
+    loser_count = len(team_players.get(loser_id, []))
+    was_outnumbered = winner_count < loser_count
+
+    # Build color pieces
+    pieces = [seed.rstrip(".")]
+
+    if is_tie:
+        pieces.append(random.choice([
+            "Neither squad could pull away — a draw felt right",
+            "Dead even. Sometimes the basketball gods just call it square",
+            "Two teams, same fire, same result",
+        ]))
+    elif is_sweep:
+        pieces.append(random.choice([
+            f"{winner_name} sent {loser_name} home without a single W",
+            f"A clean sweep — {loser_name} never found their rhythm",
+            f"Total domination from {winner_name}. {loser_name} had no answer",
+        ]))
+    elif is_blowout:
+        pieces.append(random.choice([
+            f"{winner_name} ran away with it, {winner_score}-{loser_score}",
+            f"It wasn't even close. {winner_name} had {loser_name}'s number all night",
+            f"{loser_name} fought hard but {winner_name} was on another level tonight",
+        ]))
+    elif is_close:
+        pieces.append(random.choice([
+            f"A nail-biter that came down to the wire — {winner_name} edges it {winner_score}-{loser_score}",
+            f"Could've gone either way. {winner_name} held on by the slimmest of margins",
+            f"{loser_name} pushed {winner_name} to the limit but came up just short",
+        ]))
+    else:
+        pieces.append(random.choice([
+            f"{winner_name} takes it {winner_score}-{loser_score}",
+            f"Solid effort from both sides, but {winner_name} had the edge tonight",
+        ]))
+
+    if was_outnumbered and not is_tie:
+        pieces.append(random.choice([
+            f"Impressive — {winner_name} did it shorthanded ({winner_count} vs {loser_count})",
+            f"Playing with fewer bodies, {winner_name} proved heart beats numbers",
+        ]))
+
+    # Fun total games flavor
+    if total_games >= 7:
+        pieces.append(random.choice([
+            f"{total_games} games played — legs were burning by the end",
+            f"A marathon session of {total_games} games. Everyone left it on the court",
+        ]))
+
+    return ". ".join(pieces) + "."
+
+
 async def _recalculate_odds(game: Game, db: AsyncSession):
     """Recalculate odds_line from current team assignments."""
     import math
@@ -1095,9 +1180,14 @@ async def record_result(
 
     game.status = GameStatus.COMPLETED
 
-    # Save admin commentary if provided
-    if data.commentary:
-        game.commentary = data.commentary
+    # Build fun commentary from admin seed + game data
+    game.commentary = _build_commentary(
+        seed=data.commentary,
+        score_map=score_map,
+        team_name_lookup=team_name_lookup,
+        game=game,
+        total_games=total_games,
+    )
 
     # Build notification message
     score_parts = sorted(data.team_scores, key=lambda ts: ts.wins, reverse=True)
