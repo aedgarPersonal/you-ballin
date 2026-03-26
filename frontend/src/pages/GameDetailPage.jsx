@@ -241,11 +241,32 @@ export default function GameDetailPage() {
           <span className="text-sm text-gray-500 dark:text-gray-400">
             {game.num_teams} teams
           </span>
-          <span className={`badge ${
-            game.status === "cancelled" ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400" : "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
-          }`}>
-            {game.status.replace("_", " ")}
-          </span>
+          {(user?.role === "super_admin" || user?.role === "admin") ? (
+            <select
+              value={game.status}
+              onChange={async (e) => {
+                const newStatus = e.target.value;
+                try {
+                  await updateGame(runId, id, { status: newStatus });
+                  toast.success(`Status → ${newStatus.replace("_", " ")}`);
+                  fetchGame();
+                } catch (err) {
+                  toast.error(err.response?.data?.detail || "Failed to change status");
+                }
+              }}
+              className="text-sm font-semibold border rounded-lg px-2 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 cursor-pointer"
+            >
+              {["scheduled", "invites_sent", "dropin_open", "teams_set", "completed", "cancelled", "skipped"].map((s) => (
+                <option key={s} value={s}>{s.replace("_", " ")}</option>
+              ))}
+            </select>
+          ) : (
+            <span className={`badge ${
+              game.status === "cancelled" ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400" : "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
+            }`}>
+              {game.status.replace("_", " ")}
+            </span>
+          )}
         </div>
         {game.notes && <p className="text-gray-600 dark:text-gray-400 mt-4 italic">{game.notes}</p>}
       </div>
@@ -476,30 +497,6 @@ export default function GameDetailPage() {
       {(user?.role === "super_admin" || user?.role === "admin") && (
         <div className="card">
           <h2 className="text-lg font-semibold mb-3">Admin Actions</h2>
-
-          {/* Game Status Override */}
-          <div className="flex items-center gap-3 mb-4 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
-            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Status</label>
-            <select
-              value={game.status}
-              onChange={async (e) => {
-                const newStatus = e.target.value;
-                if (!confirm(`Change game status to "${newStatus.replace("_", " ")}"?`)) return;
-                try {
-                  await updateGame(runId, id, { status: newStatus });
-                  toast.success(`Status changed to ${newStatus.replace("_", " ")}`);
-                  fetchGame();
-                } catch (err) {
-                  toast.error(err.response?.data?.detail || "Failed to change status");
-                }
-              }}
-              className="text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-lg px-3 py-1.5"
-            >
-              {["scheduled", "invites_sent", "dropin_open", "teams_set", "completed", "cancelled", "skipped"].map((s) => (
-                <option key={s} value={s}>{s.replace("_", " ")}</option>
-              ))}
-            </select>
-          </div>
 
           {/* Admin RSVP on behalf of player */}
           <AdminRsvpSection runId={runId} gameId={id} onUpdate={fetchGame} />
