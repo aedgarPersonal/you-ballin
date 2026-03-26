@@ -630,12 +630,18 @@ function RsvpSection({ game, runId, isAdmin, onUpdate }) {
         rsvpStatus: r.status,
       }));
 
-  // Sort: accepted first, then pending (no response), then declined
-  const sortOrder = { accepted: 0, waitlist: 1, declined: 3 };
+  // Sort: accepted first, then waitlist, then no-response, then declined
+  // Within accepted: regulars before drop-ins, then alphabetical
+  const rsvpSortOrder = { accepted: 0, waitlist: 1, declined: 3 };
+  const playerSortOrder = { regular: 0, dropin: 1, pending: 2, inactive: 3 };
   rows.sort((a, b) => {
-    const aOrder = a.rsvpStatus ? (sortOrder[a.rsvpStatus] ?? 2) : 2;
-    const bOrder = b.rsvpStatus ? (sortOrder[b.rsvpStatus] ?? 2) : 2;
-    if (aOrder !== bOrder) return aOrder - bOrder;
+    const aRsvp = a.rsvpStatus ? (rsvpSortOrder[a.rsvpStatus] ?? 2) : 2;
+    const bRsvp = b.rsvpStatus ? (rsvpSortOrder[b.rsvpStatus] ?? 2) : 2;
+    if (aRsvp !== bRsvp) return aRsvp - bRsvp;
+    // Within same RSVP status, sort regulars before drop-ins
+    const aPlayer = playerSortOrder[a.playerStatus] ?? 1;
+    const bPlayer = playerSortOrder[b.playerStatus] ?? 1;
+    if (aPlayer !== bPlayer) return aPlayer - bPlayer;
     return a.name.localeCompare(b.name);
   });
 
@@ -677,8 +683,10 @@ function RsvpSection({ game, runId, isAdmin, onUpdate }) {
             <div key={row.userId} className="flex items-center justify-between py-2 px-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 border-b border-gray-100 dark:border-gray-700 last:border-0">
               <div className="flex items-center gap-2">
                 <span className="font-medium text-sm">{row.name}</span>
-                {row.playerStatus && (
-                  <span className="text-[10px] text-gray-400">{row.playerStatus}</span>
+                {row.playerStatus === "dropin" && (
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400">
+                    Drop-in
+                  </span>
                 )}
               </div>
               {isAdmin ? (
