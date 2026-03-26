@@ -11,6 +11,7 @@ import toast from "react-hot-toast";
 import useAuthStore from "../stores/authStore";
 import useRunStore from "../stores/runStore";
 import { listGames, getGame, rsvpToGame } from "../api/games";
+import { listPlayers } from "../api/players";
 import { getRecentAwards, getGameAwards, getMyVotes, castVote } from "../api/votes";
 import { AvatarBadge } from "../components/AvatarPicker";
 import { getPlayerById } from "../data/legacyPlayers";
@@ -24,6 +25,7 @@ export default function DashboardPage() {
   const [lastAwards, setLastAwards] = useState(null);
   const [myVotes, setMyVotes] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isRunMember, setIsRunMember] = useState(false);
 
   const fetchData = async () => {
     if (!runId) { setLoading(false); return; }
@@ -39,6 +41,17 @@ export default function DashboardPage() {
         // Fetch full detail to get RSVPs
         const { data } = await getGame(runId, upcoming.id);
         setNextGame(data);
+
+        // Check run membership
+        const hasRsvp = data.rsvps?.some((r) => r.user_id === user?.id);
+        if (hasRsvp) {
+          setIsRunMember(true);
+        } else {
+          try {
+            const pRes = await listPlayers(runId, { search: user?.username });
+            setIsRunMember(pRes.data.users?.some((p) => p.id === user?.id) || false);
+          } catch { setIsRunMember(false); }
+        }
       }
 
       // Find most recent completed game
@@ -192,7 +205,7 @@ export default function DashboardPage() {
             </div>
 
             {/* RSVP Action — only for run members */}
-            {nextGame.status !== "teams_set" && (myRsvp || user?.player_status === "regular" || user?.player_status === "dropin") && (
+            {nextGame.status !== "teams_set" && isRunMember && (
               <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
                 {myRsvp ? (
                   <div className="flex items-center gap-3">
