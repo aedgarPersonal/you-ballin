@@ -250,37 +250,49 @@ async def create_weekly_game():
 
 
 async def open_dropin_spots():
-    """Open unclaimed spots to drop-in players at 8 AM for today's games across all runs.
+    """Open drop-in spots for games based on each run's dropin_open_hours_before setting.
 
-    TEACHING NOTE:
-        This runs at 8 AM daily. For each game happening today it:
-        1. Counts unclaimed spots (roster_size - accepted RSVPs)
-        2. If spots are available, changes game status to DROPIN_OPEN
-        3. Finds DROPIN members of that game's run via RunMembership
-        4. Notifies them about the available spots
+    Runs every 15 minutes. For each game with INVITES_SENT status:
+    1. Check if game_date - dropin_open_hours_before has passed
+    2. If so, change status to DROPIN_OPEN
+    3. Auto-promote waitlisted drop-ins to fill available spots
+    4. Notify remaining drop-in members about open spots
+
+    Runs with dropin_open_hours_before = NULL never auto-open.
     """
     logger.info("Checking for drop-in spots across all runs...")
 
     async with async_session() as db:
         try:
             now = datetime.utcnow()
-            today_start = now.replace(hour=0, minute=0, second=0)
-            today_end = now.replace(hour=23, minute=59, second=59)
 
-            # Find all games happening today that still have INVITES_SENT status
+            # Find all games with INVITES_SENT status that have runs configured for auto-open
             result = await db.execute(
-                select(Game).where(
-                    Game.game_date.between(today_start, today_end),
+                select(Game)
+                .join(Run, Game.run_id == Run.id)
+                .where(
                     Game.status == GameStatus.INVITES_SENT,
+                    Run.dropin_open_hours_before.isnot(None),
                 )
             )
             games = result.scalars().all()
 
             if not games:
-                logger.info("No games found for today needing drop-in openings")
+                logger.info("No games found needing drop-in openings")
                 return
 
             for game in games:
+                # Get the run's dropin_open_hours_before
+                run_result = await db.execute(select(Run).where(Run.id == game.run_id))
+                run = run_result.scalar_one()
+                hours_before = run.dropin_open_hours_before
+
+                # Check if it's time to open
+                from datetime import timedelta
+                open_at = game.game_date - timedelta(hours=hours_before)
+                if now < open_at:
+                    continue
+
                 spots = game.spots_remaining
                 if spots <= 0:
                     logger.info(f"Game {game.id} is full, no drop-in spots available")
@@ -288,8 +300,17 @@ async def open_dropin_spots():
 
                 # Update game status
                 game.status = GameStatus.DROPIN_OPEN
+                await db.flush()
 
-                # Get DROPIN members of this game's run via RunMembership
+                # Auto-promote waitlisted drop-ins
+                from app.services.dropin_promotion import promote_waitlisted_dropins
+                await promote_waitlisted_dropins(db, game)
+
+                # Recalculate spots after promotion
+                await db.refresh(game)
+                spots = game.spots_remaining
+
+                # Notify remaining DROPIN members about open spots
                 members_result = await db.execute(
                     select(RunMembership).where(
                         RunMembership.run_id == game.run_id,
@@ -299,28 +320,38 @@ async def open_dropin_spots():
                 dropin_memberships = members_result.scalars().all()
                 dropin_user_ids = [m.user_id for m in dropin_memberships]
 
+                # Exclude players who already have an RSVP (accepted or otherwise)
                 if dropin_user_ids:
-                    players_result = await db.execute(
-                        select(User).where(
-                            User.id.in_(dropin_user_ids),
-                            User.is_active == True,  # noqa: E712
+                    existing_rsvp_result = await db.execute(
+                        select(RSVP.user_id).where(
+                            RSVP.game_id == game.id,
+                            RSVP.user_id.in_(dropin_user_ids),
                         )
                     )
-                    dropin_players = list(players_result.scalars().all())
+                    already_rsvped = set(r[0] for r in existing_rsvp_result.all())
+                    notify_user_ids = [uid for uid in dropin_user_ids if uid not in already_rsvped]
 
-                    if dropin_players:
+                    if notify_user_ids and spots > 0:
+                        players_result = await db.execute(
+                            select(User).where(
+                                User.id.in_(notify_user_ids),
+                                User.is_active == True,  # noqa: E712
+                            )
+                        )
+                        dropin_players = list(players_result.scalars().all())
+
                         for player in dropin_players:
                             await send_notification(
                                 db, player, NotificationType.DROPIN_AVAILABLE,
-                                f"{spots} Spots Available Today!",
-                                f"There are {spots} open spots for today's game at "
+                                f"{spots} Spots Available!",
+                                f"There are {spots} open spots for {game.title} at "
                                 f"{game.game_date.strftime('%I:%M %p')}. "
                                 f"Grab your spot before they're gone!",
                                 run_id=game.run_id,
                                 action_url=f"/games/{game.id}",
                             )
 
-                logger.info(f"Opened {spots} drop-in spots for game {game.id}")
+                logger.info(f"Opened drop-in spots for game {game.id} ({spots} remaining)")
 
             await db.commit()
 

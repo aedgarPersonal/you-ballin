@@ -16,6 +16,8 @@ class RunCreate(BaseModel):
     needs_players: bool = False
     start_date: date | None = None
     end_date: date | None = None
+    dropin_open_hours_before: int | None = Field(default=12, ge=0, le=168)
+    dropin_priority_mode: str = Field(default="fifo", pattern="^(fifo|admin)$")
 
 
 class RunUpdate(BaseModel):
@@ -32,6 +34,8 @@ class RunUpdate(BaseModel):
     needs_players: bool | None = None
     start_date: date | None = None
     end_date: date | None = None
+    dropin_open_hours_before: int | None = Field(None, ge=0, le=168)
+    dropin_priority_mode: str | None = Field(None, pattern="^(fifo|admin)$")
 
 
 class RunResponse(BaseModel):
@@ -49,6 +53,8 @@ class RunResponse(BaseModel):
     needs_players: bool
     start_date: date | None = None
     end_date: date | None = None
+    dropin_open_hours_before: int | None = 12
+    dropin_priority_mode: str = "fifo"
     created_at: datetime
     is_admin: bool = False
     model_config = {"from_attributes": True}
@@ -62,6 +68,7 @@ class RunMembershipResponse(BaseModel):
     dues_paid: bool
     notify_email: bool
     notify_sms: bool
+    dropin_priority: int | None = None
     joined_at: datetime
     user: "UserResponse | None" = None
     model_config = {"from_attributes": True}
@@ -76,6 +83,7 @@ class RunMembershipUpdate(BaseModel):
     dues_paid: bool | None = None
     notify_email: bool | None = None
     notify_sms: bool | None = None
+    dropin_priority: int | None = None
 
 
 class RunAdminResponse(BaseModel):

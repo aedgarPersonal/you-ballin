@@ -192,6 +192,8 @@ export default function AdminPage() {
         needs_players: currentRun.needs_players ?? false,
         start_date: currentRun.start_date || "",
         end_date: currentRun.end_date || "",
+        dropin_open_hours_before: currentRun.dropin_open_hours_before ?? 12,
+        dropin_priority_mode: currentRun.dropin_priority_mode || "fifo",
       });
     }
     if (tab === "suggestions" && runId) {
@@ -1306,6 +1308,53 @@ export default function AdminPage() {
                   </label>
                 </div>
               </div>
+              {/* Drop-in Settings */}
+              <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
+                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Drop-in Settings</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Open drop-in spots
+                    </label>
+                    <select
+                      value={runForm.dropin_open_hours_before ?? "never"}
+                      onChange={(e) => setRunForm({
+                        ...runForm,
+                        dropin_open_hours_before: e.target.value === "never" ? null : parseInt(e.target.value),
+                      })}
+                      className="input"
+                    >
+                      <option value="never">Never (manual only)</option>
+                      <option value="1">1 hour before game</option>
+                      <option value="2">2 hours before game</option>
+                      <option value="4">4 hours before game</option>
+                      <option value="8">8 hours before game</option>
+                      <option value="12">12 hours before game</option>
+                      <option value="24">24 hours before game</option>
+                      <option value="48">48 hours before game</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Waitlist priority
+                    </label>
+                    <select
+                      value={runForm.dropin_priority_mode || "fifo"}
+                      onChange={(e) => setRunForm({ ...runForm, dropin_priority_mode: e.target.value })}
+                      className="input"
+                    >
+                      <option value="fifo">First come, first served</option>
+                      <option value="admin">Admin-defined order</option>
+                    </select>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      {runForm.dropin_priority_mode === "admin"
+                        ? "Set priority order on each drop-in player's profile"
+                        : "Earliest RSVP gets the first open spot"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               <button
                 type="submit"
                 disabled={savingRun}

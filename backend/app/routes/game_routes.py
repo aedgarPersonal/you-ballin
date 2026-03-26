@@ -306,6 +306,7 @@ async def update_game(
         raise HTTPException(status_code=404, detail="Game not found in this run")
 
     update_fields = data.model_dump(exclude_unset=True)
+    old_status = game.status
 
     # Track meaningful changes that players should know about
     changes = []
@@ -316,6 +317,12 @@ async def update_game(
 
     for field, value in update_fields.items():
         setattr(game, field, value)
+
+    # Auto-promote waitlisted drop-ins when status changes to DROPIN_OPEN
+    new_status = update_fields.get("status")
+    if new_status and new_status != old_status.value and GameStatus(new_status) == GameStatus.DROPIN_OPEN:
+        from app.services.dropin_promotion import promote_waitlisted_dropins
+        await promote_waitlisted_dropins(db, game)
 
     # Notify RSVPed players about time/location changes
     if changes and game.rsvps:
@@ -555,8 +562,10 @@ async def rsvp_to_game(
     if membership.player_status == PlayerStatus.INACTIVE:
         raise HTTPException(status_code=403, detail="Your account is inactive")
 
-    # Drop-in players can only join when spots are open
-    if membership.player_status == PlayerStatus.DROPIN:
+    # Drop-in players: allowed to RSVP during INVITES_SENT or DROPIN_OPEN
+    # but go to waitlist if game isn't in DROPIN_OPEN yet or spots are full
+    is_dropin = membership.player_status == PlayerStatus.DROPIN
+    if is_dropin:
         if game.status not in (GameStatus.DROPIN_OPEN, GameStatus.INVITES_SENT):
             raise HTTPException(status_code=403, detail="Drop-in spots are not yet available")
 
@@ -568,19 +577,21 @@ async def rsvp_to_game(
 
     rsvp_status = RSVPStatus(data.status)
 
+    # Drop-in waitlist rules:
+    # 1. Before DROPIN_OPEN: drop-ins go to waitlist (not accepted)
+    # 2. During DROPIN_OPEN: accepted if spots available, waitlist if full
+    if is_dropin and rsvp_status == RSVPStatus.ACCEPTED:
+        if game.status != GameStatus.DROPIN_OPEN:
+            rsvp_status = RSVPStatus.WAITLIST
+        elif game.spots_remaining <= 0:
+            rsvp_status = RSVPStatus.WAITLIST
+
+    was_accepted = rsvp.status == RSVPStatus.ACCEPTED if rsvp else False
+
     if rsvp:
-        # Update existing RSVP
         rsvp.status = rsvp_status
         rsvp.responded_at = datetime.utcnow()
     else:
-        # Handle drop-in waitlist logic
-        if (
-            membership.player_status == PlayerStatus.DROPIN
-            and rsvp_status == RSVPStatus.ACCEPTED
-            and game.spots_remaining <= 0
-        ):
-            rsvp_status = RSVPStatus.WAITLIST
-
         rsvp = RSVP(
             game_id=game_id,
             user_id=user.id,
@@ -590,6 +601,13 @@ async def rsvp_to_game(
         db.add(rsvp)
 
     await db.flush()
+
+    # If a player changed from accepted to declined, promote next waitlisted
+    if was_accepted and rsvp_status == RSVPStatus.DECLINED:
+        from app.services.dropin_promotion import promote_waitlisted_dropins
+        await db.refresh(game)
+        await promote_waitlisted_dropins(db, game, max_promote=1)
+
     return rsvp
 
 

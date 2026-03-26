@@ -61,6 +61,12 @@ class Run(Base):
     skill_level: Mapped[int] = mapped_column(Integer, default=5)  # 1-5 scale
     needs_players: Mapped[bool] = mapped_column(Boolean, default=False)
 
+    # --- Drop-in Configuration ---
+    # Hours before game_date to auto-open drop-in spots (None = never auto-open)
+    dropin_open_hours_before: Mapped[int | None] = mapped_column(Integer, nullable=True, default=12)
+    # "fifo" = first-come-first-served by RSVP time, "admin" = admin-defined priority order
+    dropin_priority_mode: Mapped[str] = mapped_column(String(20), default="fifo")
+
     # --- Season Dates ---
     start_date: Mapped[datetime | None] = mapped_column(Date, nullable=True)
     end_date: Mapped[datetime | None] = mapped_column(Date, nullable=True)
@@ -100,6 +106,9 @@ class RunMembership(Base):
     dues_paid: Mapped[bool] = mapped_column(Boolean, default=False)
     notify_email: Mapped[bool] = mapped_column(Boolean, default=True)
     notify_sms: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    # Admin-defined priority for drop-in waitlist promotion (lower = higher priority)
+    dropin_priority: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     # --- Timestamps ---
     joined_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
