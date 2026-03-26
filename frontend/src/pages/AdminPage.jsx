@@ -1245,282 +1245,173 @@ export default function AdminPage() {
         <InviteCodesPanel runId={runId} />
       ) : tab === "settings" ? (
         /* ===== Run Settings Tab ===== */
-        <div className="card max-w-2xl">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Run Settings</h2>
+        <div className="max-w-2xl">
           {runForm && (
-            <form onSubmit={handleSaveRunSettings} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Run Name</label>
-                <input
-                  type="text"
-                  required
-                  value={runForm.name}
-                  onChange={(e) => setRunForm({ ...runForm, name: e.target.value })}
-                  className="input"
-                  placeholder="e.g. Monday Madness"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
-                <textarea
-                  rows={2}
-                  value={runForm.description}
-                  onChange={(e) => setRunForm({ ...runForm, description: e.target.value })}
-                  className="input"
-                  placeholder="Brief description of this run"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Default Location</label>
-                <input
-                  type="text"
-                  value={runForm.default_location}
-                  onChange={(e) => setRunForm({ ...runForm, default_location: e.target.value })}
-                  className="input"
-                  placeholder="e.g. Rec Center Gym"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Game Day</label>
-                  <select
-                    value={runForm.default_game_day}
-                    onChange={(e) => setRunForm({ ...runForm, default_game_day: e.target.value })}
-                    className="input"
-                  >
-                    {DAY_NAMES.map((day, i) => (
-                      <option key={i} value={i}>{day}</option>
-                    ))}
-                  </select>
+            <form onSubmit={handleSaveRunSettings}>
+              {/* General */}
+              <SettingsSection title="General" defaultOpen>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Run Name</label>
+                    <input type="text" required value={runForm.name}
+                      onChange={(e) => setRunForm({ ...runForm, name: e.target.value })}
+                      className="input" placeholder="e.g. Monday Madness" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+                    <textarea rows={2} value={runForm.description}
+                      onChange={(e) => setRunForm({ ...runForm, description: e.target.value })}
+                      className="input" placeholder="Brief description" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Default Location</label>
+                    <input type="text" value={runForm.default_location}
+                      onChange={(e) => setRunForm({ ...runForm, default_location: e.target.value })}
+                      className="input" placeholder="e.g. Rec Center Gym" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Game Day</label>
+                      <select value={runForm.default_game_day}
+                        onChange={(e) => setRunForm({ ...runForm, default_game_day: e.target.value })} className="input">
+                        {DAY_NAMES.map((day, i) => <option key={i} value={i}>{day}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Game Time</label>
+                      <input type="time" value={runForm.default_game_time}
+                        onChange={(e) => setRunForm({ ...runForm, default_game_time: e.target.value })} className="input" />
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Game Time</label>
-                  <input
-                    type="time"
-                    value={runForm.default_game_time}
-                    onChange={(e) => setRunForm({ ...runForm, default_game_time: e.target.value })}
-                    className="input"
-                  />
+              </SettingsSection>
+
+              {/* Game Setup */}
+              <SettingsSection title="Game Setup">
+                <div className="space-y-3">
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Roster Size</label>
+                      <input type="number" min="2" max="30" value={runForm.default_roster_size}
+                        onChange={(e) => setRunForm({ ...runForm, default_roster_size: e.target.value })} className="input" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Teams</label>
+                      <input type="number" min="2" max="8" value={runForm.default_num_teams}
+                        onChange={(e) => setRunForm({ ...runForm, default_num_teams: e.target.value })} className="input" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Dues ($)</label>
+                      <input type="number" min="0" step="0.01" value={runForm.dues_amount}
+                        onChange={(e) => setRunForm({ ...runForm, dues_amount: e.target.value })} className="input" placeholder="Optional" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Skill Level</label>
+                      <select value={runForm.skill_level}
+                        onChange={(e) => setRunForm({ ...runForm, skill_level: e.target.value })} className="input">
+                        {[1,2,3,4,5].map((n) => <option key={n} value={n}>{n} — {["Beginner","Casual","Intermediate","Competitive","Elite"][n-1]}</option>)}
+                      </select>
+                    </div>
+                    <div className="flex items-end">
+                      <label className="flex items-center gap-2 pb-2 cursor-pointer">
+                        <input type="checkbox" checked={runForm.needs_players}
+                          onChange={(e) => setRunForm({ ...runForm, needs_players: e.target.checked })}
+                          className="w-4 h-4 text-court-500 rounded focus:ring-court-500" />
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">This run needs players</span>
+                      </label>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Season Start Date</label>
-                  <input
-                    type="date"
-                    value={runForm.start_date || ""}
-                    onChange={(e) => setRunForm({ ...runForm, start_date: e.target.value })}
-                    className="input"
-                  />
+              </SettingsSection>
+
+              {/* Season */}
+              <SettingsSection title="Season">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Start Date</label>
+                    <input type="date" value={runForm.start_date || ""}
+                      onChange={(e) => setRunForm({ ...runForm, start_date: e.target.value })} className="input" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">End Date</label>
+                    <input type="date" value={runForm.end_date || ""}
+                      onChange={(e) => setRunForm({ ...runForm, end_date: e.target.value })} className="input" />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Season End Date</label>
-                  <input
-                    type="date"
-                    value={runForm.end_date || ""}
-                    onChange={(e) => setRunForm({ ...runForm, end_date: e.target.value })}
-                    className="input"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Roster Size</label>
-                  <input
-                    type="number"
-                    min="2"
-                    max="30"
-                    value={runForm.default_roster_size}
-                    onChange={(e) => setRunForm({ ...runForm, default_roster_size: e.target.value })}
-                    className="input"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Teams</label>
-                  <input
-                    type="number"
-                    min="2"
-                    max="8"
-                    value={runForm.default_num_teams}
-                    onChange={(e) => setRunForm({ ...runForm, default_num_teams: e.target.value })}
-                    className="input"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Dues ($)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={runForm.dues_amount}
-                    onChange={(e) => setRunForm({ ...runForm, dues_amount: e.target.value })}
-                    className="input"
-                    placeholder="Optional"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Skill Level</label>
-                  <select
-                    value={runForm.skill_level}
-                    onChange={(e) => setRunForm({ ...runForm, skill_level: e.target.value })}
-                    className="input"
-                  >
-                    {[1, 2, 3, 4, 5].map((n) => (
-                      <option key={n} value={n}>{n} — {["Beginner", "Casual", "Intermediate", "Competitive", "Elite"][n - 1]}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="flex items-end">
-                  <label className="flex items-center gap-2 pb-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={runForm.needs_players}
-                      onChange={(e) => setRunForm({ ...runForm, needs_players: e.target.checked })}
-                      className="w-4 h-4 text-court-500 rounded focus:ring-court-500"
-                    />
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">This run needs players</span>
+              </SettingsSection>
+
+              {/* Drop-in Settings */}
+              <SettingsSection title="Drop-in Management">
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Open drop-in spots</label>
+                      <select value={runForm.dropin_open_hours_before ?? "never"}
+                        onChange={(e) => setRunForm({ ...runForm, dropin_open_hours_before: e.target.value === "never" ? null : parseInt(e.target.value) })} className="input">
+                        <option value="never">Never (manual only)</option>
+                        {[1,2,4,8,12,24,48].map((h) => <option key={h} value={h}>{h} hours before game</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Waitlist priority</label>
+                      <select value={runForm.dropin_priority_mode || "fifo"}
+                        onChange={(e) => setRunForm({ ...runForm, dropin_priority_mode: e.target.value })} className="input">
+                        <option value="fifo">First come, first served</option>
+                        <option value="admin">Admin-defined order</option>
+                      </select>
+                    </div>
+                  </div>
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" checked={runForm.dropin_auto_promote ?? true}
+                      onChange={(e) => setRunForm({ ...runForm, dropin_auto_promote: e.target.checked })}
+                      className="w-4 h-4 rounded border-gray-300 text-court-600 focus:ring-court-500" />
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Auto-promote drop-ins from waitlist</span>
                   </label>
                 </div>
-              </div>
-              {/* Drop-in Settings */}
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
-                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Drop-in Settings</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Open drop-in spots
-                    </label>
-                    <select
-                      value={runForm.dropin_open_hours_before ?? "never"}
-                      onChange={(e) => setRunForm({
-                        ...runForm,
-                        dropin_open_hours_before: e.target.value === "never" ? null : parseInt(e.target.value),
-                      })}
-                      className="input"
-                    >
-                      <option value="never">Never (manual only)</option>
-                      <option value="1">1 hour before game</option>
-                      <option value="2">2 hours before game</option>
-                      <option value="4">4 hours before game</option>
-                      <option value="8">8 hours before game</option>
-                      <option value="12">12 hours before game</option>
-                      <option value="24">24 hours before game</option>
-                      <option value="48">48 hours before game</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Waitlist priority
-                    </label>
-                    <select
-                      value={runForm.dropin_priority_mode || "fifo"}
-                      onChange={(e) => setRunForm({ ...runForm, dropin_priority_mode: e.target.value })}
-                      className="input"
-                    >
-                      <option value="fifo">First come, first served</option>
-                      <option value="admin">Admin-defined order</option>
-                    </select>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      {runForm.dropin_priority_mode === "admin"
-                        ? "Set priority order on each drop-in player's profile"
-                        : "Earliest RSVP gets the first open spot"}
-                    </p>
-                  </div>
+              </SettingsSection>
 
-                  {/* Auto-promote drop-ins toggle */}
+              {/* Automation */}
+              <SettingsSection title="Automation & Timing">
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="flex items-center gap-3 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={runForm.dropin_auto_promote ?? true}
-                        onChange={(e) => setRunForm({ ...runForm, dropin_auto_promote: e.target.checked })}
-                        className="w-4 h-4 rounded border-gray-300 text-court-600 focus:ring-court-500"
-                      />
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Auto-promote drop-ins</span>
-                    </label>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-7">
-                      {runForm.dropin_auto_promote !== false
-                        ? "Drop-ins are automatically promoted from waitlist when spots open"
-                        : "Drop-ins must be manually promoted by an admin"}
-                    </p>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Award voting deadline</label>
+                    <div className="flex items-center gap-2">
+                      <input type="number" min="1" max="72" value={runForm.voting_deadline_hours ?? 16}
+                        onChange={(e) => setRunForm({ ...runForm, voting_deadline_hours: parseInt(e.target.value) || 16 })} className="input w-20" />
+                      <span className="text-xs text-gray-500">hrs after game</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Auto-generate teams</label>
+                    <div className="flex items-center gap-2">
+                      <input type="number" min="0" max="1440" value={runForm.auto_team_minutes_before ?? 15}
+                        onChange={(e) => setRunForm({ ...runForm, auto_team_minutes_before: parseInt(e.target.value) || null })} className="input w-20" />
+                      <span className="text-xs text-gray-500">min before game</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Award voting reminder</label>
+                    <div className="flex items-center gap-2">
+                      <input type="number" min="0" max="48" value={runForm.voting_reminder_hours_before ?? 4}
+                        onChange={(e) => setRunForm({ ...runForm, voting_reminder_hours_before: parseInt(e.target.value) || 0 })} className="input w-20" />
+                      <span className="text-xs text-gray-500">hrs before close</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Auto-create next game</label>
+                    <div className="flex items-center gap-2">
+                      <input type="number" min="0" max="168" value={runForm.game_creation_hours_after ?? 1}
+                        onChange={(e) => setRunForm({ ...runForm, game_creation_hours_after: parseInt(e.target.value) || null })} className="input w-20" />
+                      <span className="text-xs text-gray-500">hrs after game</span>
+                    </div>
                   </div>
                 </div>
-              </div>
+                <p className="text-xs text-gray-400 mt-2">Set any value to 0 to disable that automation.</p>
+              </SettingsSection>
 
-              {/* Scheduling & Automation */}
-              <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-                <h3 className="text-md font-semibold text-gray-700 dark:text-gray-300 mb-4">Scheduling & Automation</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Player Award Voting Deadline</label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        min="1"
-                        max="72"
-                        value={runForm.voting_deadline_hours ?? 16}
-                        onChange={(e) => setRunForm({ ...runForm, voting_deadline_hours: parseInt(e.target.value) || 16 })}
-                        className="input w-20"
-                      />
-                      <span className="text-sm text-gray-500 dark:text-gray-400">hours after game</span>
-                    </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">16 hours = noon the next day for an 8 PM game</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Auto-Generate Teams</label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        min="0"
-                        max="1440"
-                        value={runForm.auto_team_minutes_before ?? 15}
-                        onChange={(e) => setRunForm({ ...runForm, auto_team_minutes_before: parseInt(e.target.value) || null })}
-                        className="input w-20"
-                      />
-                      <span className="text-sm text-gray-500 dark:text-gray-400">minutes before game</span>
-                    </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Set to 0 to disable auto-generation</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Award Voting Reminder</label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        min="0"
-                        max="48"
-                        value={runForm.voting_reminder_hours_before ?? 4}
-                        onChange={(e) => setRunForm({ ...runForm, voting_reminder_hours_before: parseInt(e.target.value) || 0 })}
-                        className="input w-20"
-                      />
-                      <span className="text-sm text-gray-500 dark:text-gray-400">hours before award voting closes</span>
-                    </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Set to 0 to disable reminders</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Auto-Create Next Game</label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        min="0"
-                        max="168"
-                        value={runForm.game_creation_hours_after ?? 1}
-                        onChange={(e) => setRunForm({ ...runForm, game_creation_hours_after: parseInt(e.target.value) || null })}
-                        className="input w-20"
-                      />
-                      <span className="text-sm text-gray-500 dark:text-gray-400">hours after game</span>
-                    </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Set to 0 to disable auto-creation</p>
-                  </div>
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={savingRun}
-                className="btn-primary mt-6"
-              >
+              <button type="submit" disabled={savingRun} className="btn-primary mt-4 w-full">
                 {savingRun ? "Saving..." : "Save Settings"}
               </button>
             </form>
@@ -1929,6 +1820,29 @@ function InviteCodesPanel({ runId }) {
           </table>
         </div>
       )}
+    </div>
+  );
+}
+
+
+/**
+ * SettingsSection — Collapsible section for Run Settings.
+ */
+function SettingsSection({ title, defaultOpen = false, children }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="card mb-3">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between text-left"
+      >
+        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">{title}</h3>
+        <span className={`text-gray-400 transition-transform ${open ? "rotate-180" : ""}`}>
+          &#9660;
+        </span>
+      </button>
+      {open && <div className="mt-3">{children}</div>}
     </div>
   );
 }
