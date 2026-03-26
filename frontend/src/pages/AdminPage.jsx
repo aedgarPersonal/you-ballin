@@ -870,7 +870,7 @@ export default function AdminPage() {
                     <tr className="border-b border-gray-200 dark:border-gray-700">
                       <SortTh field="full_name">Player</SortTh>
                       <SortTh field="player_status">Status</SortTh>
-                      {currentRun?.dropin_priority_mode === "admin" && <SortTh field="dropin_priority">DI#</SortTh>}
+                      {currentRun?.dropin_priority_mode === "admin" && <SortTh field="dropin_priority">Wait List Order</SortTh>}
                       <SortTh field="height_inches">Ht</SortTh>
                       <SortTh field="age">Age</SortTh>
                       <SortTh field="mobility">Mob</SortTh>

@@ -21,7 +21,7 @@ from app.schemas.user import UserListResponse, UserResponse, UserUpdate
 router = APIRouter(prefix="/api/players", tags=["Players"])
 run_players_router = APIRouter(prefix="/api/runs/{run_id}/players", tags=["Run Players"])
 
-REDACTED_FIELDS = ("avg_offense", "avg_defense", "avg_overall", "mobility")
+REDACTED_FIELDS = ("avg_offense", "avg_defense", "avg_overall", "mobility", "dropin_priority")
 
 
 async def _is_admin_for_run(user: User, run_id: int, db: AsyncSession) -> bool:

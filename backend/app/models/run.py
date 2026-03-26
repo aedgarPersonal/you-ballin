@@ -108,7 +108,7 @@ class RunMembership(Base):
     notify_sms: Mapped[bool] = mapped_column(Boolean, default=True)
 
     # Admin-defined priority for drop-in waitlist promotion (lower = higher priority)
-    dropin_priority: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    dropin_priority: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
 
     # --- Timestamps ---
     joined_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
