@@ -462,6 +462,17 @@ export default function GameDetailPage() {
         </div>
       )}
 
+      {/* Generate Teams button — shown for admins when no teams exist yet */}
+      {!game.teams?.length && (user?.role === "super_admin" || user?.role === "admin") &&
+        game.status !== "completed" && game.status !== "cancelled" && game.status !== "skipped" && (
+        <div className="card mb-6 text-center">
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">No teams generated yet</p>
+          <button onClick={handleGenerateTeams} className="btn-primary">
+            Generate Teams
+          </button>
+        </div>
+      )}
+
       {/* Teams Display — NBA Jam Style or Team Editor */}
       {game.teams?.length > 0 && (
         <div className="mb-6">
@@ -478,6 +489,8 @@ export default function GameDetailPage() {
               teams={game.teams}
               gameResult={game.result}
               onEditTeams={game.status === "teams_set" ? () => setEditingTeams(true) : null}
+              onGenerateTeams={game.status !== "completed" && game.status !== "cancelled" && game.status !== "skipped" ? handleGenerateTeams : null}
+              isTeamsSet={game.status === "teams_set"}
             />
           )}
         </div>
@@ -553,13 +566,6 @@ export default function GameDetailPage() {
             {game.status !== "completed" && game.status !== "cancelled" && game.status !== "skipped" && (
               <button onClick={handleStartEdit} className="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-semibold py-2 px-4 rounded-lg">
                 Edit Game
-              </button>
-            )}
-
-            {/* Generate / Regenerate Teams */}
-            {game.status !== "completed" && game.status !== "cancelled" && game.status !== "skipped" && (
-              <button onClick={handleGenerateTeams} className="btn-primary">
-                {game.status === "teams_set" ? "Regenerate Teams" : "Generate Teams"}
               </button>
             )}
 

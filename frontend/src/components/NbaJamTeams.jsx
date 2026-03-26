@@ -165,7 +165,7 @@ function JamPlayerCard({ player, isAdmin }) {
   );
 }
 
-export default function NbaJamTeams({ teams, gameResult, onEditTeams }) {
+export default function NbaJamTeams({ teams, gameResult, onEditTeams, onGenerateTeams, isTeamsSet }) {
   const userRole = useAuthStore((s) => s.user?.role);
   const isAdmin = userRole === "super_admin" || userRole === "admin";
 
@@ -207,13 +207,25 @@ export default function NbaJamTeams({ teams, gameResult, onEditTeams }) {
             <h2 className="text-2xl font-black text-cyan-400 uppercase tracking-[0.3em]">
               Tonight's Matchup
             </h2>
-            {isAdmin && onEditTeams && (
-              <button
-                onClick={onEditTeams}
-                className="text-xs bg-cyan-600 hover:bg-cyan-500 text-white font-bold px-3 py-1 rounded-lg uppercase tracking-wider"
-              >
-                Edit
-              </button>
+            {isAdmin && (onEditTeams || onGenerateTeams) && (
+              <div className="flex gap-2">
+                {onGenerateTeams && (
+                  <button
+                    onClick={onGenerateTeams}
+                    className="text-xs bg-court-500 hover:bg-court-400 text-white font-bold px-3 py-1 rounded-lg uppercase tracking-wider"
+                  >
+                    {isTeamsSet ? "Regenerate" : "Generate"}
+                  </button>
+                )}
+                {onEditTeams && (
+                  <button
+                    onClick={onEditTeams}
+                    className="text-xs bg-cyan-600 hover:bg-cyan-500 text-white font-bold px-3 py-1 rounded-lg uppercase tracking-wider"
+                  >
+                    Edit
+                  </button>
+                )}
+              </div>
             )}
           </div>
           <div className="flex items-center justify-center gap-3 mt-1 flex-wrap">
