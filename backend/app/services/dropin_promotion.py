@@ -43,10 +43,11 @@ async def promote_waitlisted_dropins(
         return []
     spots = min(max_promote, available_spots) if max_promote is not None else available_spots
 
-    # Get the run's priority mode
+    # Get the run's settings
     run_result = await db.execute(select(Run).where(Run.id == game.run_id))
     run = run_result.scalar_one_or_none()
     priority_mode = run.dropin_priority_mode if run else "fifo"
+    auto_promote_dropins = run.dropin_auto_promote if run else True
 
     # Get all waitlisted RSVPs for this game
     # Always promote regulars before drop-ins, then apply priority/FIFO within each group
@@ -56,6 +57,10 @@ async def promote_waitlisted_dropins(
         .join(RunMembership, (RunMembership.user_id == RSVP.user_id) & (RunMembership.run_id == game.run_id))
         .options(selectinload(RSVP.user))
     )
+
+    # If auto-promote for drop-ins is disabled, only promote regulars
+    if not auto_promote_dropins:
+        waitlist_query = waitlist_query.where(RunMembership.player_status == PlayerStatus.REGULAR)
 
     from sqlalchemy import case
     # Regulars get priority 0, drop-ins get priority 1 — regulars always promoted first

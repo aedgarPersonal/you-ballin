@@ -200,6 +200,7 @@ export default function AdminPage() {
         end_date: currentRun.end_date || "",
         dropin_open_hours_before: currentRun.dropin_open_hours_before ?? 12,
         dropin_priority_mode: currentRun.dropin_priority_mode || "fifo",
+        dropin_auto_promote: currentRun.dropin_auto_promote ?? true,
       });
     }
     if (tab === "suggestions" && runId) {
@@ -1421,6 +1422,24 @@ export default function AdminPage() {
                       {runForm.dropin_priority_mode === "admin"
                         ? "Set priority order on each drop-in player's profile"
                         : "Earliest RSVP gets the first open spot"}
+                    </p>
+                  </div>
+
+                  {/* Auto-promote drop-ins toggle */}
+                  <div>
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={runForm.dropin_auto_promote ?? true}
+                        onChange={(e) => setRunForm({ ...runForm, dropin_auto_promote: e.target.checked })}
+                        className="w-4 h-4 rounded border-gray-300 text-court-600 focus:ring-court-500"
+                      />
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Auto-promote drop-ins</span>
+                    </label>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-7">
+                      {runForm.dropin_auto_promote !== false
+                        ? "Drop-ins are automatically promoted from waitlist when spots open"
+                        : "Drop-ins must be manually promoted by an admin"}
                     </p>
                   </div>
                 </div>

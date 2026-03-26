@@ -18,6 +18,7 @@ class RunCreate(BaseModel):
     end_date: date | None = None
     dropin_open_hours_before: int | None = Field(default=12, ge=0, le=168)
     dropin_priority_mode: str = Field(default="fifo", pattern="^(fifo|admin)$")
+    dropin_auto_promote: bool = True
 
 
 class RunUpdate(BaseModel):
@@ -36,6 +37,7 @@ class RunUpdate(BaseModel):
     end_date: date | None = None
     dropin_open_hours_before: int | None = Field(None, ge=0, le=168)
     dropin_priority_mode: str | None = Field(None, pattern="^(fifo|admin)$")
+    dropin_auto_promote: bool | None = None
 
 
 class RunResponse(BaseModel):
@@ -55,6 +57,7 @@ class RunResponse(BaseModel):
     end_date: date | None = None
     dropin_open_hours_before: int | None = 12
     dropin_priority_mode: str = "fifo"
+    dropin_auto_promote: bool = True
     created_at: datetime
     is_admin: bool = False
     model_config = {"from_attributes": True}

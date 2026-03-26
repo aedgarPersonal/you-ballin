@@ -66,6 +66,8 @@ class Run(Base):
     dropin_open_hours_before: Mapped[int | None] = mapped_column(Integer, nullable=True, default=12)
     # "fifo" = first-come-first-served by RSVP time, "admin" = admin-defined priority order
     dropin_priority_mode: Mapped[str] = mapped_column(String(20), default="fifo")
+    # When False, drop-ins must be manually promoted by admin (regulars still auto-promote)
+    dropin_auto_promote: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
 
     # --- Season Dates ---
     start_date: Mapped[datetime | None] = mapped_column(Date, nullable=True)
