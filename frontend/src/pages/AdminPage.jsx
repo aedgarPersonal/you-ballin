@@ -1031,7 +1031,7 @@ export default function AdminPage() {
                                 try {
                                   await deletePlayer(runId, player.id);
                                   toast.success(`${player.full_name} deleted`);
-                                  fetchAllMembers();
+                                  fetchPlayers();
                                 } catch (err) {
                                   toast.error(err.response?.data?.detail || "Failed to delete player");
                                 }
