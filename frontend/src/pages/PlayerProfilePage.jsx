@@ -41,35 +41,34 @@ export default function PlayerProfilePage() {
   const isAdmin = currentUser?.role === "super_admin" || currentUser?.role === "admin" || isRunAdmin;
   const canEditPhysical = isAdmin || isOwnProfile;
 
-  useEffect(() => {
-    const fetch = async () => {
-      try {
-        const [playerRes, summaryRes] = await Promise.all([
-          getPlayer(id),
-          getPlayerRatingSummary(runId, id),
-        ]);
-        setPlayer(playerRes.data);
-        setSummary(summaryRes.data);
+  const fetchPlayer = async () => {
+    try {
+      const [playerRes, summaryRes] = await Promise.all([
+        getPlayer(id),
+        getPlayerRatingSummary(runId, id),
+      ]);
+      setPlayer(playerRes.data);
+      setSummary(summaryRes.data);
 
-        if (!isOwnProfile) {
-          const myRatingRes = await getMyRatingForPlayer(runId, id);
-          setMyRating(myRatingRes.data);
-          if (myRatingRes.data.rating) {
-            setRatingForm({
-              offense: myRatingRes.data.rating.offense,
-              defense: myRatingRes.data.rating.defense,
-              overall: myRatingRes.data.rating.overall,
-            });
-          }
+      if (!isOwnProfile) {
+        const myRatingRes = await getMyRatingForPlayer(runId, id);
+        setMyRating(myRatingRes.data);
+        if (myRatingRes.data.rating) {
+          setRatingForm({
+            offense: myRatingRes.data.rating.offense,
+            defense: myRatingRes.data.rating.defense,
+            overall: myRatingRes.data.rating.overall,
+          });
         }
-      } catch {
-        toast.error("Failed to load player profile");
-      } finally {
-        setLoading(false);
       }
-    };
-    fetch();
-  }, [id, isOwnProfile]);
+    } catch {
+      toast.error("Failed to load player profile");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchPlayer(); }, [id, isOwnProfile]);
 
   const handleRate = async (e) => {
     e.preventDefault();
@@ -146,7 +145,28 @@ export default function PlayerProfilePage() {
             <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{player.full_name}</h1>
             <p className="text-gray-500 dark:text-gray-400">@{player.username}</p>
             <div className="flex items-center gap-2 mt-2">
-              <span className={`badge-${player.player_status}`}>{player.player_status}</span>
+              {isAdmin ? (
+                <select
+                  value={player.player_status}
+                  onChange={async (e) => {
+                    const newStatus = e.target.value;
+                    const labels = { regular: "Regular", dropin: "Drop-in", inactive: "Inactive" };
+                    if (!confirm(`Change ${player.full_name} to ${labels[newStatus]}?`)) return;
+                    try {
+                      await updatePlayerAdmin(runId, player.id, { player_status: newStatus });
+                      toast.success(`Status changed to ${labels[newStatus]}`);
+                      fetchPlayer();
+                    } catch { toast.error("Update failed"); }
+                  }}
+                  className="text-xs font-semibold border rounded px-2 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
+                >
+                  <option value="regular">Regular</option>
+                  <option value="dropin">Drop-in</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              ) : (
+                <span className={`badge-${player.player_status}`}>{player.player_status}</span>
+              )}
               {isOwnProfile && <span className="badge bg-court-100 text-court-800">You</span>}
             </div>
           </div>

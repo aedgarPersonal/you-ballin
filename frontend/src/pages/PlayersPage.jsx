@@ -462,15 +462,11 @@ export default function PlayersPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {sortedPlayers.map((player, idx) => {
-            const Wrapper = isAdmin ? "div" : Link;
-            const wrapperProps = isAdmin
-              ? { className: "card hover:shadow-md transition-shadow" }
-              : { to: `/players/${player.id}`, className: "card hover:shadow-md transition-shadow" };
             const pMetrics = playerMetricsMap[player.id] || [];
             const height = formatHeight(player.height_inches);
 
             return (
-              <Wrapper key={player.id} {...wrapperProps}>
+              <div key={player.id} className="card hover:shadow-md transition-shadow">
                 <Link to={`/players/${player.id}`} className="flex items-center gap-4">
                   {isRanked && (
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-black shrink-0 ${
@@ -499,38 +495,39 @@ export default function PlayersPage() {
                       )}
                     </h3>
                     <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                      {isAdmin ? (
-                        <select
-                          value={player.player_status}
-                          onChange={async (e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            const newStatus = e.target.value;
-                            const labels = { regular: "Regular", dropin: "Drop-in", inactive: "Inactive" };
-                            if (!confirm(`Change ${player.full_name} to ${labels[newStatus]}?`)) return;
-                            try {
-                              await updatePlayerAdmin(runId, player.id, { player_status: newStatus });
-                              toast.success(`${player.full_name} → ${labels[newStatus]}`);
-                              fetchPlayers();
-                            } catch { toast.error("Update failed"); }
-                          }}
-                          onClick={(e) => e.stopPropagation()}
-                          className="text-xs font-semibold border rounded px-1.5 py-0.5 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 cursor-pointer"
-                        >
-                          <option value="regular">Regular</option>
-                          <option value="dropin">Drop-in</option>
-                          <option value="inactive">Inactive</option>
-                        </select>
-                      ) : (
-                        <span className={`badge-${player.player_status}`}>
-                          {player.player_status}
-                        </span>
-                      )}
+                      <span className={`badge-${player.player_status}`}>
+                        {player.player_status}
+                      </span>
                       {height && <span>{height}</span>}
                       {player.age && <span>Age {player.age}</span>}
                     </div>
                   </div>
                 </Link>
+
+                {/* Admin status toggle — outside the Link */}
+                {isAdmin && (
+                  <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700 flex items-center gap-2">
+                    <span className="text-xs text-gray-400 dark:text-gray-500">Status:</span>
+                    <select
+                      value={player.player_status}
+                      onChange={async (e) => {
+                        const newStatus = e.target.value;
+                        const labels = { regular: "Regular", dropin: "Drop-in", inactive: "Inactive" };
+                        if (!confirm(`Change ${player.full_name} to ${labels[newStatus]}?`)) return;
+                        try {
+                          await updatePlayerAdmin(runId, player.id, { player_status: newStatus });
+                          toast.success(`${player.full_name} → ${labels[newStatus]}`);
+                          fetchPlayers();
+                        } catch { toast.error("Update failed"); }
+                      }}
+                      className="text-xs font-semibold border rounded px-1.5 py-0.5 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 cursor-pointer"
+                    >
+                      <option value="regular">Regular</option>
+                      <option value="dropin">Drop-in</option>
+                      <option value="inactive">Inactive</option>
+                    </select>
+                  </div>
+                )}
 
                 {/* Award Trophies */}
                 {(player.mvp_count > 0 || player.xfactor_count > 0 || player.shaqtin_count > 0) && (
@@ -640,7 +637,7 @@ export default function PlayersPage() {
                     ))}
                   </div>
                 )}
-              </Wrapper>
+              </div>
             );
           })}
         </div>
