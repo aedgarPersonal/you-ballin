@@ -499,9 +499,33 @@ export default function PlayersPage() {
                       )}
                     </h3>
                     <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                      <span className={`badge-${player.player_status}`}>
-                        {player.player_status}
-                      </span>
+                      {isAdmin ? (
+                        <select
+                          value={player.player_status}
+                          onChange={async (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const newStatus = e.target.value;
+                            const labels = { regular: "Regular", dropin: "Drop-in", inactive: "Inactive" };
+                            if (!confirm(`Change ${player.full_name} to ${labels[newStatus]}?`)) return;
+                            try {
+                              await updatePlayerAdmin(runId, player.id, { player_status: newStatus });
+                              toast.success(`${player.full_name} → ${labels[newStatus]}`);
+                              fetchPlayers();
+                            } catch { toast.error("Update failed"); }
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                          className="text-xs font-semibold border rounded px-1.5 py-0.5 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 cursor-pointer"
+                        >
+                          <option value="regular">Regular</option>
+                          <option value="dropin">Drop-in</option>
+                          <option value="inactive">Inactive</option>
+                        </select>
+                      ) : (
+                        <span className={`badge-${player.player_status}`}>
+                          {player.player_status}
+                        </span>
+                      )}
                       {height && <span>{height}</span>}
                       {player.age && <span>Age {player.age}</span>}
                     </div>
