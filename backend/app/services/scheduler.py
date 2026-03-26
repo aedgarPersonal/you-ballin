@@ -66,22 +66,20 @@ def setup_scheduler():
         scheduler now runs create_weekly_game and open_dropin_spots
         daily and lets each job figure out which runs need attention.
     """
-    # Create next week's game - run daily at 6 PM (checks each run's default_game_day)
+    # Auto-send invites for upcoming games (checks every 30 minutes)
     scheduler.add_job(
-        create_weekly_game,
-        "cron",
-        hour=18,
-        minute=0,
-        id="create_weekly_game",
+        send_game_invites,
+        "interval",
+        minutes=30,
+        id="send_game_invites",
         replace_existing=True,
     )
 
-    # Open drop-in spots at 8 AM daily (checks all runs' games for today)
+    # Open drop-in spots (checks every 30 minutes)
     scheduler.add_job(
         open_dropin_spots,
-        "cron",
-        hour=8,
-        minute=0,
+        "interval",
+        minutes=30,
         id="open_dropin_spots",
         replace_existing=True,
     )
@@ -123,130 +121,75 @@ def setup_scheduler():
 # Scheduled Jobs
 # =============================================================================
 
-async def create_weekly_game():
-    """Create next week's game for each active Run whose game day is upcoming.
+async def send_game_invites():
+    """Auto-send invites for scheduled games within the invite window.
 
-    TEACHING NOTE:
-        This runs every day at 6 PM. For each active run it:
-        1. Checks if today is the right day to create next week's game
-           (i.e., the run's default_game_day is within the next 7 days)
-        2. Creates the Game record with run_id
-        3. Finds all REGULAR members via RunMembership
-        4. Creates PENDING RSVPs for each
-        5. Sends invitation notifications (email + SMS + in-app)
+    For each active run with invite_hours_before configured, finds
+    SCHEDULED games whose game_date is within the invite window
+    and transitions them to INVITES_SENT, notifying all regular players.
     """
-    logger.info("Creating weekly games for active runs...")
+    logger.info("Checking for games needing invites...")
 
     async with async_session() as db:
         try:
-            # Load all active runs
-            result = await db.execute(
-                select(Run).where(Run.is_active == True)  # noqa: E712
-            )
-            runs = result.scalars().all()
-
-            if not runs:
-                logger.info("No active runs found")
-                return
-
             now = datetime.utcnow()
 
+            # Get active runs with auto-invite configured
+            runs_result = await db.execute(
+                select(Run).where(Run.is_active == True, Run.invite_hours_before.isnot(None))
+            )
+            runs = runs_result.scalars().all()
+
             for run in runs:
-                if run.default_game_day is None or run.default_game_time is None:
-                    logger.info(f"Run '{run.name}' (id={run.id}) has no default schedule, skipping")
-                    continue
+                invite_window = now + timedelta(hours=run.invite_hours_before)
 
-                # Calculate next game date for this run
-                days_until_game = (run.default_game_day - now.weekday()) % 7
-                if days_until_game == 0:
-                    days_until_game = 7  # Next week, not today
-                game_date = now + timedelta(days=days_until_game)
-
-                # Parse game time from run settings
-                hour, minute = map(int, run.default_game_time.split(":"))
-                game_date = game_date.replace(hour=hour, minute=minute, second=0, microsecond=0)
-
-                # Check if a game already exists for this run on that date
-                day_start = game_date.replace(hour=0, minute=0, second=0)
-                day_end = game_date.replace(hour=23, minute=59, second=59)
-                existing_game_result = await db.execute(
+                # Find SCHEDULED games within the invite window
+                games_result = await db.execute(
                     select(Game).where(
                         Game.run_id == run.id,
-                        Game.game_date.between(day_start, day_end),
+                        Game.status == GameStatus.SCHEDULED,
+                        Game.game_date <= invite_window,
+                        Game.game_date > now,
                     )
                 )
-                if existing_game_result.scalar_one_or_none():
-                    logger.info(f"Game already exists for run '{run.name}' on {game_date.date()}, skipping")
-                    continue
+                games = games_result.scalars().all()
 
-                # Create the game
-                game = Game(
-                    run_id=run.id,
-                    title=f"{run.name} - {game_date.strftime('%b %d')}",
-                    game_date=game_date,
-                    location=run.default_location or "TBD",
-                    status=GameStatus.INVITES_SENT,
-                    roster_size=run.default_roster_size,
-                    num_teams=run.default_num_teams,
-                )
-                db.add(game)
-                await db.flush()
+                for game in games:
+                    # Transition to INVITES_SENT
+                    game.status = GameStatus.INVITES_SENT
 
-                # Get all REGULAR members of this run via RunMembership
-                members_result = await db.execute(
-                    select(RunMembership).where(
-                        RunMembership.run_id == run.id,
-                        RunMembership.player_status == PlayerStatus.REGULAR,
+                    # Get all REGULAR members
+                    members_result = await db.execute(
+                        select(RunMembership).where(
+                            RunMembership.run_id == run.id,
+                            RunMembership.player_status == PlayerStatus.REGULAR,
+                        )
                     )
-                )
-                memberships = members_result.scalars().all()
+                    member_ids = [m.user_id for m in members_result.scalars().all()]
 
-                # Fetch the User objects for these members
-                member_user_ids = [m.user_id for m in memberships]
-                if not member_user_ids:
-                    logger.info(f"No REGULAR members for run '{run.name}', game created with no invites")
-                    continue
+                    if member_ids:
+                        players_result = await db.execute(
+                            select(User).where(User.id.in_(member_ids), User.is_active == True)
+                        )
+                        players = list(players_result.scalars().all())
 
-                players_result = await db.execute(
-                    select(User).where(
-                        User.id.in_(member_user_ids),
-                        User.is_active == True,  # noqa: E712
-                    )
-                )
-                regular_players = list(players_result.scalars().all())
+                        for player in players:
+                            await send_notification(
+                                db, player, NotificationType.GAME_INVITE,
+                                f"Game Invite: {game.title}",
+                                f"You're invited to play on {game.game_date.strftime('%A, %B %d at %I:%M %p')}. "
+                                f"RSVP now to secure your spot!",
+                                run_id=run.id,
+                                action_url=f"/games/{game.id}",
+                            )
 
-                # Create RSVPs and send invitations
-                for player in regular_players:
-                    rsvp = RSVP(
-                        game_id=game.id,
-                        user_id=player.id,
-                        status=RSVPStatus.PENDING,
-                    )
-                    db.add(rsvp)
-
-                # Send individual notifications with per-player action URLs
-                from app.auth.jwt import create_game_action_token
-
-                for player in regular_players:
-                    await send_notification(
-                        db, player, NotificationType.GAME_INVITE,
-                        f"Game Invite: {game.title}",
-                        f"You're invited to play on {game_date.strftime('%A, %B %d at %I:%M %p')}. "
-                        f"RSVP now to secure your spot!",
-                        run_id=run.id,
-                        action_url=f"/games/{game.id}",
-                    )
-
-                logger.info(
-                    f"Created game {game.id} for run '{run.name}' and "
-                    f"invited {len(regular_players)} players"
-                )
+                        logger.info(f"Sent invites for game {game.id} ({game.title}) to {len(players)} players")
 
             await db.commit()
 
         except Exception as e:
             await db.rollback()
-            logger.error(f"Failed to create weekly games: {e}")
+            logger.error(f"Failed to send game invites: {e}")
 
 
 async def open_dropin_spots():

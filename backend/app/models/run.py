@@ -76,8 +76,8 @@ class Run(Base):
     auto_team_minutes_before: Mapped[int | None] = mapped_column(Integer, nullable=True, default=15)
     # Hours before voting closes to send a reminder (default: 4)
     voting_reminder_hours_before: Mapped[int] = mapped_column(Integer, default=4, server_default="4")
-    # Hours after game to auto-create next week's game (default: 1, None = manual only)
-    game_creation_hours_after: Mapped[int | None] = mapped_column(Integer, nullable=True, default=1)
+    # Hours before game to auto-send invites / open RSVPs (default: 48, None = manual only)
+    invite_hours_before: Mapped[int | None] = mapped_column(Integer, nullable=True, default=48)
 
     # --- Season Dates ---
     start_date: Mapped[datetime | None] = mapped_column(Date, nullable=True)

@@ -204,7 +204,7 @@ export default function AdminPage() {
         voting_deadline_hours: currentRun.voting_deadline_hours ?? 16,
         auto_team_minutes_before: currentRun.auto_team_minutes_before ?? 15,
         voting_reminder_hours_before: currentRun.voting_reminder_hours_before ?? 4,
-        game_creation_hours_after: currentRun.game_creation_hours_after ?? 1,
+        invite_hours_before: currentRun.invite_hours_before ?? 48,
       });
     }
     if (tab === "suggestions" && runId) {
@@ -1418,11 +1418,11 @@ export default function AdminPage() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Auto-create next game</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Auto-send invites</label>
                     <div className="flex items-center gap-2">
-                      <input type="number" min="0" max="168" value={runForm.game_creation_hours_after ?? 1}
-                        onChange={(e) => setRunForm({ ...runForm, game_creation_hours_after: parseInt(e.target.value) || null })} className="input w-20" />
-                      <span className="text-xs text-gray-500">hrs after game</span>
+                      <input type="number" min="0" max="168" value={runForm.invite_hours_before ?? 48}
+                        onChange={(e) => setRunForm({ ...runForm, invite_hours_before: parseInt(e.target.value) || null })} className="input w-20" />
+                      <span className="text-xs text-gray-500">hrs before game</span>
                     </div>
                   </div>
                 </div>

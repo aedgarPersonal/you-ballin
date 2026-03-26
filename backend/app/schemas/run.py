@@ -22,7 +22,7 @@ class RunCreate(BaseModel):
     voting_deadline_hours: int = Field(default=16, ge=1, le=72)
     auto_team_minutes_before: int | None = Field(default=15, ge=0, le=1440)
     voting_reminder_hours_before: int = Field(default=4, ge=0, le=48)
-    game_creation_hours_after: int | None = Field(default=1, ge=0, le=168)
+    invite_hours_before: int | None = Field(default=48, ge=0, le=168)
 
 
 class RunUpdate(BaseModel):
