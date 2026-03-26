@@ -297,7 +297,17 @@ async def update_run_player(
         if field in update_data:
             setattr(user, field, update_data.pop(field))
 
-    # Update physical fields on User (skip role/is_active — those are super admin only)
+    # Update role (super admin only) or run admin
+    if "role" in update_data:
+        new_role = update_data.pop("role")
+        if new_role in ("player", "admin", "super_admin"):
+            user.role = UserRole(new_role)
+
+    # Update is_active
+    if "is_active" in update_data:
+        user.is_active = update_data.pop("is_active")
+
+    # Update physical fields on User
     for field in ("height_inches", "age", "mobility"):
         if field in update_data:
             setattr(user, field, update_data.pop(field))
