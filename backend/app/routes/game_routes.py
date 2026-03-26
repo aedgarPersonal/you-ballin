@@ -674,11 +674,12 @@ async def rsvp_to_game(
 
     rsvp_status = RSVPStatus(data.status)
 
-    # Drop-in waitlist rules:
-    # 1. Before DROPIN_OPEN: drop-ins go to waitlist (not accepted)
-    # 2. During DROPIN_OPEN: accepted if spots available, waitlist if full
-    if is_dropin and rsvp_status == RSVPStatus.ACCEPTED:
-        if game.status != GameStatus.DROPIN_OPEN:
+    # Waitlist rules:
+    # - Regulars: accepted if spots available, waitlist if full
+    # - Drop-ins before DROPIN_OPEN: always waitlist
+    # - Drop-ins during DROPIN_OPEN: accepted if spots available, waitlist if full
+    if rsvp_status == RSVPStatus.ACCEPTED:
+        if is_dropin and game.status != GameStatus.DROPIN_OPEN:
             rsvp_status = RSVPStatus.WAITLIST
         elif game.spots_remaining <= 0:
             rsvp_status = RSVPStatus.WAITLIST

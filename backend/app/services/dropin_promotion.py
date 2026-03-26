@@ -49,25 +49,34 @@ async def promote_waitlisted_dropins(
     priority_mode = run.dropin_priority_mode if run else "fifo"
 
     # Get all waitlisted RSVPs for this game
+    # Always promote regulars before drop-ins, then apply priority/FIFO within each group
     waitlist_query = (
         select(RSVP)
         .where(RSVP.game_id == game.id, RSVP.status == RSVPStatus.WAITLIST)
+        .join(RunMembership, (RunMembership.user_id == RSVP.user_id) & (RunMembership.run_id == game.run_id))
         .options(selectinload(RSVP.user))
     )
 
+    from sqlalchemy import case
+    # Regulars get priority 0, drop-ins get priority 1 — regulars always promoted first
+    player_type_order = case(
+        (RunMembership.player_status == PlayerStatus.REGULAR, 0),
+        else_=1,
+    )
+
     if priority_mode == "admin":
-        # Join with RunMembership to get dropin_priority, order by priority (nulls last)
-        waitlist_query = (
-            waitlist_query
-            .join(RunMembership, (RunMembership.user_id == RSVP.user_id) & (RunMembership.run_id == game.run_id))
-            .order_by(
-                RunMembership.dropin_priority.asc().nullslast(),
-                RSVP.responded_at.asc(),
-            )
+        # Regulars first (FIFO), then drop-ins by admin priority, then FIFO
+        waitlist_query = waitlist_query.order_by(
+            player_type_order,
+            RunMembership.dropin_priority.asc().nullslast(),
+            RSVP.responded_at.asc(),
         )
     else:
-        # FIFO: order by responded_at
-        waitlist_query = waitlist_query.order_by(RSVP.responded_at.asc())
+        # Regulars first (FIFO), then drop-ins (FIFO)
+        waitlist_query = waitlist_query.order_by(
+            player_type_order,
+            RSVP.responded_at.asc(),
+        )
 
     result = await db.execute(waitlist_query)
     waitlisted = list(result.scalars().all())
