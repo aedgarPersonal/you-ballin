@@ -299,7 +299,7 @@ export default function GameDetailPage() {
               </button>
             )}
             <button onClick={handleCancelGame} className="text-sm bg-red-500/10 hover:bg-red-500/20 text-red-500 font-medium py-1.5 px-3 rounded-lg">
-              Cancel
+              Cancel Game
             </button>
           </div>
         )}
