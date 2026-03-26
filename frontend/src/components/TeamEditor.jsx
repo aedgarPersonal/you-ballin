@@ -255,8 +255,8 @@ export default function TeamEditor({ teams, runId, gameId, onSave, onCancel }) {
   };
 
   const handleRemove = (assignment) => {
-    if (!confirm(`Mark ${assignment.user.full_name} as a no-show?`)) return;
     setLocalTeams((prev) => prev.filter((t) => t.id !== assignment.id));
+    toast.success(`${assignment.user.full_name} removed from team`);
 
     if (typeof assignment.id === "number") {
       setRemovedIds((prev) => [...prev, assignment.id]);
