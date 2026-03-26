@@ -714,6 +714,76 @@ function RsvpSection({ game, runId, isAdmin, onUpdate }) {
 
 
 /**
+ * AdminRsvpSection — Allows admin to RSVP on behalf of players.
+ */
+function AdminRsvpSection({ runId, gameId, onUpdate }) {
+  const [showRsvp, setShowRsvp] = useState(false);
+  const [players, setPlayers] = useState([]);
+  const [search, setSearch] = useState("");
+  const [rsvpStatus, setRsvpStatus] = useState("accepted");
+
+  useEffect(() => {
+    if (!showRsvp || !runId) return;
+    listPlayers(runId, { include_inactive: true })
+      .then(({ data }) => setPlayers(data.users))
+      .catch(() => setPlayers([]));
+  }, [showRsvp, runId]);
+
+  const filtered = players.filter((p) =>
+    p.full_name.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const handleRsvp = async (userId, name) => {
+    try {
+      await adminRsvp(runId, gameId, userId, rsvpStatus);
+      toast.success(`${name} → ${rsvpStatus}`);
+      onUpdate();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "RSVP failed");
+    }
+  };
+
+  if (!showRsvp) {
+    return (
+      <button onClick={() => setShowRsvp(true)} className="text-sm text-cyan-500 hover:text-cyan-400 font-medium">
+        + RSVP on behalf of a player
+      </button>
+    );
+  }
+
+  return (
+    <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Admin RSVP</h3>
+        <button onClick={() => setShowRsvp(false)} className="text-gray-400 hover:text-white text-lg leading-none">&times;</button>
+      </div>
+      <div className="flex items-center gap-2 mb-2">
+        <input type="text" placeholder="Search player..." value={search} onChange={(e) => setSearch(e.target.value)}
+          className="flex-1 text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 dark:bg-gray-800 dark:text-gray-100" />
+        <select value={rsvpStatus} onChange={(e) => setRsvpStatus(e.target.value)}
+          className="text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 dark:bg-gray-800 dark:text-gray-200">
+          <option value="accepted">Accept</option>
+          <option value="declined">Decline</option>
+          <option value="waitlist">Waitlist</option>
+        </select>
+      </div>
+      {search && (
+        <div className="max-h-32 overflow-y-auto space-y-1">
+          {filtered.slice(0, 8).map((p) => (
+            <button key={p.id} onClick={() => handleRsvp(p.id, p.full_name)}
+              className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-left text-sm">
+              <span className="font-medium text-gray-800 dark:text-gray-200">{p.full_name}</span>
+              <span className="text-xs text-gray-400 ml-auto">{p.player_status}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+/**
  * VotingCard Component
  */
 function VotingCard({ title, emoji, description, color, participants, currentUserId, currentVoteId, onVote }) {
