@@ -30,7 +30,7 @@ from app.database import get_db
 from app.models.game import Game, GameStatus, RSVP, RSVPStatus
 from app.models.run import Run, RunMembership, RunPlayerStats
 from app.models.team import GameResult, TeamAssignment, TeamScore, pick_team_names
-from app.models.user import PlayerStatus, User
+from app.models.user import PlayerStatus, User, UserRole
 from app.models.notification import NotificationType
 from app.schemas.game import (
     AdminRSVPCreate,
@@ -720,6 +720,25 @@ async def rsvp_to_game(
             await db.refresh(game)
             await _generate_teams_for_game(db, game)
             logger.info(f"Auto-regenerated teams for game {game_id} after new player accepted")
+
+            # Notify run admins
+            from app.models.run import RunAdmin
+            admin_result = await db.execute(select(RunAdmin).where(RunAdmin.run_id == run_id))
+            admin_ids = [ra.user_id for ra in admin_result.scalars().all()]
+            super_result = await db.execute(select(User).where(User.role == UserRole.SUPER_ADMIN))
+            for sa in super_result.scalars().all():
+                if sa.id not in admin_ids:
+                    admin_ids.append(sa.id)
+            if admin_ids:
+                admins_result = await db.execute(select(User).where(User.id.in_(admin_ids)))
+                admin_users = list(admins_result.scalars().all())
+                player_name = user.full_name
+                await send_bulk_notification(
+                    db, admin_users, NotificationType.TEAMS_PUBLISHED,
+                    f"Teams Auto-Regenerated: {game.title}",
+                    f"{player_name} accepted after teams were set. Teams have been automatically rebalanced.",
+                    action_url=f"/games/{game_id}",
+                )
 
     return rsvp
 
