@@ -394,10 +394,18 @@ export default function DashboardPage() {
           <span className="text-3xl">🔔</span>
           <p className="mt-2 font-medium">Notifications</p>
         </Link>
-        <Link to={`/players/${user?.id}`} className="card hover:shadow-md transition-shadow text-center">
-          <span className="text-3xl">⭐</span>
-          <p className="mt-2 font-medium">My Profile</p>
-        </Link>
+        {isRunMember && (
+          <Link to={`/players/${user?.id}`} className="card hover:shadow-md transition-shadow text-center">
+            <span className="text-3xl">⭐</span>
+            <p className="mt-2 font-medium">My Profile</p>
+          </Link>
+        )}
+        {(user?.role === "super_admin" || user?.role === "admin") && (
+          <Link to="/admin" className="card hover:shadow-md transition-shadow text-center border-court-300 dark:border-court-700">
+            <span className="text-3xl">⚙️</span>
+            <p className="mt-2 font-medium text-court-600">Admin Panel</p>
+          </Link>
+        )}
       </div>
     </div>
   );
