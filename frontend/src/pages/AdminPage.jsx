@@ -1454,7 +1454,7 @@ export default function AdminPage() {
                 <h3 className="text-md font-semibold text-gray-700 dark:text-gray-300 mb-4">Scheduling & Automation</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Voting Deadline</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Player Award Voting Deadline</label>
                     <div className="flex items-center gap-2">
                       <input
                         type="number"
@@ -1484,7 +1484,7 @@ export default function AdminPage() {
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Set to 0 to disable auto-generation</p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Voting Reminder</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Award Voting Reminder</label>
                     <div className="flex items-center gap-2">
                       <input
                         type="number"
@@ -1494,7 +1494,7 @@ export default function AdminPage() {
                         onChange={(e) => setRunForm({ ...runForm, voting_reminder_hours_before: parseInt(e.target.value) || 0 })}
                         className="input w-20"
                       />
-                      <span className="text-sm text-gray-500 dark:text-gray-400">hours before voting closes</span>
+                      <span className="text-sm text-gray-500 dark:text-gray-400">hours before award voting closes</span>
                     </div>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Set to 0 to disable reminders</p>
                   </div>

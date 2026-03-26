@@ -289,7 +289,7 @@ export default function DashboardPage() {
               {lastAwards.voting_open && isParticipant ? (
                 <>
                   <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                    Cast your votes ({lastAwards.votes_cast}/{lastAwards.total_voters} voted)
+                    Player Award Voting ({lastAwards.votes_cast}/{lastAwards.total_voters} voted)
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <VoteDropdown
@@ -332,7 +332,7 @@ export default function DashboardPage() {
                 </div>
               ) : (
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Voting is open. {lastAwards.votes_cast}/{lastAwards.total_voters} participants have voted.
+                  Player award voting is open. {lastAwards.votes_cast}/{lastAwards.total_voters} participants have voted.
                 </p>
               )}
             </div>

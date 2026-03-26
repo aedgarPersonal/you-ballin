@@ -453,11 +453,11 @@ export default function GameDetailPage() {
         </div>
       )}
 
-      {/* Voting Section (shown for participants when voting is open) */}
+      {/* Player Award Voting (shown for participants when voting is open) */}
       {game.status === "completed" && awards?.voting_open && isParticipant && (
         <div className="card mb-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">Cast Your Votes</h2>
+            <h2 className="text-lg font-semibold">Player Award Voting</h2>
             <span className="text-sm text-gray-500 dark:text-gray-400">
               Closes {new Date(awards.voting_deadline).toLocaleString("en-US", {
                 month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
@@ -466,7 +466,7 @@ export default function GameDetailPage() {
           </div>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
             {awards.votes_cast} of {awards.total_voters} participants have voted.
-            Results are hidden until voting closes.
+            Results are hidden until award voting closes.
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -504,10 +504,10 @@ export default function GameDetailPage() {
         </div>
       )}
 
-      {/* Voting closed message */}
+      {/* Award voting closed message */}
       {game.status === "completed" && awards && !awards.voting_open && isParticipant && (
         <div className="text-center text-sm text-gray-500 dark:text-gray-400 mb-6">
-          Voting has closed. {awards.votes_cast} of {awards.total_voters} participants voted.
+          Player award voting has closed. {awards.votes_cast} of {awards.total_voters} participants voted.
         </div>
       )}
 

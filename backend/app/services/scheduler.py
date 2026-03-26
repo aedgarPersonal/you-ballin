@@ -586,7 +586,7 @@ async def send_voting_reminders():
                     await send_notification(
                         db, player, NotificationType.RSVP_REMINDER,
                         f"Vote Reminder - {game.title}",
-                        f"Don't forget to cast your MVP and Shaqtin' a Fool votes! "
+                        f"Player award voting closes soon! Cast your MVP and Shaqtin' votes. "
                         f"Voting closes at noon today.",
                         run_id=game.run_id,
                         action_url=f"/games/{game.id}",

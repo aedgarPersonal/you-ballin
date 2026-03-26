@@ -1223,7 +1223,7 @@ async def record_result(
         all_players,
         NotificationType.GAME_COMPLETED,
         f"Game Complete: {game.title}",
-        f"{winner_msg} Final: {score_summary}. Cast your MVP and Shaqtin' votes before noon tomorrow!",
+        f"{winner_msg} Final: {score_summary}. Player award voting is now open — cast your MVP and Shaqtin' votes!",
         action_url=f"/games/{game_id}",
     )
 
