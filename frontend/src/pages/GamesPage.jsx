@@ -6,8 +6,10 @@
 
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import toast from "react-hot-toast";
 import useRunStore from "../stores/runStore";
-import { listGames } from "../api/games";
+import useAuthStore from "../stores/authStore";
+import { listGames, createGame } from "../api/games";
 
 const STATUS_LABELS = {
   scheduled: "Scheduled",
@@ -28,30 +30,51 @@ const STATUS_COLORS = {
 };
 
 export default function GamesPage() {
-  const { currentRun } = useRunStore();
+  const { currentRun, isRunAdmin } = useRunStore();
+  const currentUser = useAuthStore((s) => s.user);
+  const isAdmin = currentUser?.role === "super_admin" || isRunAdmin;
   const runId = currentRun?.id;
   const [games, setGames] = useState([]);
   const [filter, setFilter] = useState("");
   const [loading, setLoading] = useState(true);
+  const [showCreate, setShowCreate] = useState(false);
+  const [newGame, setNewGame] = useState({ title: "", game_date: "", game_time: "20:00", location: currentRun?.default_location || "", num_teams: 2 });
 
-  useEffect(() => {
-    if (!runId) {
+  const fetchGames = async () => {
+    if (!runId) { setLoading(false); return; }
+    setLoading(true);
+    try {
+      const { data } = await listGames(runId, filter || undefined);
+      setGames(data);
+    } catch {
+      setGames([]);
+    } finally {
       setLoading(false);
-      return;
     }
-    const fetch = async () => {
-      setLoading(true);
-      try {
-        const { data } = await listGames(runId, filter || undefined);
-        setGames(data);
-      } catch {
-        setGames([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetch();
-  }, [runId, filter]);
+  };
+
+  useEffect(() => { fetchGames(); }, [runId, filter]);
+
+  const handleCreateGame = async (e) => {
+    e.preventDefault();
+    try {
+      const gameDate = newGame.game_time
+        ? new Date(`${newGame.game_date}T${newGame.game_time}`).toISOString()
+        : new Date(newGame.game_date).toISOString();
+      await createGame(runId, {
+        title: newGame.title,
+        game_date: gameDate,
+        location: newGame.location || currentRun?.default_location || "TBD",
+        num_teams: newGame.num_teams,
+      });
+      toast.success("Game created!");
+      setShowCreate(false);
+      setNewGame({ title: "", game_date: "", game_time: "20:00", location: currentRun?.default_location || "", num_teams: 2 });
+      fetchGames();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Failed to create game");
+    }
+  };
 
   if (!currentRun) {
     return (
@@ -63,24 +86,68 @@ export default function GamesPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Games</h1>
           {currentRun && <p className="text-sm text-court-600">{currentRun.name}</p>}
         </div>
-
-        {/* Filter */}
-        <select
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          className="input w-auto"
-        >
-          <option value="">All Games</option>
-          {Object.entries(STATUS_LABELS).map(([key, label]) => (
-            <option key={key} value={key}>{label}</option>
-          ))}
-        </select>
+        <div className="flex items-center gap-3">
+          {isAdmin && (
+            <button onClick={() => setShowCreate(!showCreate)} className="btn-primary text-sm">
+              {showCreate ? "Cancel" : "+ New Game"}
+            </button>
+          )}
+          <select
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="input w-auto"
+          >
+            <option value="">All Games</option>
+            {Object.entries(STATUS_LABELS).map(([key, label]) => (
+              <option key={key} value={key}>{label}</option>
+            ))}
+          </select>
+        </div>
       </div>
+
+      {/* Create Game Form (admin only) */}
+      {showCreate && (
+        <div className="card mb-6 border-2 border-court-300 dark:border-court-700">
+          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Create One-Off Game</h3>
+          <form onSubmit={handleCreateGame} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Title *</label>
+              <input type="text" required value={newGame.title} onChange={(e) => setNewGame({ ...newGame, title: e.target.value })}
+                placeholder="e.g. Special Pickup" className="input text-sm w-full" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Date *</label>
+              <input type="date" required value={newGame.game_date} onChange={(e) => setNewGame({ ...newGame, game_date: e.target.value })}
+                className="input text-sm w-full" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Time</label>
+              <input type="time" value={newGame.game_time} onChange={(e) => setNewGame({ ...newGame, game_time: e.target.value })}
+                className="input text-sm w-full" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Location</label>
+              <input type="text" value={newGame.location} onChange={(e) => setNewGame({ ...newGame, location: e.target.value })}
+                placeholder={currentRun?.default_location || "TBD"} className="input text-sm w-full" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Teams</label>
+              <select value={newGame.num_teams} onChange={(e) => setNewGame({ ...newGame, num_teams: Number(e.target.value) })}
+                className="input text-sm w-full">
+                {[2, 3, 4].map((n) => <option key={n} value={n}>{n}</option>)}
+              </select>
+            </div>
+            <div className="flex items-end">
+              <button type="submit" className="btn-primary w-full">Create Game</button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {loading ? (
         <p className="text-gray-500 dark:text-gray-400">Loading games...</p>

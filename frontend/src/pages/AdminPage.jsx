@@ -448,7 +448,7 @@ export default function AdminPage() {
     cancelled: "bg-red-200 text-red-900 dark:bg-red-900/40 dark:text-red-300 font-bold",
   };
 
-  const tabs = ["pending", "players", "games", "balancer", "settings"];
+  const tabs = ["pending", "players", "balancer", "settings"];
   const tabLabels = { settings: "Run Settings" };
 
   return (
