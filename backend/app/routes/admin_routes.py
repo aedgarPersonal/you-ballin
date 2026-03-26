@@ -594,3 +594,55 @@ async def quick_add_player(
 
     await db.flush()
     return user
+
+
+@run_admin_router.delete("/players/{user_id}", status_code=204)
+async def delete_player(
+    run_id: int,
+    user_id: int,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(require_run_admin()),
+):
+    """Permanently delete a player and all associated data (run admin only)."""
+    from sqlalchemy import delete, text
+    from app.models.game import RSVP
+    from app.models.team import TeamAssignment
+    from app.models.vote import GameVote
+    from app.models.rating import PlayerRating
+    from app.models.push_subscription import PushSubscription
+    from app.models.run import RunAdmin, PlayerSuggestion
+    from app.models.invite_code import InviteCode
+
+    # Verify user exists
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="Player not found")
+
+    # Prevent deleting super admins
+    if user.role == UserRole.SUPER_ADMIN:
+        raise HTTPException(status_code=400, detail="Cannot delete a super admin")
+
+    # Delete all associated data
+    await db.execute(delete(GameVote).where((GameVote.voter_id == user_id) | (GameVote.nominee_id == user_id)))
+    await db.execute(delete(TeamAssignment).where(TeamAssignment.user_id == user_id))
+    await db.execute(delete(RSVP).where(RSVP.user_id == user_id))
+    await db.execute(delete(Notification).where(Notification.user_id == user_id))
+    await db.execute(delete(PushSubscription).where(PushSubscription.user_id == user_id))
+    await db.execute(delete(PlayerRating).where((PlayerRating.player_id == user_id) | (PlayerRating.rater_id == user_id)))
+    await db.execute(delete(RunPlayerStats).where(RunPlayerStats.user_id == user_id))
+    await db.execute(delete(RunMembership).where(RunMembership.user_id == user_id))
+    await db.execute(delete(RunAdmin).where(RunAdmin.user_id == user_id))
+    await db.execute(delete(PlayerSuggestion).where(
+        (PlayerSuggestion.suggested_user_id == user_id) |
+        (PlayerSuggestion.suggested_by_user_id == user_id)
+    ))
+    # Nullify invite codes created by this user
+    await db.execute(
+        InviteCode.__table__.update().where(InviteCode.created_by_user_id == user_id).values(created_by_user_id=None)
+    )
+    # Delete custom metrics
+    await db.execute(text("DELETE FROM player_custom_metrics WHERE user_id = :uid"), {"uid": user_id})
+
+    await db.delete(user)
+    await db.flush()

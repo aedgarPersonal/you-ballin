@@ -17,6 +17,8 @@ export const importPlayers = (runId, data) =>
   api.post(`/runs/${runId}/admin/import-players`, data);
 export const quickAddPlayer = (runId, data) =>
   api.post(`/runs/${runId}/admin/add-player`, data);
+export const deletePlayer = (runId, userId) =>
+  api.delete(`/runs/${runId}/admin/players/${userId}`);
 
 // --- Invite Codes ---
 export const createInviteCode = (runId, data = {}) =>

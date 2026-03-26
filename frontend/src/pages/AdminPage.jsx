@@ -29,6 +29,7 @@ import {
   updatePlayerAdmin,
   importPlayers,
   quickAddPlayer,
+  deletePlayer,
   createInviteCode,
   listInviteCodes,
   updateInviteCode,
@@ -911,6 +912,7 @@ export default function AdminPage() {
                       <SortTh field="games_played">GP</SortTh>
                       <SortTh field="games_won">W</SortTh>
                       {isSuperAdmin && <SortTh field="role">Role</SortTh>}
+                      <th className="px-3 py-2"></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1021,6 +1023,26 @@ export default function AdminPage() {
                             </select>
                           </td>
                         )}
+                        <td className="py-2 px-2">
+                          {player.role !== "super_admin" && (
+                            <button
+                              onClick={async () => {
+                                if (!confirm(`Permanently delete ${player.full_name}? All their game data, votes, RSVPs, and stats will be removed. This cannot be undone.`)) return;
+                                try {
+                                  await deletePlayer(runId, player.id);
+                                  toast.success(`${player.full_name} deleted`);
+                                  fetchAllMembers();
+                                } catch (err) {
+                                  toast.error(err.response?.data?.detail || "Failed to delete player");
+                                }
+                              }}
+                              className="text-xs text-red-400 hover:text-red-300"
+                              title={`Delete ${player.full_name}`}
+                            >
+                              ✕
+                            </button>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
