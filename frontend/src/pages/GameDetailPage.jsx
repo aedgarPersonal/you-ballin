@@ -609,6 +609,8 @@ export default function GameDetailPage() {
  */
 function RsvpSection({ game, runId, isAdmin, onUpdate }) {
   const [members, setMembers] = useState([]);
+  const { currentRun } = useRunStore();
+  const priorityMode = currentRun?.dropin_priority_mode || "fifo";
 
   useEffect(() => {
     if (!isAdmin || !runId) return;
@@ -629,32 +631,62 @@ function RsvpSection({ game, runId, isAdmin, onUpdate }) {
         name: m.full_name,
         playerStatus: m.player_status,
         rsvpStatus: rsvpMap[m.id]?.status || null,
+        respondedAt: rsvpMap[m.id]?.responded_at || null,
+        dropinPriority: m.dropin_priority ?? 999,
       }))
     : (game.rsvps || []).map((r) => ({
         userId: r.user_id,
         name: r.user?.full_name || `Player #${r.user_id}`,
-        playerStatus: null,
+        playerStatus: r.user?.player_status || null,
         rsvpStatus: r.status,
+        respondedAt: r.responded_at,
+        dropinPriority: r.user?.dropin_priority ?? 999,
       }));
 
   // Sort: accepted first, then waitlist, then no-response, then declined
-  // Within accepted: regulars before drop-ins, then alphabetical
   const rsvpSortOrder = { accepted: 0, waitlist: 1, declined: 3 };
   const playerSortOrder = { regular: 0, dropin: 1, pending: 2, inactive: 3 };
   rows.sort((a, b) => {
     const aRsvp = a.rsvpStatus ? (rsvpSortOrder[a.rsvpStatus] ?? 2) : 2;
     const bRsvp = b.rsvpStatus ? (rsvpSortOrder[b.rsvpStatus] ?? 2) : 2;
     if (aRsvp !== bRsvp) return aRsvp - bRsvp;
-    // Within same RSVP status, sort regulars before drop-ins
+
+    // Within accepted: regulars before drop-ins
     const aPlayer = playerSortOrder[a.playerStatus] ?? 1;
     const bPlayer = playerSortOrder[b.playerStatus] ?? 1;
     if (aPlayer !== bPlayer) return aPlayer - bPlayer;
+
+    // For waitlisted drop-ins: sort by promotion order
+    if (a.rsvpStatus === "waitlist" && b.rsvpStatus === "waitlist") {
+      if (priorityMode === "admin") {
+        // Admin priority first, then response time
+        if (a.dropinPriority !== b.dropinPriority) return a.dropinPriority - b.dropinPriority;
+      }
+      // FIFO: earlier response = higher priority
+      if (a.respondedAt && b.respondedAt) return new Date(a.respondedAt) - new Date(b.respondedAt);
+    }
+
+    // For non-waitlisted drop-ins with admin priority mode, sort by priority
+    if (a.playerStatus === "dropin" && b.playerStatus === "dropin" && priorityMode === "admin") {
+      if (a.dropinPriority !== b.dropinPriority) return a.dropinPriority - b.dropinPriority;
+    }
+
     return a.name.localeCompare(b.name);
   });
 
   const acceptedCount = rows.filter((r) => r.rsvpStatus === "accepted").length;
   const declinedCount = rows.filter((r) => r.rsvpStatus === "declined").length;
+  const waitlistCount = rows.filter((r) => r.rsvpStatus === "waitlist").length;
   const pendingCount = rows.filter((r) => !r.rsvpStatus).length;
+
+  // Assign waitlist position numbers (1-based)
+  let waitlistPos = 0;
+  for (const row of rows) {
+    if (row.rsvpStatus === "waitlist") {
+      waitlistPos++;
+      row.waitlistPosition = waitlistPos;
+    }
+  }
 
   const handleAdminRsvp = async (userId, name, status) => {
     try {
@@ -680,7 +712,7 @@ function RsvpSection({ game, runId, isAdmin, onUpdate }) {
         <h2 className="text-lg font-semibold">
           RSVPs
           <span className="text-sm font-normal text-gray-500 dark:text-gray-400 ml-2">
-            {acceptedCount} in{declinedCount > 0 ? ` · ${declinedCount} out` : ""}{pendingCount > 0 ? ` · ${pendingCount} pending` : ""}
+            {acceptedCount} in{waitlistCount > 0 ? ` · ${waitlistCount} waitlist` : ""}{declinedCount > 0 ? ` · ${declinedCount} out` : ""}{pendingCount > 0 ? ` · ${pendingCount} pending` : ""}
           </span>
         </h2>
       </div>
@@ -693,6 +725,11 @@ function RsvpSection({ game, runId, isAdmin, onUpdate }) {
                 {row.playerStatus === "dropin" && (
                   <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400">
                     Drop-in
+                  </span>
+                )}
+                {row.rsvpStatus === "waitlist" && row.waitlistPosition && (
+                  <span className="text-[10px] font-bold text-yellow-600 dark:text-yellow-400">
+                    #{row.waitlistPosition}
                   </span>
                 )}
               </div>
