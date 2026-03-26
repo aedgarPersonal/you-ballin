@@ -38,9 +38,10 @@ async def promote_waitlisted_dropins(
     Returns:
         List of promoted RSVP records
     """
-    spots = max_promote if max_promote is not None else game.spots_remaining
-    if spots <= 0:
+    available_spots = game.spots_remaining
+    if available_spots <= 0:
         return []
+    spots = min(max_promote, available_spots) if max_promote is not None else available_spots
 
     # Get the run's priority mode
     run_result = await db.execute(select(Run).where(Run.id == game.run_id))
