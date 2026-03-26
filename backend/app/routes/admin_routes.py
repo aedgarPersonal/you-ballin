@@ -286,9 +286,11 @@ async def update_run_player(
     # Track status change before applying updates
     old_status = membership.player_status
 
-    # Update run-scoped fields on RunMembership
+    # Update run-scoped fields on RunMembership and sync to User
     if "player_status" in update_data:
-        membership.player_status = PlayerStatus(update_data.pop("player_status"))
+        new_ps = PlayerStatus(update_data.pop("player_status"))
+        membership.player_status = new_ps
+        user.player_status = new_ps
     if "dues_paid" in update_data:
         membership.dues_paid = update_data.pop("dues_paid")
 
