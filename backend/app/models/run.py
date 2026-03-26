@@ -70,14 +70,14 @@ class Run(Base):
     dropin_auto_promote: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
 
     # --- Scheduling & Automation ---
-    # Hour (0-23) when voting closes the day after a game (default: noon)
-    voting_deadline_hour: Mapped[int] = mapped_column(Integer, default=12, server_default="12")
+    # Hours after game ends to close voting (default: 16 = noon next day for 8 PM game)
+    voting_deadline_hours: Mapped[int] = mapped_column(Integer, default=16, server_default="16")
     # Minutes before game_date to auto-generate teams (default: 15, None = never auto-generate)
     auto_team_minutes_before: Mapped[int | None] = mapped_column(Integer, nullable=True, default=15)
-    # Hour (0-23) to send voting reminders on the day after a game (default: 9 AM)
-    voting_reminder_hour: Mapped[int] = mapped_column(Integer, default=9, server_default="9")
-    # Hour (0-23) to auto-create next week's game (default: 6 PM on game day)
-    game_creation_hour: Mapped[int] = mapped_column(Integer, default=18, server_default="18")
+    # Hours before voting closes to send a reminder (default: 4)
+    voting_reminder_hours_before: Mapped[int] = mapped_column(Integer, default=4, server_default="4")
+    # Hours after game to auto-create next week's game (default: 1, None = manual only)
+    game_creation_hours_after: Mapped[int | None] = mapped_column(Integer, nullable=True, default=1)
 
     # --- Season Dates ---
     start_date: Mapped[datetime | None] = mapped_column(Date, nullable=True)

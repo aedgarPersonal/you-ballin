@@ -45,21 +45,20 @@ from app.schemas.vote import (
 router = APIRouter(prefix="/api/runs/{run_id}/games", tags=["Voting"])
 awards_router = APIRouter(prefix="/api/awards", tags=["Awards"])
 
-def _get_voting_deadline(game: Game, deadline_hour: int = 12) -> datetime:
-    """Calculate when voting closes (default: noon the day after the game)."""
+def _get_voting_deadline(game: Game, deadline_hours: int = 16) -> datetime:
+    """Calculate when voting closes (default: 16 hours after game start)."""
     game_time = game.game_date
     if game_time.tzinfo is None:
         game_time = game_time.replace(tzinfo=timezone.utc)
-    next_day = (game_time + timedelta(days=1)).replace(hour=deadline_hour, minute=0, second=0, microsecond=0)
-    return next_day
+    return game_time + timedelta(hours=deadline_hours)
 
 
-def _is_voting_open(game: Game, deadline_hour: int = 12) -> bool:
+def _is_voting_open(game: Game, deadline_hours: int = 16) -> bool:
     """Check if the voting window is currently open."""
     if game.status != GameStatus.COMPLETED:
         return False
     now = datetime.now(timezone.utc)
-    deadline = _get_voting_deadline(game, deadline_hour)
+    deadline = _get_voting_deadline(game, deadline_hours)
     if deadline.tzinfo is None:
         deadline = deadline.replace(tzinfo=timezone.utc)
     return now <= deadline
@@ -230,14 +229,14 @@ async def get_game_awards(
     if game.status != GameStatus.COMPLETED:
         raise HTTPException(status_code=400, detail="Awards not available for this game")
 
-    # Get run's voting deadline hour
+    # Get run's voting deadline hours
     from app.models.run import Run
     run_result = await db.execute(select(Run).where(Run.id == run_id))
     run = run_result.scalar_one_or_none()
-    deadline_hour = run.voting_deadline_hour if run else 12
+    deadline_hours = run.voting_deadline_hours if run else 16
 
-    voting_open = _is_voting_open(game, deadline_hour)
-    deadline = _get_voting_deadline(game, deadline_hour)
+    voting_open = _is_voting_open(game, deadline_hours)
+    deadline = _get_voting_deadline(game, deadline_hours)
 
     # Count eligible voters (all team participants)
     participant_count = await db.execute(

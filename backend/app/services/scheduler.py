@@ -622,9 +622,9 @@ async def announce_awards():
             now = datetime.utcnow()
 
             # Find completed games where voting window has closed
-            # Build a map of run_id -> voting_deadline_hour
+            # Build a map of run_id -> voting_deadline_hours
             runs_result = await db.execute(select(Run))
-            run_deadline_map = {r.id: r.voting_deadline_hour for r in runs_result.scalars().all()}
+            run_deadline_map = {r.id: r.voting_deadline_hours for r in runs_result.scalars().all()}
 
             result = await db.execute(
                 select(Game).where(Game.status == GameStatus.COMPLETED)
@@ -632,13 +632,11 @@ async def announce_awards():
             completed_games = result.scalars().all()
 
             for game in completed_games:
-                deadline_hour = run_deadline_map.get(game.run_id, 12)
+                deadline_hours = run_deadline_map.get(game.run_id, 16)
                 game_time = game.game_date
                 if game_time.tzinfo is None:
                     game_time = game_time.replace(tzinfo=None)
-                voting_deadline = (game_time + timedelta(days=1)).replace(
-                    hour=deadline_hour, minute=0, second=0, microsecond=0
-                )
+                voting_deadline = game_time + timedelta(hours=deadline_hours)
 
                 if now <= voting_deadline:
                     continue  # Voting still open
