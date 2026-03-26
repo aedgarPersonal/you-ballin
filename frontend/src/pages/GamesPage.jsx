@@ -34,6 +34,23 @@ export default function GamesPage() {
   const currentUser = useAuthStore((s) => s.user);
   const isAdmin = currentUser?.role === "super_admin" || isRunAdmin;
   const runId = currentRun?.id;
+
+  // Gate pending/inactive users
+  if (currentUser?.player_status === "pending" || currentUser?.player_status === "inactive") {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-8 text-center">
+        <div className="text-5xl mb-4">⏳</div>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+          {currentUser.player_status === "pending" ? "Registration Pending" : "Account Inactive"}
+        </h2>
+        <p className="text-gray-600 dark:text-gray-400">
+          {currentUser.player_status === "pending"
+            ? "Your registration is being reviewed. You'll see games once approved!"
+            : "Your account is inactive. Contact an admin for help."}
+        </p>
+      </div>
+    );
+  }
   const [games, setGames] = useState([]);
   const [filter, setFilter] = useState("");
   const [loading, setLoading] = useState(true);

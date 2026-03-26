@@ -161,6 +161,9 @@ async def approve_membership(
 
     membership.player_status = PlayerStatus(player_status)
 
+    # Sync the global user status to match
+    user.player_status = PlayerStatus(player_status)
+
     # Send approval notification
     notification = Notification(
         user_id=user.id,

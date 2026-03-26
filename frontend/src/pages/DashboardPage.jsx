@@ -111,6 +111,42 @@ export default function DashboardPage() {
     );
   }
 
+  const isPending = user?.player_status === "pending";
+  const isInactive = user?.player_status === "inactive";
+  const isNonPlayer = !isRunMember && user?.role !== "super_admin" && user?.role !== "admin";
+
+  // Gate: pending or inactive users see a limited view
+  if (isPending || isInactive) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-8 flex items-center gap-4">
+          {user?.avatar_url && (
+            <AvatarBadge avatarId={user.avatar_url} size="lg" />
+          )}
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+              Welcome, {user?.full_name?.split(" ")[0]}!
+            </h1>
+            {currentRun && (
+              <p className="text-sm font-medium text-court-600 mt-0.5">{currentRun.name}</p>
+            )}
+          </div>
+        </div>
+        <div className="card text-center py-12">
+          <div className="text-5xl mb-4">{isPending ? "⏳" : "🔒"}</div>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+            {isPending ? "Registration Pending" : "Account Inactive"}
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto">
+            {isPending
+              ? "Your registration is being reviewed by an admin. You'll be notified once you're approved!"
+              : "Your account is currently inactive. Please contact an admin for assistance."}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const statusMessage = {
     pending: "Your registration is pending admin approval. You'll be notified when you're approved!",
     regular: "You're a regular player. You'll receive weekly game invitations.",
