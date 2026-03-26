@@ -15,9 +15,12 @@ TEACHING NOTE:
     ensuring all operations are scoped to the correct run.
 """
 
+import logging
 from datetime import date, datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
+
+logger = logging.getLogger(__name__)
 from sqlalchemy import delete, select, func as sqlfunc
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -707,6 +710,16 @@ async def rsvp_to_game(
             from app.services.dropin_promotion import promote_waitlisted_dropins
             await db.refresh(game)
             await promote_waitlisted_dropins(db, game, max_promote=1)
+
+    # Auto-regenerate teams if a new player accepted after teams were set
+    if game.status == GameStatus.TEAMS_SET and rsvp_status == RSVPStatus.ACCEPTED and not was_accepted:
+        run_result = await db.execute(select(Run).where(Run.id == run_id))
+        run = run_result.scalar_one_or_none()
+        if run and run.auto_regen_teams:
+            from app.services.scheduler import _generate_teams_for_game
+            await db.refresh(game)
+            await _generate_teams_for_game(db, game)
+            logger.info(f"Auto-regenerated teams for game {game_id} after new player accepted")
 
     return rsvp
 

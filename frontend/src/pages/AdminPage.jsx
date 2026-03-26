@@ -205,6 +205,7 @@ export default function AdminPage() {
         auto_team_minutes_before: currentRun.auto_team_minutes_before ?? 15,
         voting_reminder_hours_before: currentRun.voting_reminder_hours_before ?? 4,
         invite_hours_before: currentRun.invite_hours_before ?? 48,
+        auto_regen_teams: currentRun.auto_regen_teams ?? false,
       });
     }
     if (tab === "suggestions" && runId) {
@@ -1426,6 +1427,12 @@ export default function AdminPage() {
                     </div>
                   </div>
                 </div>
+                <label className="flex items-center gap-3 cursor-pointer mt-3">
+                  <input type="checkbox" checked={runForm.auto_regen_teams ?? false}
+                    onChange={(e) => setRunForm({ ...runForm, auto_regen_teams: e.target.checked })}
+                    className="w-4 h-4 rounded border-gray-300 text-court-600 focus:ring-court-500" />
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Auto-regenerate teams when a new player accepts</span>
+                </label>
                 <p className="text-xs text-gray-400 mt-2">Set any value to 0 to disable that automation.</p>
               </SettingsSection>
 

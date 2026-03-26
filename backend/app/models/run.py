@@ -78,6 +78,8 @@ class Run(Base):
     voting_reminder_hours_before: Mapped[int] = mapped_column(Integer, default=4, server_default="4")
     # Hours before game to auto-send invites / open RSVPs (default: 48, None = manual only)
     invite_hours_before: Mapped[int | None] = mapped_column(Integer, nullable=True, default=48)
+    # Auto-regenerate teams when a new player accepts after teams are set (default: False)
+    auto_regen_teams: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
 
     # --- Season Dates ---
     start_date: Mapped[datetime | None] = mapped_column(Date, nullable=True)
