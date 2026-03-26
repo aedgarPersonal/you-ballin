@@ -700,10 +700,12 @@ async def rsvp_to_game(
     await db.flush()
 
     # If a player changed from accepted to declined, promote next waitlisted
+    # Only auto-promote if drop-ins are open (DROPIN_OPEN or TEAMS_SET)
     if was_accepted and rsvp_status == RSVPStatus.DECLINED:
-        from app.services.dropin_promotion import promote_waitlisted_dropins
-        await db.refresh(game)
-        await promote_waitlisted_dropins(db, game, max_promote=1)
+        if game.status in (GameStatus.DROPIN_OPEN, GameStatus.TEAMS_SET):
+            from app.services.dropin_promotion import promote_waitlisted_dropins
+            await db.refresh(game)
+            await promote_waitlisted_dropins(db, game, max_promote=1)
 
     return rsvp
 
