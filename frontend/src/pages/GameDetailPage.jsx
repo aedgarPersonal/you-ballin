@@ -41,6 +41,7 @@ export default function GameDetailPage() {
   const [editingTeams, setEditingTeams] = useState(false);
   const [gameCommentary, setGameCommentary] = useState("");
   const [isRunMember, setIsRunMember] = useState(false);
+  const [completing, setCompleting] = useState(false);
 
   const fetchGame = async () => {
     if (!runId) return;
@@ -285,6 +286,85 @@ export default function GameDetailPage() {
           )}
         </div>
         {game.notes && <p className="text-gray-600 dark:text-gray-400 mt-4 italic">{game.notes}</p>}
+
+        {/* Admin inline actions */}
+        {isAdminUser && game.status !== "completed" && game.status !== "cancelled" && game.status !== "skipped" && (
+          <div className="flex flex-wrap gap-2 mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
+            <button onClick={handleStartEdit} className="text-sm bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-medium py-1.5 px-3 rounded-lg">
+              Edit Game
+            </button>
+            {game.status === "teams_set" && (
+              <button onClick={() => setCompleting(true)} className="text-sm bg-green-600 hover:bg-green-500 text-white font-medium py-1.5 px-3 rounded-lg">
+                Complete Game
+              </button>
+            )}
+            <button onClick={handleCancelGame} className="text-sm bg-red-500/10 hover:bg-red-500/20 text-red-500 font-medium py-1.5 px-3 rounded-lg">
+              Cancel
+            </button>
+          </div>
+        )}
+
+        {/* Edit Game Form (inline in header) */}
+        {editing && isAdminUser && (
+          <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700 space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Title</label>
+                <input type="text" value={editForm.title} onChange={(e) => setEditForm({ ...editForm, title: e.target.value })} className="input text-sm" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Date & Time</label>
+                <input type="datetime-local" value={editForm.game_date} onChange={(e) => setEditForm({ ...editForm, game_date: e.target.value })} className="input text-sm" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Location</label>
+                <input type="text" value={editForm.location} onChange={(e) => setEditForm({ ...editForm, location: e.target.value })} className="input text-sm" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Notes</label>
+                <input type="text" value={editForm.notes} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} className="input text-sm" placeholder="Optional notes" />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={handleSaveEdit} className="btn-primary text-sm py-1.5 px-4">Save</button>
+              <button onClick={() => setEditing(false)} className="btn-secondary text-sm py-1.5 px-4">Cancel</button>
+            </div>
+          </div>
+        )}
+
+        {/* Complete Game Form (inline in header) */}
+        {completing && isAdminUser && game.status === "teams_set" && uniqueTeams.length > 0 && (
+          <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700 space-y-3">
+            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Record Results</h3>
+            <div className="flex flex-wrap items-end gap-3">
+              {uniqueTeams.map((team, idx) => (
+                <div key={team.id} className="flex flex-col items-center">
+                  <label className="text-xs font-bold mb-1 px-2 py-0.5 rounded text-white" style={{ backgroundColor: TEAM_COLORS[idx % TEAM_COLORS.length] }}>
+                    {team.name}
+                  </label>
+                  <input
+                    type="number" min="0"
+                    value={scores[team.id] || ""}
+                    onChange={(e) => setScores({ ...scores, [team.id]: e.target.value })}
+                    placeholder="0"
+                    className="w-16 text-center text-lg font-bold border-2 border-gray-300 dark:border-gray-600 rounded-lg py-1 focus:border-court-500 focus:outline-none dark:bg-gray-900 dark:text-gray-100"
+                  />
+                </div>
+              ))}
+            </div>
+            <textarea
+              value={gameCommentary}
+              onChange={(e) => setGameCommentary(e.target.value)}
+              placeholder="Game commentary (optional)"
+              rows={2}
+              className="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 dark:bg-gray-900 dark:text-gray-100"
+            />
+            <div className="flex gap-2">
+              <button onClick={handleRecordResult} className="btn-primary text-sm py-1.5 px-4">Submit & Complete</button>
+              <button onClick={() => setCompleting(false)} className="btn-secondary text-sm py-1.5 px-4">Cancel</button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Final Score Banner */}
@@ -506,119 +586,10 @@ export default function GameDetailPage() {
         />
       )}
 
-      {/* Admin Actions */}
+      {/* Admin RSVP on behalf */}
       {isAdminUser && (
         <div className="card">
-          <h2 className="text-lg font-semibold mb-3">Admin Actions</h2>
-
-          {/* Edit Game Form */}
-          {editing ? (
-            <div className="space-y-3 mb-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
-              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Edit Game Details</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Title</label>
-                  <input
-                    type="text"
-                    value={editForm.title}
-                    onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
-                    className="input text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Date & Time</label>
-                  <input
-                    type="datetime-local"
-                    value={editForm.game_date}
-                    onChange={(e) => setEditForm({ ...editForm, game_date: e.target.value })}
-                    className="input text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Location</label>
-                  <input
-                    type="text"
-                    value={editForm.location}
-                    onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
-                    className="input text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Notes</label>
-                  <input
-                    type="text"
-                    value={editForm.notes}
-                    onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
-                    className="input text-sm"
-                    placeholder="Optional notes"
-                  />
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <button onClick={handleSaveEdit} className="btn-primary text-sm py-1.5 px-4">Save Changes</button>
-                <button onClick={() => setEditing(false)} className="btn-secondary text-sm py-1.5 px-4">Cancel</button>
-              </div>
-            </div>
-          ) : null}
-
-          <div className="flex flex-wrap gap-3">
-            {/* Edit Game */}
-            {game.status !== "completed" && game.status !== "cancelled" && game.status !== "skipped" && (
-              <button onClick={handleStartEdit} className="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-semibold py-2 px-4 rounded-lg">
-                Edit Game
-              </button>
-            )}
-
-            {/* Record Scores — input per team */}
-            {game.status === "teams_set" && !editingTeams && uniqueTeams.length > 0 && (
-              <div className="w-full mt-2">
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Record wins per team:</p>
-                <div className="flex flex-wrap items-end gap-3">
-                  {uniqueTeams.map((team, idx) => (
-                    <div key={team.id} className="flex flex-col items-center">
-                      <label
-                        className="text-xs font-bold mb-1 px-2 py-0.5 rounded text-white"
-                        style={{ backgroundColor: TEAM_COLORS[idx % TEAM_COLORS.length] }}
-                      >
-                        {team.name}
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={scores[team.id] || ""}
-                        onChange={(e) => setScores({ ...scores, [team.id]: e.target.value })}
-                        placeholder="0"
-                        className="w-16 text-center text-lg font-bold border-2 border-gray-300 dark:border-gray-600 rounded-lg py-1 focus:border-court-500 focus:outline-none dark:bg-gray-900 dark:text-gray-100"
-                      />
-                    </div>
-                  ))}
-                  <button
-                    onClick={handleRecordResult}
-                    className="btn-primary py-2 px-4"
-                  >
-                    Submit Scores
-                  </button>
-                </div>
-                <textarea
-                  value={gameCommentary}
-                  onChange={(e) => setGameCommentary(e.target.value)}
-                  placeholder="Game commentary (optional)"
-                  rows={2}
-                  className="w-full mt-3 text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 dark:bg-gray-900 dark:text-gray-100"
-                />
-              </div>
-            )}
-
-            {/* Cancel Game */}
-            {game.status !== "completed" && game.status !== "cancelled" && game.status !== "skipped" && (
-              <button
-                onClick={handleCancelGame}
-                className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg"
-              >
-                Cancel Game
-              </button>
-            )}
-          </div>
+          <AdminRsvpSection runId={runId} gameId={id} onUpdate={fetchGame} />
         </div>
       )}
     </div>
