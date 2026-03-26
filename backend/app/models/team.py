@@ -48,15 +48,22 @@ TEAM_NAMES = [
 ]
 
 
+JERSEY_COLORS = ["Dark", "Light", "Other", "Other", "Other", "Other", "Other", "Other"]
+
+
 def pick_team_names(n: int) -> list[str]:
-    """Pick n unique random team names."""
+    """Pick n unique random team names with jersey color suffix.
+
+    First team is Dark, second is Light, rest are Other.
+    """
     if n > len(TEAM_NAMES):
-        # If we somehow need more names than we have, allow repeats with numbers
-        names = random.sample(TEAM_NAMES, len(TEAM_NAMES))
+        base = random.sample(TEAM_NAMES, len(TEAM_NAMES))
         for i in range(n - len(TEAM_NAMES)):
-            names.append(f"Squad #{i + len(TEAM_NAMES) + 1}")
-        return names
-    return random.sample(TEAM_NAMES, n)
+            base.append(f"Squad #{i + len(TEAM_NAMES) + 1}")
+    else:
+        base = random.sample(TEAM_NAMES, n)
+
+    return [f"{name} ({JERSEY_COLORS[i]})" for i, name in enumerate(base)]
 
 
 class TeamAssignment(Base):
