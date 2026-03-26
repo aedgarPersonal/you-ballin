@@ -920,9 +920,30 @@ export default function AdminPage() {
                           </td>
                         )}
                         <td className="py-2 px-2">
-                          <input type="number" defaultValue={player.height_inches || ""} placeholder="in"
-                            onBlur={(e) => e.target.value && handleUpdatePlayer(player.id, "height_inches", parseInt(e.target.value))}
-                            className={inputCls} />
+                          <div className="flex items-center gap-0.5">
+                            <input type="number" min="4" max="7"
+                              defaultValue={player.height_inches ? Math.floor(player.height_inches / 12) : ""}
+                              placeholder="ft"
+                              onBlur={(e) => {
+                                const ft = parseInt(e.target.value) || 0;
+                                const existingIn = (player.height_inches || 0) % 12;
+                                const total = ft * 12 + existingIn;
+                                if (total > 0 && total !== player.height_inches) handleUpdatePlayer(player.id, "height_inches", total);
+                              }}
+                              className={`${inputCls} w-10`} />
+                            <span className="text-gray-400 text-xs">'</span>
+                            <input type="number" min="0" max="11"
+                              defaultValue={player.height_inches ? player.height_inches % 12 : ""}
+                              placeholder="in"
+                              onBlur={(e) => {
+                                const inches = parseInt(e.target.value) || 0;
+                                const existingFt = Math.floor((player.height_inches || 0) / 12);
+                                const total = existingFt * 12 + inches;
+                                if (total > 0 && total !== player.height_inches) handleUpdatePlayer(player.id, "height_inches", total);
+                              }}
+                              className={`${inputCls} w-10`} />
+                            <span className="text-gray-400 text-xs">"</span>
+                          </div>
                         </td>
                         <td className="py-2 px-2">
                           <input type="number" defaultValue={player.age || ""} placeholder="yrs"
