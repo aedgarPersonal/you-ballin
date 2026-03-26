@@ -191,8 +191,8 @@ export default function DashboardPage() {
               </Link>
             </div>
 
-            {/* RSVP Action */}
-            {nextGame.status !== "teams_set" && (
+            {/* RSVP Action — only for run members */}
+            {nextGame.status !== "teams_set" && (myRsvp || user?.player_status === "regular" || user?.player_status === "dropin") && (
               <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
                 {myRsvp ? (
                   <div className="flex items-center gap-3">

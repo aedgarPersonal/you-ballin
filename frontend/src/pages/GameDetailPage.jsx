@@ -40,12 +40,27 @@ export default function GameDetailPage() {
   const [editForm, setEditForm] = useState({});
   const [editingTeams, setEditingTeams] = useState(false);
   const [gameCommentary, setGameCommentary] = useState("");
+  const [isRunMember, setIsRunMember] = useState(false);
 
   const fetchGame = async () => {
     if (!runId) return;
     try {
       const { data } = await getGame(runId, id);
       setGame(data);
+
+      // Check if user has an RSVP (= is a member)
+      const hasRsvp = data.rsvps?.some((r) => r.user_id === user?.id);
+      if (hasRsvp) {
+        setIsRunMember(true);
+      } else {
+        // Check player list for membership
+        try {
+          const pRes = await listPlayers(runId, { search: user?.username });
+          setIsRunMember(pRes.data.users?.some((p) => p.id === user?.id) || false);
+        } catch {
+          setIsRunMember(false);
+        }
+      }
 
       // Fetch awards and votes if game is completed
       if (data.status === "completed") {
@@ -410,8 +425,8 @@ export default function GameDetailPage() {
         </div>
       )}
 
-      {/* RSVP Section */}
-      {game.status !== "completed" && game.status !== "cancelled" && game.status !== "skipped" && (
+      {/* RSVP Section — hidden for non-active games and non-members */}
+      {game.status !== "completed" && game.status !== "cancelled" && game.status !== "skipped" && isRunMember && (
         <div className="card mb-6">
           <h2 className="text-lg font-semibold mb-3">Your RSVP</h2>
           {myRsvp ? (
