@@ -130,6 +130,35 @@ async def register(data: UserRegister, db: AsyncSession = Depends(get_db)):
 
     await db.flush()
 
+    # Notify run admins about the new pending registration
+    from app.models.run import RunAdmin
+    from app.models.notification import NotificationType
+    from app.services.notification_service import send_bulk_notification
+
+    admin_result = await db.execute(
+        select(RunAdmin).where(RunAdmin.run_id == invite.run_id)
+    )
+    admin_ids = [ra.user_id for ra in admin_result.scalars().all()]
+    # Also notify super admins
+    super_result = await db.execute(
+        select(User).where(User.role == UserRole.SUPER_ADMIN)
+    )
+    for sa in super_result.scalars().all():
+        if sa.id not in admin_ids:
+            admin_ids.append(sa.id)
+
+    if admin_ids:
+        admins_result = await db.execute(select(User).where(User.id.in_(admin_ids)))
+        admin_users = list(admins_result.scalars().all())
+        await send_bulk_notification(
+            db,
+            admin_users,
+            NotificationType.REGISTRATION_APPROVED,  # reuse closest type
+            f"New Registration: {user.full_name}",
+            f"{user.full_name} ({user.email}) has registered and is awaiting approval.",
+            action_url="/admin",
+        )
+
     token = create_access_token(user.id)
     return TokenResponse(
         access_token=token,

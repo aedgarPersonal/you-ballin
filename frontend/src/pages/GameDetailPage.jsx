@@ -19,7 +19,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import useAuthStore from "../stores/authStore";
 import useRunStore from "../stores/runStore";
-import { getGame, updateGame, rsvpToGame, generateTeams, recordResult, cancelGame, adminRsvp } from "../api/games";
+import { getGame, updateGame, rsvpToGame, generateTeams, recordResult, cancelGame, deleteGame, adminRsvp } from "../api/games";
 import { listPlayers } from "../api/players";
 import { castVote, getMyVotes, getGameAwards } from "../api/votes";
 import NbaJamTeams from "../components/NbaJamTeams";
@@ -150,6 +150,17 @@ export default function GameDetailPage() {
       fetchGame();
     } catch (err) {
       toast.error(err.response?.data?.detail || "Failed to cancel game");
+    }
+  };
+
+  const handleDeleteGame = async () => {
+    if (!confirm("Permanently delete this game? All RSVPs, teams, results, votes, and notifications will be removed. This cannot be undone.")) return;
+    try {
+      await deleteGame(runId, id);
+      toast.success("Game deleted.");
+      navigate("/games");
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Failed to delete game");
     }
   };
 
@@ -306,6 +317,9 @@ export default function GameDetailPage() {
             )}
             <button onClick={handleCancelGame} className="text-sm bg-red-500/10 hover:bg-red-500/20 text-red-500 font-medium py-1.5 px-3 rounded-lg">
               Cancel Game
+            </button>
+            <button onClick={handleDeleteGame} className="text-sm bg-red-500/10 hover:bg-red-500/20 text-red-400 font-medium py-1.5 px-3 rounded-lg">
+              Delete Game
             </button>
           </div>
         )}

@@ -579,16 +579,15 @@ async def delete_game(
     db: AsyncSession = Depends(get_db),
     _admin: User = Depends(require_run_admin()),
 ):
-    """Permanently delete a game (run admin only).
+    """Permanently delete a game and all associated data (run admin only)."""
+    from app.models.vote import GameVote
+    from app.models.notification import Notification
 
-    Only games that haven't been completed can be deleted. Completed games
-    are preserved for historical records.
-    """
     result = await db.execute(
         select(Game).where(Game.id == game_id).options(
             selectinload(Game.rsvps),
             selectinload(Game.teams),
-            selectinload(Game.result),
+            selectinload(Game.result).selectinload(GameResult.team_scores),
         )
     )
     game = result.scalar_one_or_none()
@@ -597,15 +596,15 @@ async def delete_game(
     if game.run_id != run_id:
         raise HTTPException(status_code=404, detail="Game not found in this run")
 
-    if game.status == GameStatus.COMPLETED:
-        raise HTTPException(status_code=400, detail="Cannot delete a completed game — use cancel instead")
-
-    # Delete related records
+    # Delete all associated data
+    await db.execute(delete(GameVote).where(GameVote.game_id == game_id))
+    await db.execute(delete(Notification).where(Notification.action_url == f"/games/{game_id}"))
     for rsvp in game.rsvps:
         await db.delete(rsvp)
     for team in game.teams:
         await db.delete(team)
     if game.result:
+        await db.execute(delete(TeamScore).where(TeamScore.game_result_id == game.result.id))
         await db.delete(game.result)
 
     await db.delete(game)
