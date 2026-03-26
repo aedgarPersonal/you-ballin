@@ -19,6 +19,10 @@ class RunCreate(BaseModel):
     dropin_open_hours_before: int | None = Field(default=12, ge=0, le=168)
     dropin_priority_mode: str = Field(default="fifo", pattern="^(fifo|admin)$")
     dropin_auto_promote: bool = True
+    voting_deadline_hour: int = Field(default=12, ge=0, le=23)
+    auto_team_minutes_before: int | None = Field(default=15, ge=0, le=1440)
+    voting_reminder_hour: int = Field(default=9, ge=0, le=23)
+    game_creation_hour: int = Field(default=18, ge=0, le=23)
 
 
 class RunUpdate(BaseModel):
@@ -38,6 +42,10 @@ class RunUpdate(BaseModel):
     dropin_open_hours_before: int | None = Field(None, ge=0, le=168)
     dropin_priority_mode: str | None = Field(None, pattern="^(fifo|admin)$")
     dropin_auto_promote: bool | None = None
+    voting_deadline_hour: int | None = Field(None, ge=0, le=23)
+    auto_team_minutes_before: int | None = Field(None, ge=0, le=1440)
+    voting_reminder_hour: int | None = Field(None, ge=0, le=23)
+    game_creation_hour: int | None = Field(None, ge=0, le=23)
 
 
 class RunResponse(BaseModel):
@@ -58,6 +66,10 @@ class RunResponse(BaseModel):
     dropin_open_hours_before: int | None = 12
     dropin_priority_mode: str = "fifo"
     dropin_auto_promote: bool = True
+    voting_deadline_hour: int = 12
+    auto_team_minutes_before: int | None = 15
+    voting_reminder_hour: int = 9
+    game_creation_hour: int = 18
     created_at: datetime
     is_admin: bool = False
     model_config = {"from_attributes": True}

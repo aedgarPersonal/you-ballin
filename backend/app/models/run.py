@@ -69,6 +69,16 @@ class Run(Base):
     # When False, drop-ins must be manually promoted by admin (regulars still auto-promote)
     dropin_auto_promote: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
 
+    # --- Scheduling & Automation ---
+    # Hour (0-23) when voting closes the day after a game (default: noon)
+    voting_deadline_hour: Mapped[int] = mapped_column(Integer, default=12, server_default="12")
+    # Minutes before game_date to auto-generate teams (default: 15, None = never auto-generate)
+    auto_team_minutes_before: Mapped[int | None] = mapped_column(Integer, nullable=True, default=15)
+    # Hour (0-23) to send voting reminders on the day after a game (default: 9 AM)
+    voting_reminder_hour: Mapped[int] = mapped_column(Integer, default=9, server_default="9")
+    # Hour (0-23) to auto-create next week's game (default: 6 PM on game day)
+    game_creation_hour: Mapped[int] = mapped_column(Integer, default=18, server_default="18")
+
     # --- Season Dates ---
     start_date: Mapped[datetime | None] = mapped_column(Date, nullable=True)
     end_date: Mapped[datetime | None] = mapped_column(Date, nullable=True)

@@ -376,23 +376,35 @@ async def generate_and_publish_teams():
     async with async_session() as db:
         try:
             now = datetime.utcnow()
-            fifteen_min_from_now = now + timedelta(minutes=15)
 
-            # Find games starting within the next 15 minutes that still need teams
-            result = await db.execute(
-                select(Game).where(
-                    Game.game_date <= fifteen_min_from_now,
-                    Game.game_date > now,
-                    Game.status.in_([GameStatus.INVITES_SENT, GameStatus.DROPIN_OPEN]),
-                )
+            # Get all runs with auto_team_minutes_before configured
+            runs_result = await db.execute(
+                select(Run).where(Run.auto_team_minutes_before.isnot(None), Run.is_active == True)
             )
-            games = result.scalars().all()
+            runs = runs_result.scalars().all()
 
-            if not games:
+            if not runs:
+                logger.info("No runs with auto team generation configured")
+                return
+
+            all_games = []
+            for run in runs:
+                window = now + timedelta(minutes=run.auto_team_minutes_before)
+                result = await db.execute(
+                    select(Game).where(
+                        Game.run_id == run.id,
+                        Game.game_date <= window,
+                        Game.game_date > now,
+                        Game.status.in_([GameStatus.INVITES_SENT, GameStatus.DROPIN_OPEN]),
+                    )
+                )
+                all_games.extend(result.scalars().all())
+
+            if not all_games:
                 logger.info("No games need auto team generation")
                 return
 
-            for game in games:
+            for game in all_games:
                 await _generate_teams_for_game(db, game)
 
             await db.commit()
@@ -610,17 +622,22 @@ async def announce_awards():
             now = datetime.utcnow()
 
             # Find completed games where voting window has closed
+            # Build a map of run_id -> voting_deadline_hour
+            runs_result = await db.execute(select(Run))
+            run_deadline_map = {r.id: r.voting_deadline_hour for r in runs_result.scalars().all()}
+
             result = await db.execute(
                 select(Game).where(Game.status == GameStatus.COMPLETED)
             )
             completed_games = result.scalars().all()
 
             for game in completed_games:
+                deadline_hour = run_deadline_map.get(game.run_id, 12)
                 game_time = game.game_date
                 if game_time.tzinfo is None:
                     game_time = game_time.replace(tzinfo=None)
                 voting_deadline = (game_time + timedelta(days=1)).replace(
-                    hour=12, minute=0, second=0, microsecond=0
+                    hour=deadline_hour, minute=0, second=0, microsecond=0
                 )
 
                 if now <= voting_deadline:

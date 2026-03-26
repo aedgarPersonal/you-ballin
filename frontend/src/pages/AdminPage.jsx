@@ -201,6 +201,10 @@ export default function AdminPage() {
         dropin_open_hours_before: currentRun.dropin_open_hours_before ?? 12,
         dropin_priority_mode: currentRun.dropin_priority_mode || "fifo",
         dropin_auto_promote: currentRun.dropin_auto_promote ?? true,
+        voting_deadline_hour: currentRun.voting_deadline_hour ?? 12,
+        auto_team_minutes_before: currentRun.auto_team_minutes_before ?? 15,
+        voting_reminder_hour: currentRun.voting_reminder_hour ?? 9,
+        game_creation_hour: currentRun.game_creation_hour ?? 18,
       });
     }
     if (tab === "suggestions" && runId) {
@@ -1445,10 +1449,71 @@ export default function AdminPage() {
                 </div>
               </div>
 
+              {/* Scheduling & Automation */}
+              <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <h3 className="text-md font-semibold text-gray-700 dark:text-gray-300 mb-4">Scheduling & Automation</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Voting Deadline Hour</label>
+                    <select
+                      value={runForm.voting_deadline_hour ?? 12}
+                      onChange={(e) => setRunForm({ ...runForm, voting_deadline_hour: parseInt(e.target.value) })}
+                      className="input"
+                    >
+                      {Array.from({ length: 24 }, (_, i) => (
+                        <option key={i} value={i}>{i === 0 ? "12:00 AM" : i < 12 ? `${i}:00 AM` : i === 12 ? "12:00 PM" : `${i - 12}:00 PM`}</option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">When voting closes the day after a game</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Auto-Generate Teams</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="0"
+                        max="1440"
+                        value={runForm.auto_team_minutes_before ?? 15}
+                        onChange={(e) => setRunForm({ ...runForm, auto_team_minutes_before: parseInt(e.target.value) || null })}
+                        className="input w-20"
+                      />
+                      <span className="text-sm text-gray-500 dark:text-gray-400">minutes before game</span>
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Set to 0 or blank to disable auto-generation</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Voting Reminder Hour</label>
+                    <select
+                      value={runForm.voting_reminder_hour ?? 9}
+                      onChange={(e) => setRunForm({ ...runForm, voting_reminder_hour: parseInt(e.target.value) })}
+                      className="input"
+                    >
+                      {Array.from({ length: 24 }, (_, i) => (
+                        <option key={i} value={i}>{i === 0 ? "12:00 AM" : i < 12 ? `${i}:00 AM` : i === 12 ? "12:00 PM" : `${i - 12}:00 PM`}</option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">When to send voting reminders the day after a game</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Game Creation Hour</label>
+                    <select
+                      value={runForm.game_creation_hour ?? 18}
+                      onChange={(e) => setRunForm({ ...runForm, game_creation_hour: parseInt(e.target.value) })}
+                      className="input"
+                    >
+                      {Array.from({ length: 24 }, (_, i) => (
+                        <option key={i} value={i}>{i === 0 ? "12:00 AM" : i < 12 ? `${i}:00 AM` : i === 12 ? "12:00 PM" : `${i - 12}:00 PM`}</option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">When to auto-create next week's game</p>
+                  </div>
+                </div>
+              </div>
+
               <button
                 type="submit"
                 disabled={savingRun}
-                className="btn-primary"
+                className="btn-primary mt-6"
               >
                 {savingRun ? "Saving..." : "Save Settings"}
               </button>
