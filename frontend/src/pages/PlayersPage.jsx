@@ -513,11 +513,20 @@ export default function PlayersPage() {
                       onChange={async (e) => {
                         const newStatus = e.target.value;
                         const labels = { regular: "Regular", dropin: "Drop-in", inactive: "Inactive" };
+                        // Optimistic update
+                        setPlayers((prev) => prev.map((p) =>
+                          p.id === player.id ? { ...p, player_status: newStatus } : p
+                        ));
                         try {
                           await updatePlayerAdmin(runId, player.id, { player_status: newStatus });
                           toast.success(`${player.full_name} → ${labels[newStatus]}`);
-                          fetchPlayers();
-                        } catch { toast.error("Update failed"); }
+                        } catch {
+                          // Revert on failure
+                          setPlayers((prev) => prev.map((p) =>
+                            p.id === player.id ? { ...p, player_status: player.player_status } : p
+                          ));
+                          toast.error("Update failed");
+                        }
                       }}
                       className="text-xs font-semibold border rounded px-1.5 py-0.5 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 cursor-pointer"
                     >

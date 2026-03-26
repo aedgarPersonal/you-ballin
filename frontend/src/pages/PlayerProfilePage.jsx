@@ -151,11 +151,15 @@ export default function PlayerProfilePage() {
                   onChange={async (e) => {
                     const newStatus = e.target.value;
                     const labels = { regular: "Regular", dropin: "Drop-in", inactive: "Inactive" };
+                    const oldStatus = player.player_status;
+                    setPlayer((prev) => ({ ...prev, player_status: newStatus }));
                     try {
                       await updatePlayerAdmin(runId, player.id, { player_status: newStatus });
                       toast.success(`Status changed to ${labels[newStatus]}`);
-                      fetchPlayer();
-                    } catch { toast.error("Update failed"); }
+                    } catch {
+                      setPlayer((prev) => ({ ...prev, player_status: oldStatus }));
+                      toast.error("Update failed");
+                    }
                   }}
                   className="text-xs font-semibold border rounded px-2 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
                 >
