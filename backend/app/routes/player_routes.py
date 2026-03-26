@@ -59,29 +59,37 @@ async def list_run_players(
     statuses = [PlayerStatus.REGULAR, PlayerStatus.DROPIN]
     if include_inactive:
         statuses.append(PlayerStatus.INACTIVE)
-    query = (
-        select(User)
-        .join(RunMembership, RunMembership.user_id == User.id)
-        .where(
-            RunMembership.run_id == run_id,
-            RunMembership.player_status.in_(statuses),
-        )
-    )
 
+    base_where = [RunMembership.run_id == run_id, RunMembership.player_status.in_(statuses)]
     if search:
-        query = query.where(
-            User.full_name.ilike(f"%{search}%") | User.username.ilike(f"%{search}%")
-        )
+        base_where.append(User.full_name.ilike(f"%{search}%") | User.username.ilike(f"%{search}%"))
 
-    count_query = select(func.count()).select_from(query.subquery())
+    count_query = (
+        select(func.count())
+        .select_from(User)
+        .join(RunMembership, RunMembership.user_id == User.id)
+        .where(*base_where)
+    )
     total = (await db.execute(count_query)).scalar()
 
-    query = query.offset(skip).limit(limit).order_by(User.full_name)
+    query = (
+        select(User, RunMembership)
+        .join(RunMembership, RunMembership.user_id == User.id)
+        .where(*base_where)
+        .offset(skip).limit(limit).order_by(User.full_name)
+    )
     result = await db.execute(query)
-    users = result.scalars().all()
+    rows = result.all()
 
     is_admin = await _is_admin_for_run(current_user, run_id, db)
-    user_dicts = [UserResponse.model_validate(u).model_dump() for u in users]
+    user_dicts = []
+    for user_obj, membership in rows:
+        d = UserResponse.model_validate(user_obj).model_dump()
+        # Override with run-scoped membership fields
+        d["player_status"] = membership.player_status.value if hasattr(membership.player_status, 'value') else membership.player_status
+        d["dropin_priority"] = membership.dropin_priority
+        user_dicts.append(d)
+
     if not is_admin:
         user_dicts = [_redact_user(d) for d in user_dicts]
 
