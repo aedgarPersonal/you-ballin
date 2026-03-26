@@ -18,7 +18,7 @@ TEACHING NOTE:
 from datetime import date, datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select, func as sqlfunc
+from sqlalchemy import delete, select, func as sqlfunc
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -404,8 +404,19 @@ async def update_game(
     for field, value in update_fields.items():
         setattr(game, field, value)
 
-    # Auto-promote waitlisted drop-ins when status changes to DROPIN_OPEN
+    # If moving away from completed, clear results and commentary
     new_status = update_fields.get("status")
+    if new_status and old_status == GameStatus.COMPLETED and GameStatus(new_status) != GameStatus.COMPLETED:
+        # Delete game result and team scores
+        existing_result = await db.execute(select(GameResult).where(GameResult.game_id == game_id))
+        game_result = existing_result.scalar_one_or_none()
+        if game_result:
+            await db.execute(delete(TeamScore).where(TeamScore.game_result_id == game_result.id))
+            await db.execute(delete(GameResult).where(GameResult.id == game_result.id))
+        game.commentary = None
+        game.odds_line = None
+
+    # Auto-promote waitlisted drop-ins when status changes to DROPIN_OPEN
     if new_status and new_status != old_status.value and GameStatus(new_status) == GameStatus.DROPIN_OPEN:
         from app.services.dropin_promotion import promote_waitlisted_dropins
         await promote_waitlisted_dropins(db, game)
