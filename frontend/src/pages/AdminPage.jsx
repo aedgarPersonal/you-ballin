@@ -869,6 +869,7 @@ export default function AdminPage() {
                     <tr className="border-b border-gray-200 dark:border-gray-700">
                       <SortTh field="full_name">Player</SortTh>
                       <SortTh field="player_status">Status</SortTh>
+                      {currentRun?.dropin_priority_mode === "admin" && <SortTh field="dropin_priority">DI#</SortTh>}
                       <SortTh field="height_inches">Ht</SortTh>
                       <SortTh field="age">Age</SortTh>
                       <SortTh field="mobility">Mob</SortTh>
@@ -884,9 +885,14 @@ export default function AdminPage() {
                     {sorted.map((player) => (
                       <tr key={player.id} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
                         <td className="py-2 px-2">
-                          <input type="text" defaultValue={player.full_name}
-                            onBlur={(e) => { const v = e.target.value.trim(); if (v && v !== player.full_name) handleUpdatePlayer(player.id, "full_name", v); }}
-                            className="w-28 text-sm font-medium border border-transparent hover:border-gray-300 dark:hover:border-gray-600 rounded px-1 py-1 bg-transparent dark:text-gray-200 focus:border-gray-300 dark:focus:border-gray-600" />
+                          <div className="flex items-center gap-1">
+                            <input type="text" defaultValue={player.full_name}
+                              onBlur={(e) => { const v = e.target.value.trim(); if (v && v !== player.full_name) handleUpdatePlayer(player.id, "full_name", v); }}
+                              className="w-24 text-sm font-medium border border-transparent hover:border-gray-300 dark:hover:border-gray-600 rounded px-1 py-1 bg-transparent dark:text-gray-200 focus:border-gray-300 dark:focus:border-gray-600" />
+                            <Link to={`/players/${player.id}`} className="text-court-500 hover:text-court-600 text-xs shrink-0" title="View profile">
+                              &rarr;
+                            </Link>
+                          </div>
                           <div className="text-[10px] text-gray-400 dark:text-gray-500 truncate max-w-[140px]">{player.email}</div>
                         </td>
                         <td className="py-2 px-2">
@@ -897,6 +903,21 @@ export default function AdminPage() {
                             <option value="inactive">Inactive</option>
                           </select>
                         </td>
+                        {currentRun?.dropin_priority_mode === "admin" && (
+                          <td className="py-2 px-2">
+                            {player.player_status === "dropin" ? (
+                              <input type="number" min="1" defaultValue={player.dropin_priority || ""}
+                                placeholder="#"
+                                onBlur={(e) => {
+                                  const v = parseInt(e.target.value);
+                                  if (!isNaN(v)) handleUpdatePlayer(player.id, "dropin_priority", v);
+                                }}
+                                className={inputCls} />
+                            ) : (
+                              <span className="text-xs text-gray-400">—</span>
+                            )}
+                          </td>
+                        )}
                         <td className="py-2 px-2">
                           <input type="number" defaultValue={player.height_inches || ""} placeholder="in"
                             onBlur={(e) => e.target.value && handleUpdatePlayer(player.id, "height_inches", parseInt(e.target.value))}

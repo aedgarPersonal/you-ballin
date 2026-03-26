@@ -228,7 +228,17 @@ async def list_run_players(
         query = query.where(RunMembership.player_status == status_filter)
 
     result = await db.execute(query.order_by(User.created_at.desc()))
-    users = result.scalars().all()
+    users = list(result.scalars().all())
+
+    # Enrich users with dropin_priority from membership
+    membership_result = await db.execute(
+        select(RunMembership).where(RunMembership.run_id == run_id)
+    )
+    memberships = {m.user_id: m for m in membership_result.scalars().all()}
+    for user in users:
+        m = memberships.get(user.id)
+        if m:
+            user.dropin_priority = m.dropin_priority
 
     count_query = (
         select(func.count())
@@ -293,6 +303,8 @@ async def update_run_player(
         user.player_status = new_ps
     if "dues_paid" in update_data:
         membership.dues_paid = update_data.pop("dues_paid")
+    if "dropin_priority" in update_data:
+        membership.dropin_priority = update_data.pop("dropin_priority")
 
     # Update profile fields on User
     for field in ("full_name", "email", "username", "phone", "avatar_url"):

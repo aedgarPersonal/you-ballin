@@ -79,6 +79,7 @@ class AdminUserUpdate(BaseModel):
     # Run membership fields
     player_status: str | None = None  # regular, dropin, inactive
     dues_paid: bool | None = None
+    dropin_priority: int | None = None
     # Super admin only
     role: str | None = None  # player, super_admin
     is_active: bool | None = None
@@ -137,6 +138,7 @@ class UserResponse(BaseModel):
     mvp_count: int = 0
     shaqtin_count: int = 0
     xfactor_count: int = 0
+    dropin_priority: int | None = None
     created_at: datetime
 
     model_config = {"from_attributes": True}
