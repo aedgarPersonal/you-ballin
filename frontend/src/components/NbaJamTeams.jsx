@@ -239,28 +239,7 @@ export default function NbaJamTeams({ teams, gameResult, onEditTeams, onGenerate
             ))}
           </div>
 
-          {/* Vegas Odds Line */}
-          {odds && (
-            <div className="mt-3 flex items-center justify-center gap-6 text-xs">
-              {teamEntries.map(([, group], idx) => {
-                const o = odds[idx];
-                const isFav = o.winProb > 0.5;
-                return (
-                  <span key={idx} className="flex items-center gap-2">
-                    <span className={`font-black ${isFav ? "text-green-400" : "text-gray-500"}`}>
-                      {group.name}
-                    </span>
-                    <span className={`font-mono font-bold ${isFav ? "text-green-400" : "text-red-400"}`}>
-                      {o.moneyline}
-                    </span>
-                    <span className="text-gray-600">
-                      ({(o.winProb * 100).toFixed(0)}%)
-                    </span>
-                  </span>
-                );
-              })}
-            </div>
-          )}
+          {/* Odds moved to team panels */}
         </div>
 
         <div className={`grid grid-cols-1 ${
@@ -316,11 +295,17 @@ function JamTeamPanel({ name, color, players, isAdmin, odds, isWinner }) {
           </div>
         )}
         {!isWinner && odds && (isFav || isUnderdog) && (
-          <div className="mt-1">
+          <div className="mt-1 flex items-center justify-center gap-2">
             <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${
               isFav ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"
             }`}>
               {isFav ? "Favorite" : "Underdog"}
+            </span>
+            <span className={`font-mono text-[11px] font-bold ${isFav ? "text-green-400" : "text-red-400"}`}>
+              {odds.moneyline}
+            </span>
+            <span className="text-[10px] text-gray-500">
+              ({(odds.winProb * 100).toFixed(0)}%)
             </span>
           </div>
         )}
