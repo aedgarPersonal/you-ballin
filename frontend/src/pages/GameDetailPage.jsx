@@ -198,6 +198,7 @@ export default function GameDetailPage() {
   if (loading) return <div className="max-w-4xl mx-auto px-4 py-8">Loading...</div>;
   if (!game) return <div className="max-w-4xl mx-auto px-4 py-8">Game not found</div>;
 
+  const isAdminUser = user?.role === "super_admin" || user?.role === "admin";
   const myRsvp = game.rsvps?.find((r) => r.user_id === user?.id);
   const allParticipants = game.teams?.map((t) => t.user).filter(Boolean) || [];
   const isParticipant = game.teams?.some((t) => t.user_id === user?.id);
@@ -467,39 +468,20 @@ export default function GameDetailPage() {
         </div>
       )}
 
-      {/* RSVP List — hidden on completed games for non-admins */}
-      {(game.status !== "completed" || user?.role === "super_admin" || user?.role === "admin") && (
-        <div className="card mb-6">
-          <h2 className="text-lg font-semibold mb-3">RSVPs ({game.rsvps?.length || 0})</h2>
-          {game.rsvps?.length > 0 ? (
-            <div className="space-y-2">
-              {game.rsvps.map((rsvp) => (
-                <div key={rsvp.id} className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700 last:border-0">
-                  <span className="font-medium">{rsvp.user?.full_name || `Player #${rsvp.user_id}`}</span>
-                  <span className={`badge ${
-                    rsvp.status === "accepted" ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" :
-                    rsvp.status === "declined" ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400" :
-                    rsvp.status === "waitlist" ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400" :
-                    "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
-                  }`}>
-                    {rsvp.status}
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-gray-500 dark:text-gray-400">No RSVPs yet.</p>
-          )}
-        </div>
+      {/* RSVP List */}
+      {(game.status !== "completed" || isAdminUser) && (
+        <RsvpSection
+          game={game}
+          runId={runId}
+          isAdmin={isAdminUser}
+          onUpdate={fetchGame}
+        />
       )}
 
       {/* Admin Actions */}
-      {(user?.role === "super_admin" || user?.role === "admin") && (
+      {isAdminUser && (
         <div className="card">
           <h2 className="text-lg font-semibold mb-3">Admin Actions</h2>
-
-          {/* Admin RSVP on behalf of player */}
-          <AdminRsvpSection runId={runId} gameId={id} onUpdate={fetchGame} />
 
           {/* Edit Game Form */}
           {editing ? (
@@ -623,83 +605,116 @@ export default function GameDetailPage() {
 }
 
 /**
- * AdminRsvpSection — Allows admin to RSVP on behalf of players.
+ * RsvpSection — Shows RSVP status for all run members (admins) or just existing RSVPs (players).
+ * Admins can change any player's RSVP status inline.
  */
-function AdminRsvpSection({ runId, gameId, onUpdate }) {
-  const [showRsvp, setShowRsvp] = useState(false);
-  const [players, setPlayers] = useState([]);
-  const [search, setSearch] = useState("");
-  const [rsvpStatus, setRsvpStatus] = useState("accepted");
+function RsvpSection({ game, runId, isAdmin, onUpdate }) {
+  const [members, setMembers] = useState([]);
 
   useEffect(() => {
-    if (!showRsvp || !runId) return;
-    listPlayers(runId, { include_inactive: true })
-      .then(({ data }) => setPlayers(data.users))
-      .catch(() => setPlayers([]));
-  }, [showRsvp, runId]);
+    if (!isAdmin || !runId) return;
+    listPlayers(runId, { include_inactive: false })
+      .then(({ data }) => setMembers(data.users))
+      .catch(() => setMembers([]));
+  }, [isAdmin, runId]);
 
-  const filtered = players.filter((p) =>
-    p.full_name.toLowerCase().includes(search.toLowerCase())
-  );
+  // Build a merged list: all members (admin) or just RSVPs (player)
+  const rsvpMap = {};
+  for (const r of game.rsvps || []) {
+    rsvpMap[r.user_id] = r;
+  }
 
-  const handleRsvp = async (userId, name) => {
+  const rows = isAdmin
+    ? members.map((m) => ({
+        userId: m.id,
+        name: m.full_name,
+        playerStatus: m.player_status,
+        rsvpStatus: rsvpMap[m.id]?.status || null,
+      }))
+    : (game.rsvps || []).map((r) => ({
+        userId: r.user_id,
+        name: r.user?.full_name || `Player #${r.user_id}`,
+        playerStatus: null,
+        rsvpStatus: r.status,
+      }));
+
+  // Sort: accepted first, then pending (no response), then declined
+  const sortOrder = { accepted: 0, waitlist: 1, declined: 3 };
+  rows.sort((a, b) => {
+    const aOrder = a.rsvpStatus ? (sortOrder[a.rsvpStatus] ?? 2) : 2;
+    const bOrder = b.rsvpStatus ? (sortOrder[b.rsvpStatus] ?? 2) : 2;
+    if (aOrder !== bOrder) return aOrder - bOrder;
+    return a.name.localeCompare(b.name);
+  });
+
+  const acceptedCount = rows.filter((r) => r.rsvpStatus === "accepted").length;
+  const declinedCount = rows.filter((r) => r.rsvpStatus === "declined").length;
+  const pendingCount = rows.filter((r) => !r.rsvpStatus).length;
+
+  const handleAdminRsvp = async (userId, name, status) => {
     try {
-      await adminRsvp(runId, gameId, userId, rsvpStatus);
-      toast.success(`${name} marked as ${rsvpStatus}`);
+      await adminRsvp(runId, game.id, userId, status);
+      toast.success(`${name} → ${status}`);
       onUpdate();
     } catch (err) {
       toast.error(err.response?.data?.detail || "RSVP failed");
     }
   };
 
-  if (!showRsvp) {
-    return (
-      <button
-        onClick={() => setShowRsvp(true)}
-        className="mb-4 text-sm text-cyan-500 hover:text-cyan-400 font-medium"
-      >
-        + RSVP on behalf of a player
-      </button>
-    );
-  }
+  const statusBadge = (status) => {
+    if (!status) return "bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400";
+    if (status === "accepted") return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
+    if (status === "declined") return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400";
+    if (status === "waitlist") return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400";
+    return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300";
+  };
 
   return (
-    <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Admin RSVP</h3>
-        <button onClick={() => setShowRsvp(false)} className="text-gray-400 hover:text-white text-lg leading-none">&times;</button>
+    <div className="card mb-6">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-lg font-semibold">
+          RSVPs
+          <span className="text-sm font-normal text-gray-500 dark:text-gray-400 ml-2">
+            {acceptedCount} in{declinedCount > 0 ? ` · ${declinedCount} out` : ""}{pendingCount > 0 ? ` · ${pendingCount} pending` : ""}
+          </span>
+        </h2>
       </div>
-      <div className="flex items-center gap-2 mb-2">
-        <input
-          type="text"
-          placeholder="Search player..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="flex-1 text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 dark:bg-gray-800 dark:text-gray-100"
-        />
-        <select
-          value={rsvpStatus}
-          onChange={(e) => setRsvpStatus(e.target.value)}
-          className="text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 dark:bg-gray-800 dark:text-gray-200"
-        >
-          <option value="accepted">Accept</option>
-          <option value="declined">Decline</option>
-          <option value="waitlist">Waitlist</option>
-        </select>
-      </div>
-      {search && (
-        <div className="max-h-32 overflow-y-auto space-y-1">
-          {filtered.slice(0, 8).map((p) => (
-            <button
-              key={p.id}
-              onClick={() => handleRsvp(p.id, p.full_name)}
-              className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-left text-sm"
-            >
-              <span className="font-medium text-gray-800 dark:text-gray-200">{p.full_name}</span>
-              <span className="text-xs text-gray-400 ml-auto">{p.player_status}</span>
-            </button>
+      {rows.length > 0 ? (
+        <div className="space-y-1">
+          {rows.map((row) => (
+            <div key={row.userId} className="flex items-center justify-between py-2 px-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 border-b border-gray-100 dark:border-gray-700 last:border-0">
+              <div className="flex items-center gap-2">
+                <span className="font-medium text-sm">{row.name}</span>
+                {row.playerStatus && (
+                  <span className="text-[10px] text-gray-400">{row.playerStatus}</span>
+                )}
+              </div>
+              {isAdmin ? (
+                <select
+                  value={row.rsvpStatus || ""}
+                  onChange={(e) => handleAdminRsvp(row.userId, row.name, e.target.value)}
+                  className={`text-xs font-semibold border rounded px-2 py-1 cursor-pointer ${
+                    !row.rsvpStatus ? "dark:bg-gray-700 dark:text-gray-400 dark:border-gray-600 text-gray-400" :
+                    row.rsvpStatus === "accepted" ? "bg-green-50 text-green-700 border-green-300 dark:bg-green-900/20 dark:text-green-400 dark:border-green-700" :
+                    row.rsvpStatus === "declined" ? "bg-red-50 text-red-700 border-red-300 dark:bg-red-900/20 dark:text-red-400 dark:border-red-700" :
+                    "bg-yellow-50 text-yellow-700 border-yellow-300 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-700"
+                  }`}
+                >
+                  <option value="" disabled>No response</option>
+                  <option value="accepted">Accepted</option>
+                  <option value="declined">Declined</option>
+                  <option value="waitlist">Waitlist</option>
+                </select>
+              ) : (
+                <span className={`badge ${statusBadge(row.rsvpStatus)}`}>
+                  {row.rsvpStatus || "no response"}
+                </span>
+              )}
+            </div>
           ))}
         </div>
+      ) : (
+        <p className="text-gray-500 dark:text-gray-400">No players in this run yet.</p>
       )}
     </div>
   );
