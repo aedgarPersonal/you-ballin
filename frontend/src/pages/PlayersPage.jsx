@@ -513,7 +513,6 @@ export default function PlayersPage() {
                       onChange={async (e) => {
                         const newStatus = e.target.value;
                         const labels = { regular: "Regular", dropin: "Drop-in", inactive: "Inactive" };
-                        if (!confirm(`Change ${player.full_name} to ${labels[newStatus]}?`)) return;
                         try {
                           await updatePlayerAdmin(runId, player.id, { player_status: newStatus });
                           toast.success(`${player.full_name} → ${labels[newStatus]}`);
