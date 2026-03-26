@@ -302,7 +302,7 @@ async def update_run_player(
         membership.player_status = new_ps
         user.player_status = new_ps
         # Default dropin_priority to 1 when switching to dropin
-        if new_ps == PlayerStatus.DROPIN and not membership.dropin_priority:
+        if new_ps == PlayerStatus.DROPIN and membership.dropin_priority is None:
             membership.dropin_priority = 1
     if "dues_paid" in update_data:
         membership.dues_paid = update_data.pop("dues_paid")

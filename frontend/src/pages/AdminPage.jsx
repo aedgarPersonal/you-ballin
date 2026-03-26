@@ -96,6 +96,8 @@ export default function AdminPage() {
   const [gamesLoading, setGamesLoading] = useState(false);
   const [editingGameId, setEditingGameId] = useState(null);
   const [editGameForm, setEditGameForm] = useState({});
+  const [gamesSortField, setGamesSortField] = useState("game_date");
+  const [gamesSortDir, setGamesSortDir] = useState("desc");
 
   // Suggestions state
   const [suggestions, setSuggestions] = useState([]);
@@ -142,7 +144,7 @@ export default function AdminPage() {
     setGamesLoading(true);
     try {
       const { data } = await listGames(runId);
-      setAdminGames(data.sort((a, b) => new Date(a.game_date) - new Date(b.game_date)));
+      setAdminGames(data);
     } catch { setAdminGames([]); }
     finally { setGamesLoading(false); }
   };
@@ -577,16 +579,36 @@ export default function AdminPage() {
               <table className="w-full text-left">
                 <thead>
                   <tr className="border-b border-gray-200 dark:border-gray-700">
-                    <th className="py-3 px-3 text-xs font-medium text-gray-500 dark:text-gray-400">Date</th>
-                    <th className="py-3 px-3 text-xs font-medium text-gray-500 dark:text-gray-400">Title</th>
-                    <th className="py-3 px-3 text-xs font-medium text-gray-500 dark:text-gray-400">Location</th>
-                    <th className="py-3 px-3 text-xs font-medium text-gray-500 dark:text-gray-400">Status</th>
-                    <th className="py-3 px-3 text-xs font-medium text-gray-500 dark:text-gray-400">RSVPs</th>
+                    {[
+                      { field: "game_date", label: "Date" },
+                      { field: "title", label: "Title" },
+                      { field: "location", label: "Location" },
+                      { field: "status", label: "Status" },
+                      { field: "accepted_count", label: "RSVPs" },
+                    ].map(({ field, label }) => (
+                      <th
+                        key={field}
+                        onClick={() => {
+                          if (gamesSortField === field) setGamesSortDir(gamesSortDir === "asc" ? "desc" : "asc");
+                          else { setGamesSortField(field); setGamesSortDir(field === "game_date" ? "desc" : "asc"); }
+                        }}
+                        className="py-3 px-3 text-xs font-medium text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-700 dark:hover:text-gray-200 select-none"
+                      >
+                        {label} {gamesSortField === field ? (gamesSortDir === "asc" ? "▲" : "▼") : ""}
+                      </th>
+                    ))}
                     <th className="py-3 px-3 text-xs font-medium text-gray-500 dark:text-gray-400">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {adminGames.map((game) => {
+                  {[...adminGames].sort((a, b) => {
+                    const dir = gamesSortDir === "asc" ? 1 : -1;
+                    if (gamesSortField === "game_date") return dir * (new Date(a.game_date) - new Date(b.game_date));
+                    if (gamesSortField === "accepted_count") return dir * ((a.accepted_count || 0) - (b.accepted_count || 0));
+                    const va = (a[gamesSortField] || "").toString().toLowerCase();
+                    const vb = (b[gamesSortField] || "").toString().toLowerCase();
+                    return dir * va.localeCompare(vb);
+                  }).map((game) => {
                     const isEditing = editingGameId === game.id;
                     const d = new Date(game.game_date);
                     const canEdit = !["completed", "cancelled", "skipped"].includes(game.status);
@@ -603,7 +625,7 @@ export default function AdminPage() {
                             </div>
                           ) : (
                             <span className="text-gray-700 dark:text-gray-300">
-                              {d.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                              {d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                               <span className="text-gray-400 dark:text-gray-500 ml-1 text-xs">
                                 {d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
                               </span>
@@ -615,7 +637,7 @@ export default function AdminPage() {
                             <input type="text" value={editGameForm.title || ""} onChange={(e) => setEditGameForm({ ...editGameForm, title: e.target.value })}
                               className="w-full text-sm border rounded px-2 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600" />
                           ) : (
-                            <span className={`font-medium text-gray-900 dark:text-gray-100 ${game.status === "cancelled" ? "line-through text-red-600 dark:text-red-400" : ""}`}>{game.title}</span>
+                            <Link to={`/games/${game.id}`} className={`font-medium hover:text-court-600 ${game.status === "cancelled" ? "line-through text-red-600 dark:text-red-400" : "text-gray-900 dark:text-gray-100"}`}>{game.title}</Link>
                           )}
                         </td>
                         <td className="py-2 px-3 text-sm">
