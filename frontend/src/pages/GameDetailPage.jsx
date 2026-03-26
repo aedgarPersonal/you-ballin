@@ -263,6 +263,12 @@ export default function GameDetailPage() {
               value={game.status}
               onChange={async (e) => {
                 const newStatus = e.target.value;
+                if (game.status === "completed" && newStatus !== "completed") {
+                  if (!confirm("Changing from completed will remove the game results and commentary. Continue?")) {
+                    e.target.value = game.status;
+                    return;
+                  }
+                }
                 try {
                   await updateGame(runId, id, { status: newStatus });
                   toast.success(`Status → ${newStatus.replace("_", " ")}`);
