@@ -1,25 +1,27 @@
-"""Tests for authentication: register, login, JWT."""
+"""Tests for authentication: register, login, JWT, invite codes."""
 import pytest
 from tests.conftest import create_user, login_user, auth_header
 
 
 @pytest.mark.asyncio
-async def test_register_new_user(client):
-    user, token = await create_user(client, make_admin=False)
-    assert user["email"] == "test@test.com"
-    assert user["full_name"] == "Test User"
-    assert token
+async def test_register_without_code_rejected(client):
+    """Registration without an invite code should be rejected."""
+    resp = await client.post("/api/auth/register", json={
+        "full_name": "No Code", "email": "nocode@test.com",
+        "username": "nocode", "password": "Password123",
+    })
+    assert resp.status_code == 403
+    assert "invite" in resp.json()["detail"].lower()
 
 
 @pytest.mark.asyncio
-async def test_register_duplicate_email(client):
-    await create_user(client, make_admin=False)
+async def test_register_with_invalid_code(client):
     resp = await client.post("/api/auth/register", json={
-        "full_name": "Dupe", "email": "test@test.com",
-        "username": "dupe", "password": "Password123",
+        "full_name": "Bad Code", "email": "bad@test.com",
+        "username": "bad", "password": "Password123",
+        "invite_code": "INVALID123",
     })
-    assert resp.status_code in (400, 409)
-    assert "already" in resp.json()["detail"].lower()
+    assert resp.status_code == 400
 
 
 @pytest.mark.asyncio
@@ -48,7 +50,6 @@ async def test_login_nonexistent_email(client):
 
 @pytest.mark.asyncio
 async def test_protected_route_no_token(client):
-    """Accessing a protected endpoint without a token should fail."""
     resp = await client.get("/api/notifications")
     assert resp.status_code in (401, 403)
 

@@ -1,18 +1,25 @@
 /**
  * Registration Page
  * =================
- * New player registration form.
+ * Closed registration — requires a valid invite code (via URL ?code=XYZ).
  */
 
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
-import { registerUser } from "../api/auth";
+import { registerUser, validateInviteCode } from "../api/auth";
 import useAuthStore from "../stores/authStore";
 import AvatarPicker, { AvatarBadge } from "../components/AvatarPicker";
-import { getPlayerById, getRandomPlayerId } from "../data/legacyPlayers";
+import { getPlayerById } from "../data/legacyPlayers";
 
 export default function RegisterPage() {
+  const [searchParams] = useSearchParams();
+  const inviteCode = searchParams.get("code") || "";
+
+  const [codeStatus, setCodeStatus] = useState("loading"); // loading | valid | invalid | none
+  const [runName, setRunName] = useState("");
+  const [codeMessage, setCodeMessage] = useState("");
+
   const [form, setForm] = useState({
     email: "",
     username: "",
@@ -26,6 +33,28 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const login = useAuthStore((s) => s.login);
   const navigate = useNavigate();
+
+  // Validate invite code on mount
+  useEffect(() => {
+    if (!inviteCode) {
+      setCodeStatus("none");
+      return;
+    }
+    validateInviteCode(inviteCode)
+      .then(({ data }) => {
+        if (data.valid) {
+          setCodeStatus("valid");
+          setRunName(data.run_name || "");
+        } else {
+          setCodeStatus("invalid");
+          setCodeMessage(data.message);
+        }
+      })
+      .catch(() => {
+        setCodeStatus("invalid");
+        setCodeMessage("Unable to validate invite code");
+      });
+  }, [inviteCode]);
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -44,6 +73,7 @@ export default function RegisterPage() {
         full_name: form.full_name,
         phone: form.phone || null,
         avatar_url: avatarId || null,
+        invite_code: inviteCode,
       });
       login(data.access_token, data.user);
       toast.success("Registration submitted! An admin will review your request.");
@@ -55,13 +85,63 @@ export default function RegisterPage() {
     }
   };
 
+  // No code provided — show invite-only message
+  if (codeStatus === "none") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-court-50 to-orange-100 dark:from-gray-900 dark:to-gray-800 px-4">
+        <div className="w-full max-w-md text-center">
+          <img src="/logo.png" alt="Game Runner" className="h-24 mx-auto rounded-lg" />
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-6">Invite Only</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-3">
+            Registration is by invite only. If you've received an invite link, please use it to sign up.
+          </p>
+          <Link to="/login" className="btn-primary inline-block mt-6">
+            Sign In
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Invalid or expired code
+  if (codeStatus === "invalid") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-court-50 to-orange-100 dark:from-gray-900 dark:to-gray-800 px-4">
+        <div className="w-full max-w-md text-center">
+          <img src="/logo.png" alt="Game Runner" className="h-24 mx-auto rounded-lg" />
+          <h1 className="text-2xl font-bold text-red-600 mt-6">Invalid Invite</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-3">
+            {codeMessage || "This invite link is invalid or has expired."}
+          </p>
+          <Link to="/login" className="btn-primary inline-block mt-6">
+            Sign In
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Still loading validation
+  if (codeStatus === "loading") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-court-50 to-orange-100 dark:from-gray-900 dark:to-gray-800 px-4">
+        <p className="text-gray-500 dark:text-gray-400">Validating invite code...</p>
+      </div>
+    );
+  }
+
+  // Valid code — show registration form
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-court-50 to-orange-100 dark:from-gray-900 dark:to-gray-800 px-4 py-8">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <img src="/logo.png" alt="You Ballin" className="h-24 mx-auto rounded-lg" />
+          <img src="/logo.png" alt="Game Runner" className="h-24 mx-auto rounded-lg" />
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mt-4">Join the Game</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">Register for pickup basketball</p>
+          {runName && (
+            <div className="mt-3 inline-block bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 text-sm font-medium px-4 py-1.5 rounded-full">
+              Joining: {runName}
+            </div>
+          )}
         </div>
 
         <div className="card">

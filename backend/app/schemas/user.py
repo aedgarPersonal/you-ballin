@@ -31,6 +31,7 @@ class UserRegister(BaseModel):
     full_name: str = Field(min_length=1, max_length=200)
     phone: str | None = None
     avatar_url: str | None = None  # Legacy NBA player ID for avatar
+    invite_code: str | None = None  # Required for closed registration
 
 
 class UserLogin(BaseModel):

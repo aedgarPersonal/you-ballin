@@ -17,3 +17,13 @@ export const importPlayers = (runId, data) =>
   api.post(`/runs/${runId}/admin/import-players`, data);
 export const quickAddPlayer = (runId, data) =>
   api.post(`/runs/${runId}/admin/add-player`, data);
+
+// --- Invite Codes ---
+export const createInviteCode = (runId, data = {}) =>
+  api.post(`/runs/${runId}/admin/invite-codes`, data);
+export const listInviteCodes = (runId) =>
+  api.get(`/runs/${runId}/admin/invite-codes`);
+export const updateInviteCode = (runId, codeId, data) =>
+  api.patch(`/runs/${runId}/admin/invite-codes/${codeId}`, data);
+export const deleteInviteCode = (runId, codeId) =>
+  api.delete(`/runs/${runId}/admin/invite-codes/${codeId}`);

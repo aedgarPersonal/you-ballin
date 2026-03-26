@@ -14,6 +14,7 @@ TEACHING NOTE:
 """
 
 import random
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
@@ -56,12 +57,36 @@ _LEGACY_AVATAR_IDS = [
 
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
 async def register(data: UserRegister, db: AsyncSession = Depends(get_db)):
-    """Register a new user account.
+    """Register a new user account. Requires a valid invite code.
 
-    TEACHING NOTE:
-        New users start with player_status=PENDING. They can log in
-        immediately but can't RSVP to games until an admin approves them.
+    The invite code ties registration to a specific Run. New users
+    start with player_status=PENDING and must be approved by an admin.
     """
+    from app.models.invite_code import InviteCode
+    from app.models.run import RunMembership, RunPlayerStats
+
+    # Require invite code for registration
+    if not data.invite_code:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Registration is by invite only. Please use an invite link.",
+        )
+
+    # Validate invite code
+    invite_result = await db.execute(
+        select(InviteCode).where(InviteCode.code == data.invite_code.upper().strip())
+    )
+    invite = invite_result.scalar_one_or_none()
+
+    if not invite or not invite.is_active:
+        raise HTTPException(status_code=400, detail="Invalid or deactivated invite code")
+
+    if invite.expires_at and invite.expires_at < datetime.utcnow():
+        raise HTTPException(status_code=400, detail="This invite code has expired")
+
+    if invite.max_uses and invite.use_count >= invite.max_uses:
+        raise HTTPException(status_code=400, detail="This invite code has reached its usage limit")
+
     # Check for existing email or username
     existing = await db.execute(
         select(User).where((User.email == data.email) | (User.username == data.username))
@@ -72,6 +97,7 @@ async def register(data: UserRegister, db: AsyncSession = Depends(get_db)):
             detail="Email or username already registered",
         )
 
+    # Create user
     user = User(
         email=data.email,
         username=data.username,
@@ -83,7 +109,26 @@ async def register(data: UserRegister, db: AsyncSession = Depends(get_db)):
         role=UserRole.PLAYER,
     )
     db.add(user)
-    await db.flush()  # Assigns the ID without committing
+    await db.flush()
+
+    # Auto-join the run referenced by the invite code (as PENDING)
+    membership = RunMembership(
+        run_id=invite.run_id,
+        user_id=user.id,
+        player_status=PlayerStatus.PENDING,
+    )
+    db.add(membership)
+
+    stats = RunPlayerStats(
+        run_id=invite.run_id,
+        user_id=user.id,
+    )
+    db.add(stats)
+
+    # Increment invite code usage
+    invite.use_count += 1
+
+    await db.flush()
 
     token = create_access_token(user.id)
     return TokenResponse(

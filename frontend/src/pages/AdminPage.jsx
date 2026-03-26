@@ -29,6 +29,9 @@ import {
   updatePlayerAdmin,
   importPlayers,
   quickAddPlayer,
+  createInviteCode,
+  listInviteCodes,
+  updateInviteCode,
 } from "../api/admin";
 import { createGame, generateSeasonGames, listGames, updateGame, cancelGame } from "../api/games";
 import {
@@ -448,8 +451,8 @@ export default function AdminPage() {
     cancelled: "bg-red-200 text-red-900 dark:bg-red-900/40 dark:text-red-300 font-bold",
   };
 
-  const tabs = ["pending", "players", "balancer", "settings"];
-  const tabLabels = { settings: "Run Settings" };
+  const tabs = ["pending", "players", "invites", "balancer", "settings"];
+  const tabLabels = { settings: "Run Settings", invites: "Invite Codes" };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -1232,6 +1235,9 @@ export default function AdminPage() {
             </div>
           )}
         </div>
+      ) : tab === "invites" ? (
+        /* ===== Invite Codes Tab ===== */
+        <InviteCodesPanel runId={runId} />
       ) : tab === "settings" ? (
         /* ===== Run Settings Tab ===== */
         <div className="card max-w-2xl">
@@ -1652,6 +1658,185 @@ export default function AdminPage() {
               </div>
             )}
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+/**
+ * InviteCodesPanel — Manage invite codes for closed registration.
+ */
+function InviteCodesPanel({ runId }) {
+  const [codes, setCodes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [maxUses, setMaxUses] = useState("");
+  const [expiresAt, setExpiresAt] = useState("");
+
+  const fetchCodes = async () => {
+    if (!runId) return;
+    try {
+      const { data } = await listInviteCodes(runId);
+      setCodes(data);
+    } catch {
+      setCodes([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchCodes(); }, [runId]);
+
+  const handleGenerate = async () => {
+    setGenerating(true);
+    try {
+      const payload = {};
+      if (maxUses) payload.max_uses = parseInt(maxUses);
+      if (expiresAt) payload.expires_at = new Date(expiresAt).toISOString();
+      await createInviteCode(runId, payload);
+      toast.success("Invite code generated!");
+      setShowForm(false);
+      setMaxUses("");
+      setExpiresAt("");
+      fetchCodes();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Failed to generate code");
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handleToggle = async (codeId, currentlyActive) => {
+    try {
+      await updateInviteCode(runId, codeId, { is_active: !currentlyActive });
+      setCodes((prev) => prev.map((c) => c.id === codeId ? { ...c, is_active: !currentlyActive } : c));
+      toast.success(currentlyActive ? "Code deactivated" : "Code reactivated");
+    } catch {
+      toast.error("Failed to update code");
+    }
+  };
+
+  const copyLink = (code) => {
+    const url = `${window.location.origin}/register?code=${code}`;
+    navigator.clipboard.writeText(url);
+    toast.success("Invite link copied!");
+  };
+
+  const baseUrl = window.location.origin;
+
+  return (
+    <div className="card">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Invite Codes</h2>
+        <button onClick={() => setShowForm(!showForm)} className="btn-primary text-sm">
+          + Generate Code
+        </button>
+      </div>
+
+      {showForm && (
+        <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Max Uses (optional)</label>
+              <input
+                type="number"
+                min="1"
+                value={maxUses}
+                onChange={(e) => setMaxUses(e.target.value)}
+                className="input text-sm"
+                placeholder="Unlimited"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Expires (optional)</label>
+              <input
+                type="datetime-local"
+                value={expiresAt}
+                onChange={(e) => setExpiresAt(e.target.value)}
+                className="input text-sm"
+              />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={handleGenerate} disabled={generating} className="btn-primary text-sm">
+              {generating ? "Generating..." : "Generate"}
+            </button>
+            <button onClick={() => setShowForm(false)} className="btn-secondary text-sm">Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {loading ? (
+        <p className="text-gray-500 dark:text-gray-400">Loading...</p>
+      ) : codes.length === 0 ? (
+        <p className="text-gray-500 dark:text-gray-400">No invite codes yet. Generate one to share with new players.</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700">
+                <th className="py-2 pr-3">Code</th>
+                <th className="py-2 pr-3">Status</th>
+                <th className="py-2 pr-3">Uses</th>
+                <th className="py-2 pr-3">Expires</th>
+                <th className="py-2">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+              {codes.map((c) => {
+                const isExpired = c.expires_at && new Date(c.expires_at) < new Date();
+                const isMaxed = c.max_uses && c.use_count >= c.max_uses;
+                return (
+                  <tr key={c.id}>
+                    <td className="py-3 pr-3">
+                      <code className="text-sm font-mono font-bold text-court-600 bg-court-50 dark:bg-court-900/20 px-2 py-0.5 rounded">
+                        {c.code}
+                      </code>
+                    </td>
+                    <td className="py-3 pr-3">
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded ${
+                        !c.is_active ? "bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400" :
+                        isExpired ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" :
+                        isMaxed ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400" :
+                        "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                      }`}>
+                        {!c.is_active ? "Inactive" : isExpired ? "Expired" : isMaxed ? "Maxed" : "Active"}
+                      </span>
+                    </td>
+                    <td className="py-3 pr-3 text-gray-600 dark:text-gray-400">
+                      {c.use_count}{c.max_uses ? `/${c.max_uses}` : ""}
+                    </td>
+                    <td className="py-3 pr-3 text-gray-500 dark:text-gray-400 text-xs">
+                      {c.expires_at ? new Date(c.expires_at).toLocaleDateString() : "Never"}
+                    </td>
+                    <td className="py-3">
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => copyLink(c.code)}
+                          className="text-xs bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 px-2 py-1 rounded hover:bg-cyan-200 dark:hover:bg-cyan-900/50"
+                        >
+                          Copy Link
+                        </button>
+                        <button
+                          onClick={() => handleToggle(c.id, c.is_active)}
+                          className={`text-xs px-2 py-1 rounded ${
+                            c.is_active
+                              ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 hover:bg-red-200"
+                              : "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-200"
+                          }`}
+                        >
+                          {c.is_active ? "Deactivate" : "Reactivate"}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

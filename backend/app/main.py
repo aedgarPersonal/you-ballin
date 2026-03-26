@@ -28,6 +28,7 @@ from app.routes import (
     auth_routes,
     game_action_routes,
     game_routes,
+    invite_routes,
     notification_routes,
     player_routes,
     push_routes,
@@ -117,6 +118,8 @@ app.include_router(algorithm_routes.router)
 app.include_router(stats_routes.router)
 app.include_router(game_action_routes.router)
 app.include_router(push_routes.router)
+app.include_router(invite_routes.public_router)
+app.include_router(invite_routes.admin_router)
 
 
 # =============================================================================

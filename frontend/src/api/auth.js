@@ -11,3 +11,4 @@ export const loginUser = (data) => api.post("/auth/login", data);
 export const requestMagicLink = (email) => api.post("/auth/magic-link", { email });
 export const verifyMagicLink = (token) => api.get(`/auth/magic-link/verify?token=${token}`);
 export const googleAuth = (credential) => api.post("/auth/google", { credential });
+export const validateInviteCode = (code) => api.get(`/auth/validate-code?code=${code}`);

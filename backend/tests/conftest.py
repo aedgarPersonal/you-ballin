@@ -72,30 +72,36 @@ async def db():
 # =============================================================================
 
 async def create_user(client: AsyncClient, name="Test User", email="test@test.com", password="Password123", make_admin=True):
-    """Register a user and return (user_data, token). By default promotes to super_admin."""
-    resp = await client.post("/api/auth/register", json={
-        "full_name": name,
-        "email": email,
-        "username": email.split("@")[0],
-        "password": password,
-    })
-    assert resp.status_code == 201, f"Register failed: {resp.text}"
-    data = resp.json()
+    """Create a user directly in DB (bypasses invite code requirement). By default promotes to super_admin."""
+    from app.auth.password import hash_password
+    from app.auth.jwt import create_access_token
+    from app.models.user import User, UserRole, PlayerStatus
 
-    if make_admin:
-        # Promote to super_admin via direct DB update
-        from sqlalchemy import update as sql_update
-        from app.models.user import User, UserRole
-        async with TestSession() as session:
-            await session.execute(
-                sql_update(User).where(User.email == email).values(role=UserRole.SUPER_ADMIN)
-            )
-            await session.commit()
-        # Re-login to get updated token with new role
-        login_resp = await client.post("/api/auth/login", json={"email": email, "password": password})
-        data["access_token"] = login_resp.json()["access_token"]
+    role = UserRole.SUPER_ADMIN if make_admin else UserRole.PLAYER
 
-    return data["user"], data["access_token"]
+    async with TestSession() as session:
+        user = User(
+            email=email,
+            username=email.split("@")[0],
+            hashed_password=hash_password(password),
+            full_name=name,
+            role=role,
+            player_status=PlayerStatus.PENDING if not make_admin else PlayerStatus.REGULAR,
+            avatar_url="bensimmons",
+        )
+        session.add(user)
+        await session.commit()
+        await session.refresh(user)
+
+        token = create_access_token(user.id)
+        user_data = {
+            "id": user.id,
+            "email": user.email,
+            "username": user.username,
+            "full_name": user.full_name,
+            "role": user.role.value if hasattr(user.role, 'value') else user.role,
+        }
+        return user_data, token
 
 
 async def login_user(client: AsyncClient, email="test@test.com", password="Password123"):
