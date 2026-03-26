@@ -139,7 +139,12 @@ export default function DashboardPage() {
           {currentRun && (
             <p className="text-sm font-medium text-court-600 mt-0.5">{currentRun.name}</p>
           )}
-          <p className="text-gray-600 dark:text-gray-400 mt-1">{statusMessage[user?.player_status] || ""}</p>
+          {isRunMember && (
+            <p className="text-gray-600 dark:text-gray-400 mt-1">{statusMessage[user?.player_status] || ""}</p>
+          )}
+          {!isRunMember && user?.role === "super_admin" && (
+            <p className="text-gray-600 dark:text-gray-400 mt-1">Managing as Super Admin</p>
+          )}
           {user?.avatar_url && getPlayerById(user.avatar_url) && (
             <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
               Repping {getPlayerById(user.avatar_url).name} — {getPlayerById(user.avatar_url).team}
@@ -148,7 +153,8 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Status Cards */}
+      {/* Status Cards — only for run members */}
+      {isRunMember && (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="card">
           <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Your Status</h3>
@@ -170,7 +176,7 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
-      </div>
+      </div>)}
 
       {/* Next Game with RSVP */}
       <div className="card mb-6">
