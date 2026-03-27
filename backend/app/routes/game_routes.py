@@ -57,90 +57,74 @@ router = APIRouter(prefix="/api/runs/{run_id}/games", tags=["Games"])
 # Helpers
 # =============================================================================
 
-def _build_commentary(
+async def _build_commentary(
     seed: str | None,
     score_map: dict,
     team_name_lookup: dict,
     game,
     total_games: int,
 ) -> str | None:
-    """Expand admin commentary seed into a fun game recap using game data.
+    """Expand admin commentary into a fun game recap using AI.
 
-    If no seed is provided, returns None (no commentary).
+    If no seed is provided, returns None. Uses Claude API if available,
+    falls back to simple expansion.
     """
     if not seed:
         return None
 
-    import random
-
-    # Sort teams by score
     sorted_teams = sorted(score_map.items(), key=lambda x: x[1], reverse=True)
     winner_id, winner_score = sorted_teams[0]
     loser_id, loser_score = sorted_teams[-1]
     winner_name = team_name_lookup.get(winner_id, winner_id)
     loser_name = team_name_lookup.get(loser_id, loser_id)
-    is_tie = winner_score == loser_score
-    margin = winner_score - loser_score
-    is_blowout = margin >= 3
-    is_sweep = loser_score == 0
-    is_close = margin == 1
 
-    # Count players per team
     team_players = {}
     for t in game.teams:
         team_players.setdefault(t.team, []).append(t)
-    winner_count = len(team_players.get(winner_id, []))
-    loser_count = len(team_players.get(loser_id, []))
-    was_outnumbered = winner_count < loser_count
+    winner_roster = [t.user.full_name for t in team_players.get(winner_id, []) if t.user]
+    loser_roster = [t.user.full_name for t in team_players.get(loser_id, []) if t.user]
 
-    # Build color pieces
-    pieces = [seed.rstrip(".")]
+    # Try AI-enhanced commentary
+    from app.config import settings
+    if settings.anthropic_api_key:
+        try:
+            import anthropic
+            client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
 
-    # Scores represent games won in a series (e.g., 3-2 means won 3 games, lost 2)
-    if is_tie:
-        pieces.append(random.choice([
-            f"Split the series {winner_score}-{loser_score} — neither squad could pull away",
-            "Dead even. Sometimes the basketball gods just call it square",
-            f"Both teams took {winner_score} games apiece. A draw felt right",
-        ]))
-    elif is_sweep:
-        pieces.append(random.choice([
-            f"{winner_name} swept the series {winner_score}-0 — {loser_name} couldn't buy a win",
-            f"A clean sweep — {loser_name} never found their rhythm across {winner_score} games",
-            f"Total domination. {winner_name} took every game and {loser_name} had no answer",
-        ]))
-    elif is_blowout:
-        pieces.append(random.choice([
-            f"{winner_name} took the series {winner_score}-{loser_score} — it wasn't even close",
-            f"{loser_name} managed only {loser_score} game{'s' if loser_score != 1 else ''} as {winner_name} cruised to a {winner_score}-{loser_score} series win",
-            f"{loser_name} fought hard but {winner_name} was on another level, taking {winner_score} of {total_games} games",
-        ]))
-    elif is_close:
-        pieces.append(random.choice([
-            f"A nail-biter series that came down to the final game — {winner_name} edges it {winner_score}-{loser_score}",
-            f"Could've gone either way. {winner_name} took the series {winner_score}-{loser_score} by the slimmest margin",
-            f"{loser_name} pushed {winner_name} to the limit but fell one game short at {loser_score}-{winner_score}",
-        ]))
+            prompt = (
+                f"You are a fun, witty sports commentator for a pickup basketball league. "
+                f"Write a 2-3 sentence game recap based on the admin's notes below.\n\n"
+                f"Admin notes: {seed}\n\n"
+                f"Game details:\n"
+                f"- {winner_name} ({', '.join(winner_roster)}) won {winner_score}-{loser_score} against {loser_name} ({', '.join(loser_roster)})\n"
+                f"- Scores represent games won in the session (e.g. 3-2 means won 3 games, lost 2)\n"
+                f"- {total_games} total games played\n\n"
+                f"Rules:\n"
+                f"- Keep it fun, playful, and basketball-themed\n"
+                f"- Reference specific player names from the admin notes when possible\n"
+                f"- Use the admin's observations as the core of the recap\n"
+                f"- 2-3 sentences max, no hashtags or emojis\n"
+                f"- Write as a single paragraph"
+            )
+
+            response = client.messages.create(
+                model="claude-haiku-4-5-20251001",
+                max_tokens=200,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            return response.content[0].text.strip()
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"AI commentary failed, using fallback: {e}")
+
+    # Fallback: simple expansion
+    is_close = (winner_score - loser_score) == 1
+    if is_close:
+        return f"{seed}. {winner_name} edges {loser_name} {winner_score}-{loser_score} in a tight {total_games}-game session."
+    elif loser_score == 0:
+        return f"{seed}. {winner_name} sweeps {loser_name} {winner_score}-0 — total domination across {total_games} games."
     else:
-        pieces.append(random.choice([
-            f"{winner_name} takes the series {winner_score}-{loser_score}",
-            f"Solid effort from both sides across {total_games} games, but {winner_name} had the edge tonight",
-        ]))
-
-    if was_outnumbered and not is_tie:
-        pieces.append(random.choice([
-            f"Impressive — {winner_name} did it shorthanded ({winner_count} vs {loser_count})",
-            f"Playing with fewer bodies, {winner_name} proved heart beats numbers",
-        ]))
-
-    # Fun total games flavor
-    if total_games >= 7:
-        pieces.append(random.choice([
-            f"{total_games} games in one night — legs were burning by the end",
-            f"A marathon {total_games}-game session. Everyone left it on the court",
-        ]))
-
-    return ". ".join(pieces) + "."
+        return f"{seed}. {winner_name} takes the series {winner_score}-{loser_score} across {total_games} games."
 
 
 async def _recalculate_odds(game: Game, db: AsyncSession):
@@ -1297,7 +1281,7 @@ async def record_result(
     game.status = GameStatus.COMPLETED
 
     # Build fun commentary from admin seed + game data
-    game.commentary = _build_commentary(
+    game.commentary = await _build_commentary(
         seed=data.commentary,
         score_map=score_map,
         team_name_lookup=team_name_lookup,
