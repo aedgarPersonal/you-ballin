@@ -164,6 +164,14 @@ async def approve_membership(
     # Sync the global user status to match
     user.player_status = PlayerStatus(player_status)
 
+    # Ensure defaults for nullable fields
+    if user.height_inches is None:
+        user.height_inches = 70  # 5'10"
+    if user.age is None:
+        user.age = 30
+    if user.mobility is None:
+        user.mobility = 3.0
+
     # Send approval notification
     notification = Notification(
         user_id=user.id,
