@@ -55,6 +55,7 @@ _LEGACY_AVATAR_IDS = [
     "taurasi", "suebird", "lisaleslie", "swoopes", "candaceparker",
     "mayamoore", "catchings", "cynthiacooper", "laurenjackson",
     "tinathompson", "stewie", "ajawilson",
+    "caitlinclark", "griner", "angelreese",
 ]
 
 

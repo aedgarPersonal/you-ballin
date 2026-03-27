@@ -413,6 +413,7 @@ AVATAR_IDS = [
     "taurasi", "suebird", "lisaleslie", "swoopes", "candaceparker",
     "mayamoore", "catchings", "cynthiacooper", "laurenjackson",
     "tinathompson", "stewie", "ajawilson",
+    "caitlinclark", "griner", "angelreese",
 ]
 
 DEFAULT_IMPORT_PASSWORD = "Password123"

@@ -184,6 +184,12 @@ const LEGACY_PLAYERS = [
     sprite: { skin: 0, hair: "long", build: "normal", accessories: [], hairColor: "#5A3A1A" } },
   { id: "ajawilson", name: "A'ja Wilson", team: "Aces", number: 22, colors: ["#000000", "#C8102E"], era: "wnba",
     sprite: { skin: 4, hair: "long", build: "normal", accessories: [] } },
+  { id: "caitlinclark", name: "Caitlin Clark", team: "Fever", number: 22, colors: ["#002D62", "#E03A3E"], era: "wnba",
+    sprite: { skin: 0, hair: "long", build: "normal", accessories: [], hairColor: "#5A3A1A" } },
+  { id: "griner", name: "Brittney Griner", team: "Mercury", number: 42, colors: ["#E56020", "#1D1160"], era: "wnba",
+    sprite: { skin: 4, hair: "flat", build: "big", accessories: [] } },
+  { id: "angelreese", name: "Angel Reese", team: "Sky", number: 5, colors: ["#C8102E", "#041E42"], era: "wnba",
+    sprite: { skin: 4, hair: "long", build: "normal", accessories: [] } },
 ];
 
 export const ERAS = [
