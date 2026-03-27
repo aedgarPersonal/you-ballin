@@ -244,10 +244,29 @@ export default function AdminPage() {
     }
   };
 
+  const [approvalMetrics, setApprovalMetrics] = useState({});
+  const [expandedApproval, setExpandedApproval] = useState(null); // userId being expanded
+
   const handleApprove = async (userId, status) => {
     try {
       await approveRegistration(runId, userId, status);
+      // If metrics were set, update them
+      const metrics = approvalMetrics[userId];
+      if (metrics) {
+        const updates = {};
+        if (metrics.avg_offense) updates.avg_offense = parseFloat(metrics.avg_offense);
+        if (metrics.avg_defense) updates.avg_defense = parseFloat(metrics.avg_defense);
+        if (metrics.avg_overall) updates.avg_overall = parseFloat(metrics.avg_overall);
+        if (metrics.mobility) updates.mobility = parseFloat(metrics.mobility);
+        if (metrics.height_inches) updates.height_inches = parseInt(metrics.height_inches);
+        if (metrics.age) updates.age = parseInt(metrics.age);
+        if (Object.keys(updates).length > 0) {
+          await updatePlayerAdmin(runId, userId, updates);
+        }
+      }
       toast.success(`Player approved as ${status}`);
+      setExpandedApproval(null);
+      setApprovalMetrics((prev) => { const n = { ...prev }; delete n[userId]; return n; });
       fetchPending();
       fetchPlayers();
     } catch (err) {
@@ -494,37 +513,114 @@ export default function AdminPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {pending.map((user) => (
-              <div key={user.id} className="card flex items-center justify-between">
-                <div>
-                  <h3 className="font-semibold">{user.full_name}</h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">{user.email}</p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500">
-                    Registered {new Date(user.created_at).toLocaleDateString()}
-                  </p>
+            {pending.map((pUser) => {
+              const isExpanded = expandedApproval === pUser.id;
+              const m = approvalMetrics[pUser.id] || {};
+              const setM = (field, val) => setApprovalMetrics((prev) => ({
+                ...prev, [pUser.id]: { ...(prev[pUser.id] || {}), [field]: val }
+              }));
+              return (
+              <div key={pUser.id} className="card">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold">{pUser.full_name}</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{pUser.email}</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500">
+                      Registered {new Date(pUser.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setExpandedApproval(isExpanded ? null : pUser.id)}
+                      className="text-xs text-cyan-500 hover:text-cyan-400 font-medium"
+                    >
+                      {isExpanded ? "Hide Metrics" : "Set Metrics"}
+                    </button>
+                    <button
+                      onClick={() => handleApprove(pUser.id, "regular")}
+                      className="bg-green-500 hover:bg-green-600 text-white text-sm font-medium py-1.5 px-3 rounded-lg"
+                    >
+                      Regular
+                    </button>
+                    <button
+                      onClick={() => handleApprove(pUser.id, "dropin")}
+                      className="bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-medium py-1.5 px-3 rounded-lg"
+                    >
+                      Drop-in
+                    </button>
+                    <button
+                      onClick={() => handleDeny(pUser.id)}
+                      className="btn-danger text-sm py-1.5 px-3"
+                    >
+                      Deny
+                    </button>
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleApprove(user.id, "regular")}
-                    className="bg-green-500 hover:bg-green-600 text-white text-sm font-medium py-1.5 px-3 rounded-lg"
-                  >
-                    Regular
-                  </button>
-                  <button
-                    onClick={() => handleApprove(user.id, "dropin")}
-                    className="bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-medium py-1.5 px-3 rounded-lg"
-                  >
-                    Drop-in
-                  </button>
-                  <button
-                    onClick={() => handleDeny(user.id)}
-                    className="btn-danger text-sm py-1.5 px-3"
-                  >
-                    Deny
-                  </button>
-                </div>
+                {isExpanded && (
+                  <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Optional — set player metrics before approving (defaults: 3.0)</p>
+                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                      <div>
+                        <label className="block text-[10px] text-gray-400 mb-0.5">Height (ft)</label>
+                        <div className="flex items-center gap-0.5">
+                          <input type="number" min="4" max="7" placeholder="5"
+                            value={m.heightFt || ""}
+                            onChange={(e) => {
+                              const ft = parseInt(e.target.value) || 5;
+                              const inches = parseInt(m.heightIn) || 10;
+                              setM("heightFt", e.target.value);
+                              setM("height_inches", ft * 12 + inches);
+                            }}
+                            className="w-10 text-xs text-center border rounded px-1 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600" />
+                          <span className="text-gray-400 text-xs">'</span>
+                          <input type="number" min="0" max="11" placeholder="10"
+                            value={m.heightIn || ""}
+                            onChange={(e) => {
+                              const ft = parseInt(m.heightFt) || 5;
+                              const inches = parseInt(e.target.value) || 0;
+                              setM("heightIn", e.target.value);
+                              setM("height_inches", ft * 12 + inches);
+                            }}
+                            className="w-10 text-xs text-center border rounded px-1 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600" />
+                          <span className="text-gray-400 text-xs">"</span>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] text-gray-400 mb-0.5">Age</label>
+                        <input type="number" min="16" max="70" placeholder="30"
+                          value={m.age || ""} onChange={(e) => setM("age", e.target.value)}
+                          className="w-full text-xs text-center border rounded px-1 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] text-gray-400 mb-0.5">Offense</label>
+                        <input type="number" min="1" max="5" step="0.5" placeholder="3.0"
+                          value={m.avg_offense || ""} onChange={(e) => setM("avg_offense", e.target.value)}
+                          className="w-full text-xs text-center border rounded px-1 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] text-gray-400 mb-0.5">Defense</label>
+                        <input type="number" min="1" max="5" step="0.5" placeholder="3.0"
+                          value={m.avg_defense || ""} onChange={(e) => setM("avg_defense", e.target.value)}
+                          className="w-full text-xs text-center border rounded px-1 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] text-gray-400 mb-0.5">Overall</label>
+                        <input type="number" min="1" max="5" step="0.5" placeholder="3.0"
+                          value={m.avg_overall || ""} onChange={(e) => setM("avg_overall", e.target.value)}
+                          className="w-full text-xs text-center border rounded px-1 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] text-gray-400 mb-0.5">Mobility</label>
+                        <input type="number" min="1" max="5" step="0.5" placeholder="3.0"
+                          value={m.mobility || ""} onChange={(e) => setM("mobility", e.target.value)}
+                          className="w-full text-xs text-center border rounded px-1 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600" />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
-            ))}
+              );
+            })}
           </div>
         )
       ) : tab === "games" ? (
