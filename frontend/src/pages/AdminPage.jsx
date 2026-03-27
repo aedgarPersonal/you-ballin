@@ -788,11 +788,27 @@ export default function AdminPage() {
                     <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Physical</p>
                     <div className="grid grid-cols-3 gap-3">
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Height (in)</label>
-                        <input type="number" min="48" max="96" value={addForm.height_inches || 70}
-                          onChange={(e) => setAddForm({ ...addForm, height_inches: parseInt(e.target.value) || 70 })}
-                          className="input w-full" />
-                        <span className="text-[10px] text-gray-400">{addForm.height_inches ? `${Math.floor(addForm.height_inches/12)}'${addForm.height_inches%12}"` : `5'10"`}</span>
+                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Height</label>
+                        <div className="flex items-center gap-1">
+                          <input type="number" min="4" max="7"
+                            value={Math.floor((addForm.height_inches || 70) / 12)}
+                            onChange={(e) => {
+                              const ft = parseInt(e.target.value) || 5;
+                              const inches = (addForm.height_inches || 70) % 12;
+                              setAddForm({ ...addForm, height_inches: ft * 12 + inches });
+                            }}
+                            className="input w-14 text-center" />
+                          <span className="text-gray-400 text-sm">'</span>
+                          <input type="number" min="0" max="11"
+                            value={(addForm.height_inches || 70) % 12}
+                            onChange={(e) => {
+                              const ft = Math.floor((addForm.height_inches || 70) / 12);
+                              const inches = parseInt(e.target.value) || 0;
+                              setAddForm({ ...addForm, height_inches: ft * 12 + inches });
+                            }}
+                            className="input w-14 text-center" />
+                          <span className="text-gray-400 text-sm">"</span>
+                        </div>
                       </div>
                       <div>
                         <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Age</label>
