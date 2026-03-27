@@ -607,12 +607,6 @@ export default function GameDetailPage() {
         />
       )}
 
-      {/* Admin RSVP on behalf */}
-      {isAdminUser && (
-        <div className="card">
-          <AdminRsvpSection runId={runId} gameId={id} onUpdate={fetchGame} />
-        </div>
-      )}
     </div>
   );
 }
