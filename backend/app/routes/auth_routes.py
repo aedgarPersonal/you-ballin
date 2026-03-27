@@ -50,7 +50,7 @@ _LEGACY_AVATAR_IDS = [
     "fultz", "laruemartin",
     # Additional NBA
     "rodman", "bogues", "abdulrauf", "eaton", "olivermiller", "camby",
-    "cassell", "artest", "kirilenko", "prince",
+    "cassell", "artest", "kirilenko", "prince", "kawhi",
     # WNBA
     "taurasi", "suebird", "lisaleslie", "swoopes", "candaceparker",
     "mayamoore", "catchings", "cynthiacooper", "laurenjackson",

@@ -158,6 +158,8 @@ const LEGACY_PLAYERS = [
     sprite: { skin: 0, hair: "flat", build: "normal", accessories: [], hairColor: "#C4A24A" } },
   { id: "prince", name: "Tayshaun Prince", team: "Pistons", number: 22, colors: ["#C8102E", "#1D42BA"], era: "00s-10s",
     sprite: { skin: 4, hair: "cornrows", build: "normal", accessories: [] } },
+  { id: "kawhi", name: "Kawhi Leonard", team: "Spurs", number: 2, colors: ["#C4CED4", "#000000"], era: "00s-10s",
+    sprite: { skin: 4, hair: "cornrows", build: "big", accessories: [] } },
 
   // === WNBA Legends ===
   { id: "taurasi", name: "Diana Taurasi", team: "Mercury", number: 3, colors: ["#E56020", "#1D1160"], era: "wnba",
