@@ -38,12 +38,12 @@ const ACTION_LABELS = {
   awards_announced: "View Results",
   game_updated: "View Game",
   player_suggested: "Review",
-  registration_approved: "View Games",
+  registration_approved: "Review",
   suggestion_accepted: "View",
 };
 
 export default function NotificationsPage() {
-  const { notifications, unreadCount, loading, fetchNotifications, markRead, markAllRead } =
+  const { notifications, unreadCount, loading, fetchNotifications, markRead, markAllRead, deleteOne, deleteAll } =
     useNotificationStore();
   const navigate = useNavigate();
   const [pushEnabled, setPushEnabled] = useState(false);
@@ -87,11 +87,18 @@ export default function NotificationsPage() {
             <p className="text-sm text-gray-500 dark:text-gray-400">{unreadCount} unread</p>
           )}
         </div>
-        {unreadCount > 0 && (
-          <button onClick={markAllRead} className="btn-secondary text-sm">
-            Mark All Read
-          </button>
-        )}
+        <div className="flex gap-2">
+          {unreadCount > 0 && (
+            <button onClick={markAllRead} className="btn-secondary text-sm">
+              Mark All Read
+            </button>
+          )}
+          {notifications.length > 0 && (
+            <button onClick={() => { if (confirm("Delete all notifications?")) deleteAll(); }} className="text-sm text-red-500 hover:text-red-400 font-medium px-3 py-1.5">
+              Clear All
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Push Notification Toggle */}
@@ -171,9 +178,18 @@ export default function NotificationsPage() {
                       </span>
                     )}
                   </div>
-                  {!notif.read && (
-                    <span className="w-2 h-2 bg-court-500 rounded-full flex-shrink-0 mt-2"></span>
-                  )}
+                  <div className="flex flex-col items-center gap-1 flex-shrink-0 mt-1">
+                    {!notif.read && (
+                      <span className="w-2 h-2 bg-court-500 rounded-full"></span>
+                    )}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); deleteOne(notif.id); }}
+                      className="text-gray-400 hover:text-red-500 text-xs leading-none p-1"
+                      title="Delete"
+                    >
+                      &times;
+                    </button>
+                  </div>
                 </div>
               </div>
             );

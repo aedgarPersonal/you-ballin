@@ -5,7 +5,7 @@
  */
 
 import { create } from "zustand";
-import { listNotifications, markAsRead, markAllAsRead } from "../api/notifications";
+import { listNotifications, markAsRead, markAllAsRead, deleteNotification, deleteAllNotifications } from "../api/notifications";
 
 const useNotificationStore = create((set, get) => ({
   notifications: [],
@@ -42,6 +42,23 @@ const useNotificationStore = create((set, get) => ({
       notifications: state.notifications.map((n) => ({ ...n, read: true })),
       unreadCount: 0,
     }));
+  },
+
+  deleteOne: async (id) => {
+    await deleteNotification(id);
+    set((state) => {
+      const notif = state.notifications.find((n) => n.id === id);
+      const wasUnread = notif && !notif.read;
+      return {
+        notifications: state.notifications.filter((n) => n.id !== id),
+        unreadCount: wasUnread ? Math.max(0, state.unreadCount - 1) : state.unreadCount,
+      };
+    });
+  },
+
+  deleteAll: async () => {
+    await deleteAllNotifications();
+    set({ notifications: [], unreadCount: 0 });
   },
 }));
 
