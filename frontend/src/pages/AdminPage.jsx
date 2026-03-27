@@ -287,11 +287,6 @@ export default function AdminPage() {
   };
 
   const handleUpdatePlayer = async (userId, field, value) => {
-    // Confirm status changes since they affect what games a player is invited to
-    if (field === "player_status") {
-      const labels = { regular: "Regular", dropin: "Drop-in", inactive: "Inactive" };
-      if (!confirm(`Change this player's status to ${labels[value] || value}? They will be notified.`)) return;
-    }
     try {
       await updatePlayerAdmin(runId, userId, { [field]: value });
       toast.success("Player updated");
@@ -327,7 +322,6 @@ export default function AdminPage() {
   };
 
   const handleGenerateSeasonGames = async () => {
-    if (!confirm("Generate all games for the season based on the run schedule? This won't create duplicates.")) return;
     try {
       const { data } = await generateSeasonGames(runId);
       toast.success(`Created ${data.games_created} games for ${data.total_weeks} weeks!`);
@@ -411,8 +405,6 @@ export default function AdminPage() {
       toast.error("No valid player data found. Use format: Name, Wins, Losses (one per line)");
       return;
     }
-    if (!confirm(`Import ${players.length} player(s) with default password "Password123"?`)) return;
-
     setImporting(true);
     setImportResult(null);
     try {

@@ -130,7 +130,6 @@ export default function PlayersPage() {
   const handleImport = async () => {
     const parsed = parseImportText(importText);
     if (parsed.length === 0) return;
-    if (!confirm(`Import ${parsed.length} player(s) with default password 'Password123'?`)) return;
     setImporting(true);
     try {
       const { data } = await importPlayers(runId, { players: parsed });

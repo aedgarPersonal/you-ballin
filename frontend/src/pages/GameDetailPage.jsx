@@ -102,11 +102,6 @@ export default function GameDetailPage() {
   };
 
   const handleGenerateTeams = async () => {
-    const isRegen = game.status === "teams_set";
-    const msg = isRegen
-      ? "Regenerate teams? Current assignments will be replaced and players will be notified."
-      : "Generate teams? Players will be notified of their assignments.";
-    if (!confirm(msg)) return;
     try {
       await generateTeams(runId, id);
       toast.success("Teams generated! Players have been notified.");
