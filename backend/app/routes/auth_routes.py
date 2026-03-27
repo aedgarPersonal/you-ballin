@@ -48,6 +48,13 @@ _LEGACY_AVATAR_IDS = [
     "durant", "drose", "bosh", "davis", "frazier", "ljohnson", "bensimmons", "bennett",
     "sambowie", "washburn", "olowokandi", "kwame", "darko", "morrison", "thabeet",
     "fultz", "laruemartin",
+    # Additional NBA
+    "rodman", "bogues", "abdulrauf", "eaton", "olivermiller", "camby",
+    "cassell", "artest", "kirilenko", "prince",
+    # WNBA
+    "taurasi", "suebird", "lisaleslie", "swoopes", "candaceparker",
+    "mayamoore", "catchings", "cynthiacooper", "laurenjackson",
+    "tinathompson", "stewie", "ajawilson",
 ]
 
 

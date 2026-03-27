@@ -406,6 +406,13 @@ AVATAR_IDS = [
     "pierce", "yao", "benwallace", "lebron", "wade", "cp3", "melo",
     "dwight", "pau", "tony", "manu", "rondo", "billups", "westbrook",
     "durant", "drose", "bosh", "davis", "frazier", "ljohnson",
+    # Additional NBA
+    "rodman", "bogues", "abdulrauf", "eaton", "olivermiller", "camby",
+    "cassell", "artest", "kirilenko", "prince",
+    # WNBA
+    "taurasi", "suebird", "lisaleslie", "swoopes", "candaceparker",
+    "mayamoore", "catchings", "cynthiacooper", "laurenjackson",
+    "tinathompson", "stewie", "ajawilson",
 ]
 
 DEFAULT_IMPORT_PASSWORD = "Password123"
