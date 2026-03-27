@@ -8,27 +8,38 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import useAuthStore from "../stores/authStore";
 import useRunStore from "../stores/runStore";
-import { getRunStats, getMyMatchups } from "../api/stats";
+import { getRunStats, getMyMatchups, getPlayerMatchups } from "../api/stats";
+import { listPlayers } from "../api/players";
 import { AvatarBadge } from "../components/AvatarPicker";
 
 export default function StatsPage() {
   const user = useAuthStore((s) => s.user);
-  const { currentRun } = useRunStore();
+  const { currentRun, isRunAdmin } = useRunStore();
   const runId = currentRun?.id;
+  const isAdmin = user?.role === "super_admin" || user?.role === "admin" || isRunAdmin;
   const [stats, setStats] = useState(null);
   const [matchups, setMatchups] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [allPlayers, setAllPlayers] = useState([]);
+  const [selectedPlayerId, setSelectedPlayerId] = useState(null);
+  const [selectedPlayerName, setSelectedPlayerName] = useState(null);
+
+  // Load player list for admin selector
+  useEffect(() => {
+    if (!runId || !isAdmin) return;
+    listPlayers(runId).then(({ data }) => setAllPlayers(data.users || [])).catch(() => {});
+  }, [runId, isAdmin]);
 
   useEffect(() => {
-    if (!runId) {
-      setLoading(false);
-      return;
-    }
+    if (!runId) { setLoading(false); return; }
     const fetchStats = async () => {
       try {
+        const matchupFn = selectedPlayerId
+          ? getPlayerMatchups(runId, selectedPlayerId)
+          : getMyMatchups(runId);
         const [statsRes, matchupsRes] = await Promise.all([
           getRunStats(runId),
-          getMyMatchups(runId).catch(() => ({ data: null })),
+          matchupFn.catch(() => ({ data: null })),
         ]);
         setStats(statsRes.data);
         setMatchups(matchupsRes.data);
@@ -39,7 +50,7 @@ export default function StatsPage() {
       }
     };
     fetchStats();
-  }, [runId]);
+  }, [runId, selectedPlayerId]);
 
   if (!currentRun) {
     return (
@@ -67,12 +78,35 @@ export default function StatsPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">
-        {currentRun.name} — Stats
-      </h1>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-3">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+          {currentRun.name} — Stats
+        </h1>
+        {isAdmin && allPlayers.length > 0 && (
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-gray-400 uppercase tracking-wide">View as:</label>
+            <select
+              value={selectedPlayerId || ""}
+              onChange={(e) => {
+                const pid = e.target.value ? parseInt(e.target.value) : null;
+                setSelectedPlayerId(pid);
+                const p = allPlayers.find((pl) => pl.id === pid);
+                setSelectedPlayerName(p ? p.full_name : null);
+                setLoading(true);
+              }}
+              className="text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-lg px-3 py-1.5"
+            >
+              <option value="">Myself</option>
+              {allPlayers.map((p) => (
+                <option key={p.id} value={p.id}>{p.full_name}</option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
 
       {/* Personal Stats Banner */}
-      {stats.personal && (
+      {stats.personal && !selectedPlayerId && (
         <div className="card mb-6 border-2 border-court-300 dark:border-court-700">
           <h2 className="text-sm font-semibold text-court-600 uppercase tracking-wide mb-3">Your Stats</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
@@ -112,6 +146,15 @@ export default function StatsPage() {
       )}
 
       {/* Your Matchups */}
+      {/* Selected Player Banner */}
+      {selectedPlayerId && selectedPlayerName && (
+        <div className="card mb-6 border-2 border-cyan-300 dark:border-cyan-700">
+          <h2 className="text-sm font-semibold text-cyan-600 uppercase tracking-wide mb-1">
+            Viewing: {selectedPlayerName}
+          </h2>
+        </div>
+      )}
+
       {matchups && (matchups.best_teammates.length > 0 || matchups.toughest_opponents.length > 0) && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <div className="card">

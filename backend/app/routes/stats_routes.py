@@ -208,8 +208,22 @@ async def get_my_matchups(
     db: AsyncSession = Depends(get_db),
 ):
     """Get the current user's best teammates and toughest opponents."""
+    return await _compute_matchups(run_id, user.id, db)
 
-    # Get all completed game IDs in this run
+
+@router.get("/player/{player_id}/matchups", response_model=MatchupsResponse)
+async def get_player_matchups(
+    run_id: int,
+    player_id: int,
+    _user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get matchups for a specific player (any authenticated user can view)."""
+    return await _compute_matchups(run_id, player_id, db)
+
+
+async def _compute_matchups(run_id: int, target_user_id: int, db: AsyncSession) -> MatchupsResponse:
+    """Compute best teammates and toughest opponents for a given player."""
     completed_ids_result = await db.execute(
         select(Game.id).where(Game.run_id == run_id, Game.status == GameStatus.COMPLETED)
     )
@@ -218,18 +232,15 @@ async def get_my_matchups(
     if not completed_game_ids:
         return MatchupsResponse(best_teammates=[], toughest_opponents=[])
 
-    # Get all team assignments for completed games
     assignments_result = await db.execute(
         select(TeamAssignment).where(TeamAssignment.game_id.in_(completed_game_ids))
     )
     all_assignments = assignments_result.scalars().all()
 
-    # Group assignments by game
     game_teams: dict[int, list[tuple[int, str]]] = defaultdict(list)
     for a in all_assignments:
         game_teams[a.game_id].append((a.user_id, a.team))
 
-    # Get winning team per game
     results_result = await db.execute(
         select(GameResult)
         .where(GameResult.game_id.in_(completed_game_ids))
@@ -242,14 +253,13 @@ async def get_my_matchups(
             if winner.wins > 0:
                 game_winners[result.game_id] = winner.team
 
-    # Aggregate teammate and opponent stats
     teammate_stats: dict[int, dict] = defaultdict(lambda: {"games": 0, "wins": 0})
     opponent_stats: dict[int, dict] = defaultdict(lambda: {"games": 0, "wins": 0})
 
     for game_id, players in game_teams.items():
         user_team = None
         for uid, team in players:
-            if uid == user.id:
+            if uid == target_user_id:
                 user_team = team
                 break
         if user_team is None:
@@ -259,7 +269,7 @@ async def get_my_matchups(
         user_won = (user_team == winning_team)
 
         for uid, team in players:
-            if uid == user.id:
+            if uid == target_user_id:
                 continue
             if team == user_team:
                 teammate_stats[uid]["games"] += 1
@@ -270,7 +280,6 @@ async def get_my_matchups(
                 if user_won:
                     opponent_stats[uid]["wins"] += 1
 
-    # Load user names for all player IDs we need
     all_player_ids = set(teammate_stats.keys()) | set(opponent_stats.keys())
     if not all_player_ids:
         return MatchupsResponse(best_teammates=[], toughest_opponents=[])

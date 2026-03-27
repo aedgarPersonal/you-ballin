@@ -19,6 +19,7 @@ import useRunStore from "../stores/runStore";
 import { getPlayer, updateMyProfile } from "../api/players";
 import { updatePlayerAdmin } from "../api/admin";
 import { getPlayerRatingSummary, getMyRatingForPlayer, ratePlayer } from "../api/ratings";
+import { getPlayerMatchups } from "../api/stats";
 import AvatarPicker, { AvatarBadge } from "../components/AvatarPicker";
 import { getPlayerById } from "../data/legacyPlayers";
 
@@ -34,6 +35,7 @@ export default function PlayerProfilePage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+  const [matchups, setMatchups] = useState(null);
   const updateUser = useAuthStore((s) => s.updateUser);
 
   const isOwnProfile = currentUser?.id === parseInt(id);
@@ -43,12 +45,18 @@ export default function PlayerProfilePage() {
 
   const fetchPlayer = async () => {
     try {
-      const [playerRes, summaryRes] = await Promise.all([
+      const fetches = [
         getPlayer(id),
         getPlayerRatingSummary(runId, id),
-      ]);
-      setPlayer(playerRes.data);
-      setSummary(summaryRes.data);
+      ];
+      if (runId) {
+        fetches.push(getPlayerMatchups(runId, id));
+      }
+
+      const results = await Promise.allSettled(fetches);
+      if (results[0].status === "fulfilled") setPlayer(results[0].value.data);
+      if (results[1].status === "fulfilled") setSummary(results[1].value.data);
+      if (results[2]?.status === "fulfilled") setMatchups(results[2].value.data);
 
       if (!isOwnProfile) {
         const myRatingRes = await getMyRatingForPlayer(runId, id);
@@ -309,6 +317,73 @@ export default function PlayerProfilePage() {
           {canEditPhysical ? "Click a value to edit. Changes save on blur." : "Physical stats are maintained by admins."}
         </p>
       </div>
+
+      {/* Player Stats & Matchups */}
+      {matchups && (matchups.best_teammates?.length > 0 || matchups.toughest_opponents?.length > 0) && (
+        <div className="card mb-6">
+          <h2 className="text-lg font-semibold mb-2 text-court-600 uppercase tracking-wide text-sm">
+            {isOwnProfile ? "Your Stats" : `${player.full_name}'s Stats`}
+          </h2>
+
+          {/* Summary row */}
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-4">
+            <div className="text-center">
+              <div className="text-2xl font-black text-court-600">{((player.jordan_factor || 0.5) * 100).toFixed(0)}%</div>
+              <div className="text-xs text-gray-400">Win Rate</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-black text-gray-200">{player.games_won || 0}-{(player.games_played || 0) - (player.games_won || 0)}</div>
+              <div className="text-xs text-gray-400">W-L Record</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-black text-yellow-500">{player.mvp_count || 0}</div>
+              <div className="text-xs text-gray-400">MVPs</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-black text-blue-500">{player.xfactor_count || 0}</div>
+              <div className="text-xs text-gray-400">X Factors</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-black text-purple-500">{player.shaqtin_count || 0}</div>
+              <div className="text-xs text-gray-400">Shaqtin'</div>
+            </div>
+          </div>
+
+          {/* Best Teammates & Toughest Opponents */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {matchups.best_teammates?.length > 0 && (
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
+                <h3 className="text-xs font-bold text-green-500 uppercase tracking-wider mb-2">Best Teammates</h3>
+                <div className="space-y-2">
+                  {matchups.best_teammates.map((m) => (
+                    <div key={m.player_id} className="flex items-center gap-2">
+                      {m.avatar_url && <AvatarBadge avatarId={m.avatar_url} size="xs" />}
+                      <span className="text-sm font-medium text-gray-800 dark:text-gray-200 flex-1">{m.full_name}</span>
+                      <span className="text-sm font-bold text-green-500">{(m.win_rate * 100).toFixed(0)}%</span>
+                      <span className="text-xs text-gray-400">{m.wins}W-{m.games - m.wins}L</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {matchups.toughest_opponents?.length > 0 && (
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
+                <h3 className="text-xs font-bold text-red-500 uppercase tracking-wider mb-2">Toughest Opponents</h3>
+                <div className="space-y-2">
+                  {matchups.toughest_opponents.map((m) => (
+                    <div key={m.player_id} className="flex items-center gap-2">
+                      {m.avatar_url && <AvatarBadge avatarId={m.avatar_url} size="xs" />}
+                      <span className="text-sm font-medium text-gray-800 dark:text-gray-200 flex-1">{m.full_name}</span>
+                      <span className="text-sm font-bold text-red-500">{(m.win_rate * 100).toFixed(0)}%</span>
+                      <span className="text-xs text-gray-400">{m.wins}W-{m.games - m.wins}L</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Rating Form */}
       {!isOwnProfile && (
