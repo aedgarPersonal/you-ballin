@@ -19,7 +19,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import useAuthStore from "../stores/authStore";
 import useRunStore from "../stores/runStore";
-import { getGame, updateGame, rsvpToGame, generateTeams, recordResult, cancelGame, deleteGame, adminRsvp } from "../api/games";
+import { getGame, updateGame, rsvpToGame, generateTeams, recordResult, cancelGame, deleteGame, adminRsvp, pokePlayers } from "../api/games";
 import { listPlayers } from "../api/players";
 import { castVote, getMyVotes, getGameAwards } from "../api/votes";
 import NbaJamTeams from "../components/NbaJamTeams";
@@ -729,6 +729,21 @@ function RsvpSection({ game, runId, isAdmin, onUpdate }) {
             {acceptedCount} in{waitlistCount > 0 ? ` · ${waitlistCount} waitlist` : ""}{declinedCount > 0 ? ` · ${declinedCount} out` : ""}{pendingCount > 0 ? ` · ${pendingCount} pending` : ""}
           </span>
         </h2>
+        {isAdmin && pendingCount > 0 && (
+          <button
+            onClick={async () => {
+              try {
+                const { data } = await pokePlayers(runId, game.id);
+                toast.success(data.message || `Poked ${data.poked} player(s)`);
+              } catch (err) {
+                toast.error(err.response?.data?.detail || "Failed to send reminders");
+              }
+            }}
+            className="text-xs bg-court-500/10 hover:bg-court-500/20 text-court-500 font-medium py-1.5 px-3 rounded-lg"
+          >
+            Poke All ({pendingCount})
+          </button>
+        )}
       </div>
       {rows.length > 0 ? (
         <div className="space-y-1">
@@ -748,21 +763,39 @@ function RsvpSection({ game, runId, isAdmin, onUpdate }) {
                 )}
               </div>
               {isAdmin ? (
-                <select
-                  value={row.rsvpStatus || ""}
-                  onChange={(e) => handleAdminRsvp(row.userId, row.name, e.target.value)}
-                  className={`text-xs font-semibold border rounded px-2 py-1 cursor-pointer ${
-                    !row.rsvpStatus ? "dark:bg-gray-700 dark:text-gray-400 dark:border-gray-600 text-gray-400" :
-                    row.rsvpStatus === "accepted" ? "bg-green-50 text-green-700 border-green-300 dark:bg-green-900/20 dark:text-green-400 dark:border-green-700" :
-                    row.rsvpStatus === "declined" ? "bg-red-50 text-red-700 border-red-300 dark:bg-red-900/20 dark:text-red-400 dark:border-red-700" :
-                    "bg-yellow-50 text-yellow-700 border-yellow-300 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-700"
-                  }`}
-                >
-                  <option value="" disabled>No response</option>
-                  <option value="accepted">Accepted</option>
-                  <option value="declined">Declined</option>
-                  <option value="waitlist">Waitlist</option>
-                </select>
+                <div className="flex items-center gap-2">
+                  {!row.rsvpStatus && (
+                    <button
+                      onClick={async () => {
+                        try {
+                          const { data } = await pokePlayers(runId, game.id, [row.userId]);
+                          toast.success(`Poked ${row.name}`);
+                        } catch (err) {
+                          toast.error("Failed to poke");
+                        }
+                      }}
+                      className="text-[10px] text-court-500 hover:text-court-400 font-medium"
+                      title={`Send reminder to ${row.name}`}
+                    >
+                      Poke
+                    </button>
+                  )}
+                  <select
+                    value={row.rsvpStatus || ""}
+                    onChange={(e) => handleAdminRsvp(row.userId, row.name, e.target.value)}
+                    className={`text-xs font-semibold border rounded px-2 py-1 cursor-pointer ${
+                      !row.rsvpStatus ? "dark:bg-gray-700 dark:text-gray-400 dark:border-gray-600 text-gray-400" :
+                      row.rsvpStatus === "accepted" ? "bg-green-50 text-green-700 border-green-300 dark:bg-green-900/20 dark:text-green-400 dark:border-green-700" :
+                      row.rsvpStatus === "declined" ? "bg-red-50 text-red-700 border-red-300 dark:bg-red-900/20 dark:text-red-400 dark:border-red-700" :
+                      "bg-yellow-50 text-yellow-700 border-yellow-300 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-700"
+                    }`}
+                  >
+                    <option value="" disabled>No response</option>
+                    <option value="accepted">Accepted</option>
+                    <option value="declined">Declined</option>
+                    <option value="waitlist">Waitlist</option>
+                  </select>
+                </div>
               ) : (
                 <span className={`badge ${statusBadge(row.rsvpStatus)}`}>
                   {row.rsvpStatus || "no response"}

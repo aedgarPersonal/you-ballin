@@ -12,6 +12,8 @@ export const rsvpToGame = (runId, gameId, status) =>
 export const getGameRsvps = (runId, gameId) => api.get(`/runs/${runId}/games/${gameId}/rsvps`);
 export const adminRsvp = (runId, gameId, userId, status) =>
   api.post(`/runs/${runId}/games/${gameId}/rsvp/admin`, { user_id: userId, status });
+export const pokePlayers = (runId, gameId, userIds = null) =>
+  api.post(`/runs/${runId}/games/${gameId}/poke`, userIds ? { user_ids: userIds } : {});
 
 export const generateTeams = (runId, gameId) => api.post(`/runs/${runId}/games/${gameId}/teams`);
 export const getTeams = (runId, gameId) => api.get(`/runs/${runId}/games/${gameId}/teams`);

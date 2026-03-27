@@ -615,6 +615,67 @@ async def delete_game(
 # RSVP Management
 # =============================================================================
 
+@router.post("/{game_id}/poke")
+async def poke_players(
+    run_id: int,
+    game_id: int,
+    data: dict | None = None,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(require_run_admin()),
+):
+    """Send RSVP reminder to players who haven't responded (admin only).
+
+    Body: { "user_ids": [1, 2, 3] } for specific players, or omit for all non-responders.
+    """
+    game_result = await db.execute(
+        select(Game).where(Game.id == game_id).options(selectinload(Game.rsvps))
+    )
+    game = game_result.scalar_one_or_none()
+    if not game or game.run_id != run_id:
+        raise HTTPException(status_code=404, detail="Game not found in this run")
+
+    # Find who has already RSVPed
+    responded_ids = {r.user_id for r in game.rsvps}
+
+    # Get target players
+    target_ids = data.get("user_ids") if data else None
+
+    if target_ids:
+        # Specific players
+        users_result = await db.execute(
+            select(User).where(User.id.in_(target_ids))
+        )
+    else:
+        # All regular members who haven't responded
+        members_result = await db.execute(
+            select(RunMembership).where(
+                RunMembership.run_id == run_id,
+                RunMembership.player_status == PlayerStatus.REGULAR,
+            )
+        )
+        member_ids = [m.user_id for m in members_result.scalars().all() if m.user_id not in responded_ids]
+        if not member_ids:
+            return {"poked": 0, "message": "All regulars have already responded"}
+        users_result = await db.execute(
+            select(User).where(User.id.in_(member_ids))
+        )
+
+    players = list(users_result.scalars().all())
+    if not players:
+        return {"poked": 0, "message": "No players to remind"}
+
+    await send_bulk_notification(
+        db,
+        players,
+        NotificationType.RSVP_REMINDER,
+        f"RSVP Reminder: {game.title}",
+        f"Hey! The admin is checking in — are you playing {game.title}? Let them know!",
+        action_url=f"/games/{game.id}",
+    )
+
+    return {"poked": len(players), "message": f"Reminded {len(players)} player(s)"}
+
+
 @router.post("/{game_id}/rsvp", response_model=RSVPResponse)
 async def rsvp_to_game(
     run_id: int,
