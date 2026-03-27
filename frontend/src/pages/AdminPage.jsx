@@ -18,6 +18,7 @@
 
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { QRCodeSVG } from "qrcode.react";
 import toast from "react-hot-toast";
 import useAuthStore from "../stores/authStore";
 import useRunStore from "../stores/runStore";
@@ -1793,6 +1794,7 @@ function InviteCodesPanel({ runId }) {
   const [showForm, setShowForm] = useState(false);
   const [maxUses, setMaxUses] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
+  const [qrCode, setQrCode] = useState(null);
 
   const fetchCodes = async () => {
     if (!runId) return;
@@ -1939,6 +1941,12 @@ function InviteCodesPanel({ runId }) {
                           Copy Link
                         </button>
                         <button
+                          onClick={() => setQrCode(c.code)}
+                          className="text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-2 py-1 rounded hover:bg-purple-200 dark:hover:bg-purple-900/50"
+                        >
+                          QR
+                        </button>
+                        <button
                           onClick={() => handleToggle(c.id, c.is_active)}
                           className={`text-xs px-2 py-1 rounded ${
                             c.is_active
@@ -1955,6 +1963,33 @@ function InviteCodesPanel({ runId }) {
               })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* QR Code Modal */}
+      {qrCode && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setQrCode(null)}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-sm w-full text-center" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">Scan to Register</h3>
+            <div className="bg-white p-4 rounded-xl inline-block mb-4">
+              <QRCodeSVG
+                value={`${baseUrl}/register?code=${qrCode}`}
+                size={200}
+                level="M"
+                includeMargin={false}
+              />
+            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 font-mono">{qrCode}</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mb-4 break-all">{baseUrl}/register?code={qrCode}</p>
+            <div className="flex gap-2 justify-center">
+              <button onClick={() => { copyLink(qrCode); }} className="btn-primary text-sm">
+                Copy Link
+              </button>
+              <button onClick={() => setQrCode(null)} className="btn-secondary text-sm">
+                Close
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
