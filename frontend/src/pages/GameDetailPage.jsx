@@ -686,6 +686,8 @@ function RsvpSection({ game, runId, isAdmin, onUpdate }) {
   const declinedCount = rows.filter((r) => r.rsvpStatus === "declined").length;
   const waitlistCount = rows.filter((r) => r.rsvpStatus === "waitlist").length;
   const pendingCount = rows.filter((r) => !r.rsvpStatus).length;
+  const pendingRegulars = rows.filter((r) => !r.rsvpStatus && r.playerStatus === "regular").length;
+  const pendingDropins = rows.filter((r) => !r.rsvpStatus && r.playerStatus === "dropin").length;
 
   // Assign waitlist position numbers (1-based)
   let waitlistPos = 0;
@@ -724,19 +726,36 @@ function RsvpSection({ game, runId, isAdmin, onUpdate }) {
           </span>
         </h2>
         {isAdmin && pendingCount > 0 && (
-          <button
-            onClick={async () => {
-              try {
-                const { data } = await pokePlayers(runId, game.id);
-                toast.success(data.message || `Poked ${data.poked} player(s)`);
-              } catch (err) {
-                toast.error(err.response?.data?.detail || "Failed to send reminders");
-              }
-            }}
-            className="text-xs bg-court-500/10 hover:bg-court-500/20 text-court-500 font-medium py-1.5 px-3 rounded-lg"
-          >
-            Poke All ({pendingCount})
-          </button>
+          <div className="flex gap-2">
+            {pendingRegulars > 0 && (
+              <button
+                onClick={async () => {
+                  try {
+                    const { data } = await pokePlayers(runId, game.id, { scope: "regulars" });
+                    toast.success(data.message || `Poked ${data.poked} player(s)`);
+                  } catch (err) {
+                    toast.error(err.response?.data?.detail || "Failed to send reminders");
+                  }
+                }}
+                className="text-xs bg-court-500/10 hover:bg-court-500/20 text-court-500 font-medium py-1.5 px-3 rounded-lg"
+              >
+                Poke Regulars ({pendingRegulars})
+              </button>
+            )}
+            <button
+              onClick={async () => {
+                try {
+                  const { data } = await pokePlayers(runId, game.id, { scope: "all" });
+                  toast.success(data.message || `Poked ${data.poked} player(s)`);
+                } catch (err) {
+                  toast.error(err.response?.data?.detail || "Failed to send reminders");
+                }
+              }}
+              className="text-xs bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-500 font-medium py-1.5 px-3 rounded-lg"
+            >
+              Poke All ({pendingCount})
+            </button>
+          </div>
         )}
       </div>
       {rows.length > 0 ? (
@@ -762,7 +781,7 @@ function RsvpSection({ game, runId, isAdmin, onUpdate }) {
                     <button
                       onClick={async () => {
                         try {
-                          const { data } = await pokePlayers(runId, game.id, [row.userId]);
+                          await pokePlayers(runId, game.id, { userIds: [row.userId] });
                           toast.success(`Poked ${row.name}`);
                         } catch (err) {
                           toast.error("Failed to poke");

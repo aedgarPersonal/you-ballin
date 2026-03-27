@@ -625,7 +625,10 @@ async def poke_players(
 ):
     """Send RSVP reminder to players who haven't responded (admin only).
 
-    Body: { "user_ids": [1, 2, 3] } for specific players, or omit for all non-responders.
+    Body options:
+    - { "user_ids": [1, 2, 3] } — specific players
+    - { "scope": "regulars" } — all non-responding regulars (default)
+    - { "scope": "all" } — all non-responding regulars + drop-ins
     """
     game_result = await db.execute(
         select(Game).where(Game.id == game_id).options(selectinload(Game.rsvps))
@@ -639,6 +642,7 @@ async def poke_players(
 
     # Get target players
     target_ids = data.get("user_ids") if data else None
+    scope = data.get("scope", "regulars") if data else "regulars"
 
     if target_ids:
         # Specific players
@@ -646,16 +650,21 @@ async def poke_players(
             select(User).where(User.id.in_(target_ids))
         )
     else:
-        # All regular members who haven't responded
+        # Filter by scope
+        statuses = [PlayerStatus.REGULAR]
+        if scope == "all":
+            statuses.append(PlayerStatus.DROPIN)
+
         members_result = await db.execute(
             select(RunMembership).where(
                 RunMembership.run_id == run_id,
-                RunMembership.player_status == PlayerStatus.REGULAR,
+                RunMembership.player_status.in_(statuses),
             )
         )
         member_ids = [m.user_id for m in members_result.scalars().all() if m.user_id not in responded_ids]
         if not member_ids:
-            return {"poked": 0, "message": "All regulars have already responded"}
+            label = "regulars and drop-ins" if scope == "all" else "regulars"
+            return {"poked": 0, "message": f"All {label} have already responded"}
         users_result = await db.execute(
             select(User).where(User.id.in_(member_ids))
         )
