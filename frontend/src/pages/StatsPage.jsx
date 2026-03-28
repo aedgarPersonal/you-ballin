@@ -23,6 +23,8 @@ export default function StatsPage() {
   const [allPlayers, setAllPlayers] = useState([]);
   const [selectedPlayerId, setSelectedPlayerId] = useState(null);
   const [selectedPlayerName, setSelectedPlayerName] = useState(null);
+  const [showAllTeammates, setShowAllTeammates] = useState(false);
+  const [showAllOpponents, setShowAllOpponents] = useState(false);
   const [seasons, setSeasons] = useState([]);
   const [selectedSeason, setSelectedSeason] = useState(null);
 
@@ -172,8 +174,9 @@ export default function StatsPage() {
             {matchups.best_teammates.length === 0 ? (
               <p className="text-sm text-gray-400 italic">Not enough games yet</p>
             ) : (
+              <>
               <div className="space-y-2">
-                {matchups.best_teammates.map((m) => (
+                {(showAllTeammates ? matchups.best_teammates : matchups.best_teammates.slice(0, 5)).map((m) => (
                   <Link
                     key={m.player_id}
                     to={`/players/${m.player_id}`}
@@ -194,6 +197,12 @@ export default function StatsPage() {
                   </Link>
                 ))}
               </div>
+              {matchups.best_teammates.length > 5 && (
+                <button onClick={() => setShowAllTeammates(!showAllTeammates)} className="text-xs text-court-600 hover:text-court-700 mt-2 font-medium">
+                  {showAllTeammates ? "Show less" : `Show all (${matchups.best_teammates.length})`}
+                </button>
+              )}
+              </>
             )}
           </div>
           <div className="card">
@@ -203,8 +212,9 @@ export default function StatsPage() {
             {matchups.toughest_opponents.length === 0 ? (
               <p className="text-sm text-gray-400 italic">Not enough games yet</p>
             ) : (
+              <>
               <div className="space-y-2">
-                {matchups.toughest_opponents.map((m) => (
+                {(showAllOpponents ? matchups.toughest_opponents : matchups.toughest_opponents.slice(0, 5)).map((m) => (
                   <Link
                     key={m.player_id}
                     to={`/players/${m.player_id}`}
@@ -225,6 +235,12 @@ export default function StatsPage() {
                   </Link>
                 ))}
               </div>
+              {matchups.toughest_opponents.length > 5 && (
+                <button onClick={() => setShowAllOpponents(!showAllOpponents)} className="text-xs text-court-600 hover:text-court-700 mt-2 font-medium">
+                  {showAllOpponents ? "Show less" : `Show all (${matchups.toughest_opponents.length})`}
+                </button>
+              )}
+              </>
             )}
           </div>
         </div>
