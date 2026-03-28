@@ -13,6 +13,7 @@ import useRunStore from "../stores/runStore";
 import { listGames, getGame, rsvpToGame } from "../api/games";
 import { listPlayers } from "../api/players";
 import { getRecentAwards, getGameAwards, getMyVotes, castVote } from "../api/votes";
+import { getPlayerForm } from "../api/stats";
 import { AvatarBadge } from "../components/AvatarPicker";
 import { getPlayerById } from "../data/legacyPlayers";
 
@@ -26,6 +27,7 @@ export default function DashboardPage() {
   const [myVotes, setMyVotes] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isRunMember, setIsRunMember] = useState(false);
+  const [myForm, setMyForm] = useState(null);
 
   const fetchData = async () => {
     if (!runId) { setLoading(false); return; }
@@ -52,6 +54,14 @@ export default function DashboardPage() {
             setIsRunMember(pRes.data.users?.some((p) => p.id === user?.id) || false);
           } catch { setIsRunMember(false); }
         }
+      }
+
+      // Fetch current form/streak for the logged-in user
+      if (user?.id) {
+        try {
+          const formRes = await getPlayerForm(runId, user.id);
+          setMyForm(formRes.data);
+        } catch { /* no form data */ }
       }
 
       // Find most recent completed game
@@ -210,6 +220,35 @@ export default function DashboardPage() {
             <div className="text-xs text-gray-500 dark:text-gray-400">
               {user?.games_won || 0}W - {(user?.games_played || 0) - (user?.games_won || 0)}L
             </div>
+          </div>
+        </div>
+        <div className="card">
+          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Current Form</h3>
+          <div className="mt-2">
+            {myForm?.current_streak?.count > 0 ? (
+              <div className="flex items-center gap-3">
+                <div className={`text-3xl font-bold ${
+                  myForm.current_streak.type === "win" ? "text-green-500" : "text-red-500"
+                }`}>
+                  {myForm.current_streak.type === "win" ? "🔥" : "❄️"} {myForm.current_streak.count}{myForm.current_streak.type === "win" ? "W" : "L"}
+                </div>
+                {myForm.trend && (
+                  <span className={`text-lg ${
+                    myForm.trend === "improving" ? "text-green-500" :
+                    myForm.trend === "declining" ? "text-red-500" : "text-gray-400"
+                  }`}>
+                    {myForm.trend === "improving" ? "↑" : myForm.trend === "declining" ? "↓" : "→"}
+                  </span>
+                )}
+              </div>
+            ) : (
+              <div className="text-3xl font-bold text-gray-400">—</div>
+            )}
+            {myForm?.last_5 && (
+              <div className="text-xs text-gray-500 dark:text-gray-400">
+                Last 5: {myForm.last_5.wins}W-{myForm.last_5.losses}L
+              </div>
+            )}
           </div>
         </div>
       </div>)}
