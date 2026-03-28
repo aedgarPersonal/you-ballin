@@ -188,7 +188,7 @@ export default function AdminPage() {
       fetchWeights();
       fetchCustomMetrics();
     }
-    if (tab === "settings" && currentRun) {
+    if (tab === "settings" && currentRun && !runForm) {
       setRunForm({
         name: currentRun.name || "",
         description: currentRun.description || "",
