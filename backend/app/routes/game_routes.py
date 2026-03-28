@@ -403,6 +403,9 @@ async def update_game(
             await db.execute(delete(GameResult).where(GameResult.id == game_result.id))
         game.commentary = None
         game.odds_line = None
+        # Recalculate stats since a completed game lost its results
+        from app.services.stats_recalc import recalculate_run_stats
+        await recalculate_run_stats(db, run_id)
 
     # If moving backwards from teams_set, clear team assignments
     if new_status and old_status == GameStatus.TEAMS_SET and GameStatus(new_status) in (
@@ -599,8 +602,15 @@ async def delete_game(
         await db.execute(delete(TeamScore).where(TeamScore.game_result_id == game.result.id))
         await db.delete(game.result)
 
+    was_completed = game.status == GameStatus.COMPLETED
+
     await db.delete(game)
     await db.flush()
+
+    # Recalculate stats if a completed game was deleted
+    if was_completed:
+        from app.services.stats_recalc import recalculate_run_stats
+        await recalculate_run_stats(db, run_id)
 
 
 # =============================================================================
