@@ -8,7 +8,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import useAuthStore from "../stores/authStore";
 import useRunStore from "../stores/runStore";
-import { getRunStats, getMyMatchups, getPlayerMatchups, listSeasons, getSeasonDetail } from "../api/stats";
+import { getRunStats, getMyMatchups, getPlayerMatchups, getPlayerForm, getPlayerGameHistory, listSeasons, getSeasonDetail } from "../api/stats";
 import { listPlayers } from "../api/players";
 import { AvatarBadge } from "../components/AvatarPicker";
 
@@ -25,8 +25,21 @@ export default function StatsPage() {
   const [selectedPlayerName, setSelectedPlayerName] = useState(null);
   const [showAllTeammates, setShowAllTeammates] = useState(false);
   const [showAllOpponents, setShowAllOpponents] = useState(false);
+  const [playerForm, setPlayerForm] = useState(null);
+  const [playerHistory, setPlayerHistory] = useState(null);
   const [seasons, setSeasons] = useState([]);
   const [selectedSeason, setSelectedSeason] = useState(null);
+
+  // Load player form/history when "View as" changes
+  useEffect(() => {
+    if (!runId || !selectedPlayerId) {
+      setPlayerForm(null);
+      setPlayerHistory(null);
+      return;
+    }
+    getPlayerForm(runId, selectedPlayerId).then(({ data }) => setPlayerForm(data)).catch(() => setPlayerForm(null));
+    getPlayerGameHistory(runId, selectedPlayerId).then(({ data }) => setPlayerHistory(data)).catch(() => setPlayerHistory(null));
+  }, [runId, selectedPlayerId]);
 
   // Load seasons
   useEffect(() => {
@@ -242,6 +255,96 @@ export default function StatsPage() {
               )}
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Selected Player: Form & History */}
+      {selectedPlayerId && playerForm && playerForm.current_streak && (
+        <div className="card mb-6">
+          <h3 className="text-sm font-semibold text-court-600 uppercase tracking-wide mb-3">Current Form</h3>
+          <div className="flex flex-wrap items-center gap-4">
+            {playerForm.current_streak.count > 0 && (
+              <div className={`px-3 py-1 rounded-full text-sm font-bold ${
+                playerForm.current_streak.type === "win"
+                  ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                  : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+              }`}>
+                {playerForm.current_streak.type === "win" ? "🔥" : "❄️"} {playerForm.current_streak.count}{playerForm.current_streak.type === "win" ? "W" : "L"}
+              </div>
+            )}
+            {playerForm.last_5 && (
+              <div className="text-center">
+                <div className="text-sm font-bold text-gray-800 dark:text-gray-200">
+                  {playerForm.last_5.wins}W-{playerForm.last_5.losses}L
+                  <span className="text-xs text-gray-400 ml-1">({Math.round(playerForm.last_5.win_rate * 100)}%)</span>
+                </div>
+                <div className="text-xs text-gray-400">Last 5</div>
+              </div>
+            )}
+            {playerForm.last_10 && (
+              <div className="text-center">
+                <div className="text-sm font-bold text-gray-800 dark:text-gray-200">
+                  {playerForm.last_10.wins}W-{playerForm.last_10.losses}L
+                  <span className="text-xs text-gray-400 ml-1">({Math.round(playerForm.last_10.win_rate * 100)}%)</span>
+                </div>
+                <div className="text-xs text-gray-400">Last 10</div>
+              </div>
+            )}
+            {playerForm.best_win_streak !== undefined && (
+              <div className="text-center">
+                <div className="text-sm font-bold text-green-500">{playerForm.best_win_streak}W</div>
+                <div className="text-xs text-gray-400">Best</div>
+              </div>
+            )}
+            {playerForm.worst_loss_streak !== undefined && (
+              <div className="text-center">
+                <div className="text-sm font-bold text-red-500">{playerForm.worst_loss_streak}L</div>
+                <div className="text-xs text-gray-400">Worst</div>
+              </div>
+            )}
+            {playerForm.trend && (
+              <div className="text-center">
+                <div className={`text-lg font-bold ${
+                  playerForm.trend === "improving" ? "text-green-500" :
+                  playerForm.trend === "declining" ? "text-red-500" : "text-gray-400"
+                }`}>
+                  {playerForm.trend === "improving" ? "↑" : playerForm.trend === "declining" ? "↓" : "→"}
+                </div>
+                <div className="text-xs text-gray-400">Trend</div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {selectedPlayerId && playerHistory && playerHistory.length > 0 && (
+        <div className="card mb-6">
+          <h3 className="text-sm font-semibold text-court-600 uppercase tracking-wide mb-3">Game History</h3>
+          <div className="max-h-64 overflow-y-auto space-y-1">
+            {playerHistory.slice(0, 10).map((g) => {
+              const date = new Date(g.game_date);
+              const shortDate = date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+              return (
+                <Link key={g.game_id} to={`/games/${g.game_id}`}
+                  className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                  <span className="text-xs text-gray-400 w-14 shrink-0">{shortDate}</span>
+                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate flex-1">{g.team_name}</span>
+                  <span className="text-xs text-gray-400 shrink-0">vs</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400 truncate flex-1">{g.opponent_team}</span>
+                  <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${
+                    g.won ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                      : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                  }`}>{g.won ? "W" : "L"}</span>
+                  {g.score && <span className="text-xs text-gray-400 shrink-0">{g.score}</span>}
+                  {g.awards?.length > 0 && (
+                    <span className="text-xs shrink-0">
+                      {g.awards.map((a) => a === "mvp" ? "🏆" : a === "xfactor" ? "⚡" : a === "shaqtin" ? "🤦" : "").join("")}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
           </div>
         </div>
       )}
