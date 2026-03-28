@@ -202,29 +202,53 @@ def team_total(team: list[PlayerScore]) -> float:
     return sum(p.composite for p in team)
 
 
-def team_score_variance(teams: list[list[PlayerScore]]) -> float:
-    """Calculate the variance of team totals — lower is more balanced."""
-    totals = [team_total(t) for t in teams]
-    mean = sum(totals) / len(totals) if totals else 0
-    return sum((t - mean) ** 2 for t in totals) / len(totals) if totals else 0
+def _avg_attr(team: list[PlayerScore], attr: str, default: float) -> float:
+    """Average of a player attribute for a team."""
+    vals = [getattr(p.user, attr, None) or default for p in team]
+    return sum(vals) / len(vals) if vals else default
+
+
+def _variance(values: list[float]) -> float:
+    """Variance of a list of values."""
+    if not values:
+        return 0
+    mean = sum(values) / len(values)
+    return sum((v - mean) ** 2 for v in values) / len(values)
+
+
+def team_balance_cost(teams: list[list[PlayerScore]]) -> float:
+    """Combined cost function: composite score variance + height/age variance.
+
+    Balances three dimensions:
+    - Composite score (skill) — primary (weight 1.0)
+    - Average height per team — secondary (weight 0.3)
+    - Average age per team — secondary (weight 0.2)
+    """
+    # Composite score variance (normalized per-player)
+    totals = [team_total(t) / max(len(t), 1) for t in teams]
+    score_var = _variance(totals)
+
+    # Height variance (in inches, normalize to 0-1 range by dividing by 84)
+    height_avgs = [_avg_attr(t, "height_inches", 70) / 84.0 for t in teams]
+    height_var = _variance(height_avgs)
+
+    # Age variance (normalize by dividing by 50)
+    age_avgs = [_avg_attr(t, "age", 30) / 50.0 for t in teams]
+    age_var = _variance(age_avgs)
+
+    return score_var + height_var * 0.3 + age_var * 0.2
 
 
 def optimize_teams(
     teams: list[list[PlayerScore]],
     max_iterations: int = 100,
 ) -> list[list[PlayerScore]]:
-    """Refine teams by swapping players to minimize score variance.
+    """Refine teams by swapping players to minimize a combined balance cost.
 
-    TEACHING NOTE:
-        After the snake draft, we do greedy optimization:
-        1. For every pair of teams, try swapping each pair of players
-        2. If a swap reduces the score variance across all teams, keep it
-        3. Repeat until no improving swaps exist or we hit max iterations
-
-        This is a local search / hill climbing approach. It's not guaranteed
-        to find the global optimum, but it's fast and produces good results.
+    Balances composite skill score, average height, and average age
+    across teams via greedy swap optimization.
     """
-    best_variance = team_score_variance(teams)
+    best_cost = team_balance_cost(teams)
     num_teams = len(teams)
 
     for _ in range(max_iterations):
@@ -234,15 +258,13 @@ def optimize_teams(
             for b in range(a + 1, num_teams):
                 for i in range(len(teams[a])):
                     for j in range(len(teams[b])):
-                        # Try swapping player i from team a with player j from team b
                         teams[a][i], teams[b][j] = teams[b][j], teams[a][i]
-                        new_variance = team_score_variance(teams)
+                        new_cost = team_balance_cost(teams)
 
-                        if new_variance < best_variance:
-                            best_variance = new_variance
+                        if new_cost < best_cost:
+                            best_cost = new_cost
                             improved = True
                         else:
-                            # Undo swap
                             teams[a][i], teams[b][j] = teams[b][j], teams[a][i]
 
         if not improved:
