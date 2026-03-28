@@ -45,9 +45,11 @@ class PlayerRating(Base):
     rater_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
 
     # Ratings on a 1-5 scale
-    offense: Mapped[float] = mapped_column(Float, nullable=False)
+    scoring: Mapped[float] = mapped_column(Float, nullable=False)
     defense: Mapped[float] = mapped_column(Float, nullable=False)
     overall: Mapped[float] = mapped_column(Float, nullable=False)
+    athleticism: Mapped[float] = mapped_column(Float, nullable=False, default=3.0)
+    fitness: Mapped[float] = mapped_column(Float, nullable=False, default=3.0)
 
     # --- Timestamps ---
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())

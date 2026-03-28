@@ -191,9 +191,11 @@ class RunPlayerStats(Base):
     jordan_factor: Mapped[float] = mapped_column(Float, default=0.5)
 
     # --- Cached Rating Averages ---
-    avg_offense: Mapped[float] = mapped_column(Float, default=3.0)
+    avg_scoring: Mapped[float] = mapped_column(Float, default=3.0)
     avg_defense: Mapped[float] = mapped_column(Float, default=3.0)
     avg_overall: Mapped[float] = mapped_column(Float, default=3.0)
+    avg_athleticism: Mapped[float] = mapped_column(Float, default=3.0)
+    avg_fitness: Mapped[float] = mapped_column(Float, default=3.0)
 
     # --- Award Counts ---
     mvp_count: Mapped[int] = mapped_column(Integer, default=0)

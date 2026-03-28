@@ -31,7 +31,7 @@ export default function PlayerProfilePage() {
   const [player, setPlayer] = useState(null);
   const [summary, setSummary] = useState(null);
   const [myRating, setMyRating] = useState(null);
-  const [ratingForm, setRatingForm] = useState({ offense: 3, defense: 3, overall: 3 });
+  const [ratingForm, setRatingForm] = useState({ scoring: 3, defense: 3, overall: 3, athleticism: 3, fitness: 3 });
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
@@ -63,9 +63,11 @@ export default function PlayerProfilePage() {
         setMyRating(myRatingRes.data);
         if (myRatingRes.data.rating) {
           setRatingForm({
-            offense: myRatingRes.data.rating.offense,
+            scoring: myRatingRes.data.rating.scoring,
             defense: myRatingRes.data.rating.defense,
             overall: myRatingRes.data.rating.overall,
+            athleticism: myRatingRes.data.rating.athleticism,
+            fitness: myRatingRes.data.rating.fitness,
           });
         }
       }
@@ -196,10 +198,12 @@ export default function PlayerProfilePage() {
       )}
 
       {/* Stats Grid */}
-      <div className={`grid gap-4 mb-6 ${isAdmin ? "grid-cols-2 md:grid-cols-4" : "grid-cols-1 md:grid-cols-2"}`}>
-        {isAdmin && <StatCard label="Offense" value={summary?.avg_offense?.toFixed(1)} max="5.0" />}
+      <div className={`grid gap-4 mb-6 ${isAdmin ? "grid-cols-2 md:grid-cols-4 lg:grid-cols-7" : "grid-cols-1 md:grid-cols-2"}`}>
+        {isAdmin && <StatCard label="Scoring" value={summary?.avg_scoring?.toFixed(1)} max="5.0" />}
         {isAdmin && <StatCard label="Defense" value={summary?.avg_defense?.toFixed(1)} max="5.0" />}
         {isAdmin && <StatCard label="Overall" value={summary?.avg_overall?.toFixed(1)} max="5.0" highlight />}
+        {isAdmin && <StatCard label="Athleticism" value={summary?.avg_athleticism?.toFixed(1)} max="5.0" />}
+        {isAdmin && <StatCard label="Fitness" value={summary?.avg_fitness?.toFixed(1)} max="5.0" />}
         <StatCard label="Win Rate" value={`${((summary?.jordan_factor || 0.5) * 100).toFixed(0)}%`} subtitle={`${summary?.games_won || 0}W - ${(summary?.games_played || 0) - (summary?.games_won || 0)}L`} />
         <StatCard label="Games" value={summary?.games_played || 0} subtitle={`${summary?.games_won || 0} wins`} />
       </div>
@@ -353,28 +357,6 @@ export default function PlayerProfilePage() {
               <p className="text-lg font-semibold">{player.age || "N/A"}</p>
             )}
           </div>
-          {isAdmin && (
-          <div>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Mobility</p>
-            <input
-              type="number"
-              step="0.5"
-              min="1"
-              max="5"
-              defaultValue={player.mobility || ""}
-              placeholder="1-5"
-              onBlur={(e) => {
-                const val = parseFloat(e.target.value);
-                if (val && val !== player.mobility) {
-                  updatePlayerAdmin(runId, player.id, { mobility: val })
-                    .then(() => { setPlayer({ ...player, mobility: val }); toast.success("Mobility updated"); })
-                    .catch(() => toast.error("Failed to update"));
-                }
-              }}
-              className="w-full text-lg font-semibold border border-transparent hover:border-gray-300 dark:hover:border-gray-600 rounded px-1 py-0.5 bg-transparent dark:text-gray-100 focus:border-court-500 focus:outline-none"
-            />
-          </div>
-          )}
         </div>
         <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">
           {canEditPhysical ? "Click a value to edit. Changes save on blur." : "Physical stats are maintained by admins."}
@@ -397,9 +379,9 @@ export default function PlayerProfilePage() {
           {(!myRating?.has_rated || myRating?.can_update) ? (
             <form onSubmit={handleRate} className="space-y-4">
               <RatingSlider
-                label="Offense"
-                value={ratingForm.offense}
-                onChange={(v) => setRatingForm({ ...ratingForm, offense: v })}
+                label="Scoring"
+                value={ratingForm.scoring}
+                onChange={(v) => setRatingForm({ ...ratingForm, scoring: v })}
               />
               <RatingSlider
                 label="Defense"
@@ -410,6 +392,16 @@ export default function PlayerProfilePage() {
                 label="Overall"
                 value={ratingForm.overall}
                 onChange={(v) => setRatingForm({ ...ratingForm, overall: v })}
+              />
+              <RatingSlider
+                label="Athleticism"
+                value={ratingForm.athleticism}
+                onChange={(v) => setRatingForm({ ...ratingForm, athleticism: v })}
+              />
+              <RatingSlider
+                label="Fitness"
+                value={ratingForm.fitness}
+                onChange={(v) => setRatingForm({ ...ratingForm, fitness: v })}
               />
               <button type="submit" disabled={submitting} className="btn-primary">
                 {submitting ? "Submitting..." : myRating?.has_rated ? "Update Rating" : "Submit Rating"}

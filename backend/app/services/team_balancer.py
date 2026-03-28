@@ -46,11 +46,12 @@ from app.models.user import User
 DEFAULT_WEIGHTS = {
     "overall": 0.35,         # Peer-rated overall skill (highest weight)
     "jordan_factor": 0.20,   # Historical win percentage (Win Rate)
-    "offense": 0.15,         # Peer-rated offensive skill
+    "scoring": 0.15,         # Peer-rated scoring ability
     "defense": 0.15,         # Peer-rated defensive skill
-    "height": 0.05,          # Physical height (normalized)
-    "age": 0.05,             # Age factor (younger = slightly higher)
-    "mobility": 0.05,        # Admin-rated mobility
+    "athleticism": 0.05,     # Peer-rated athleticism
+    "fitness": 0.05,         # Peer-rated fitness level
+    "height": 0.03,          # Physical height (normalized)
+    "age": 0.02,             # Age factor (younger = slightly higher)
 }
 
 
@@ -137,11 +138,12 @@ def compute_player_score(
     factors = {
         "overall": normalize(player.avg_overall or 3.0, 1.0, 5.0),
         "jordan_factor": player.jordan_factor if player.jordan_factor is not None else 0.5,
-        "offense": normalize(player.avg_offense or 3.0, 1.0, 5.0),
+        "scoring": normalize(player.avg_scoring or 3.0, 1.0, 5.0),
         "defense": normalize(player.avg_defense or 3.0, 1.0, 5.0),
+        "athleticism": normalize(player.avg_athleticism or 3.0, 1.0, 5.0),
+        "fitness": normalize(player.avg_fitness or 3.0, 1.0, 5.0),
         "height": normalize(player.height_inches or 70, 60, 84),
         "age": 1.0 - normalize(player.age or 30, 18, 65),  # Inverse: younger = higher
-        "mobility": normalize(player.mobility or 3.0, 1.0, 5.0),
     }
 
     # Add custom metric factors

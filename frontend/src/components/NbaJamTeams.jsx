@@ -23,14 +23,15 @@ import PixelAvatar from "./PixelAvatar";
  * Calculate a player's composite score using the same weights as team_balancer.py
  */
 function playerComposite(user) {
-  const off = (user.avg_offense || 3) / 5;
+  const scr = (user.avg_scoring || 3) / 5;
   const def = (user.avg_defense || 3) / 5;
   const ovr = (user.avg_overall || 3) / 5;
+  const ath = (user.avg_athleticism || 3) / 5;
+  const fit = (user.avg_fitness || 3) / 5;
   const jf = user.jordan_factor || 0.5;
-  const height = Math.min((user.height_inches || 70) / 84, 1); // 7ft = 1.0
-  const age = 1 - Math.min(Math.max((user.age || 30) - 18, 0) / 32, 1); // younger slightly better
-  const mob = (user.mobility || 3) / 5;
-  return ovr * 0.35 + jf * 0.20 + off * 0.15 + def * 0.15 + height * 0.05 + age * 0.05 + mob * 0.05;
+  const height = Math.min((user.height_inches || 70) / 84, 1);
+  const age = 1 - Math.min(Math.max((user.age || 30) - 18, 0) / 32, 1);
+  return ovr * 0.35 + jf * 0.20 + scr * 0.15 + def * 0.15 + ath * 0.05 + fit * 0.05 + height * 0.03 + age * 0.02;
 }
 
 /**
@@ -154,9 +155,11 @@ function JamPlayerCard({ player, isAdmin }) {
           {/* Admin-only stat bars */}
           {isAdmin && (
             <div className="space-y-1 mt-1 pt-1 border-t border-gray-700">
-              <StatBar label="OFF" value={player.avg_offense || 3} max={5} color="#4ade80" />
+              <StatBar label="SCR" value={player.avg_scoring || 3} max={5} color="#4ade80" />
               <StatBar label="DEF" value={player.avg_defense || 3} max={5} color="#60a5fa" />
               <StatBar label="OVR" value={player.avg_overall || 3} max={5} color="#facc15" />
+              <StatBar label="ATH" value={player.avg_athleticism || 3} max={5} color="#a78bfa" />
+              <StatBar label="FIT" value={player.avg_fitness || 3} max={5} color="#f472b6" />
             </div>
           )}
         </div>

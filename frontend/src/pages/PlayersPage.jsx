@@ -27,7 +27,11 @@ const SORT_OPTIONS = [
 
 const ADMIN_SORT_OPTIONS = [
   ...SORT_OPTIONS,
-  { value: "avg_overall", label: "Overall Rating" },
+  { value: "avg_overall", label: "Overall" },
+  { value: "avg_scoring", label: "Scoring" },
+  { value: "avg_defense", label: "Defense" },
+  { value: "avg_athleticism", label: "Athleticism" },
+  { value: "avg_fitness", label: "Fitness" },
 ];
 
 function formatHeight(inches) {
@@ -48,15 +52,16 @@ function parseImportText(text) {
       const email = (parts[1] || "").trim();
       if (!name || !email) return null;
       const entry = { name, email };
-      // Optional fields: wins, losses, height_inches, age, mobility, offense, defense, overall
+      // Optional fields: wins, losses, height_inches, age, scoring, defense, overall, athleticism, fitness
       if (parts[2]?.trim()) entry.wins = parseInt(parts[2]) || 0;
       if (parts[3]?.trim()) entry.losses = parseInt(parts[3]) || 0;
       if (parts[4]?.trim()) entry.height_inches = parseInt(parts[4]) || 70;
       if (parts[5]?.trim()) entry.age = parseInt(parts[5]) || 30;
-      if (parts[6]?.trim()) entry.mobility = parseFloat(parts[6]) || 3.0;
-      if (parts[7]?.trim()) entry.avg_offense = parseFloat(parts[7]) || 3.0;
-      if (parts[8]?.trim()) entry.avg_defense = parseFloat(parts[8]) || 3.0;
-      if (parts[9]?.trim()) entry.avg_overall = parseFloat(parts[9]) || 3.0;
+      if (parts[6]?.trim()) entry.avg_scoring = parseFloat(parts[6]) || 3.0;
+      if (parts[7]?.trim()) entry.avg_defense = parseFloat(parts[7]) || 3.0;
+      if (parts[8]?.trim()) entry.avg_overall = parseFloat(parts[8]) || 3.0;
+      if (parts[9]?.trim()) entry.avg_athleticism = parseFloat(parts[9]) || 3.0;
+      if (parts[10]?.trim()) entry.avg_fitness = parseFloat(parts[10]) || 3.0;
       return entry;
     })
     .filter(Boolean);
@@ -81,7 +86,7 @@ export default function PlayersPage() {
   const [showAddPlayer, setShowAddPlayer] = useState(false);
   const [addForm, setAddForm] = useState({
     full_name: "", email: "", phone: "", wins: 0, losses: 0,
-    height_inches: 70, age: 30, mobility: 3.0, avg_offense: 3.0, avg_defense: 3.0, avg_overall: 3.0,
+    height_inches: 70, age: 30, avg_scoring: 3.0, avg_defense: 3.0, avg_overall: 3.0, avg_athleticism: 3.0, avg_fitness: 3.0,
   });
   const [adding, setAdding] = useState(false);
 
@@ -157,7 +162,7 @@ export default function PlayersPage() {
       toast.success(`${addForm.full_name} added!`);
       setAddForm({
         full_name: "", email: "", phone: "", wins: 0, losses: 0,
-        height_inches: 70, age: 30, mobility: 3.0, avg_offense: 3.0, avg_defense: 3.0, avg_overall: 3.0,
+        height_inches: 70, age: 30, avg_scoring: 3.0, avg_defense: 3.0, avg_overall: 3.0, avg_athleticism: 3.0, avg_fitness: 3.0,
       });
       setShowAddPlayer(false);
       fetchPlayers();
@@ -286,7 +291,7 @@ export default function PlayersPage() {
                 Paste CSV data below (one player per line). Only <strong>Name</strong> and <strong>Email</strong> are required:
               </p>
               <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-2 mb-2 text-xs font-mono text-gray-600 dark:text-gray-400 space-y-0.5">
-                <p className="font-semibold text-gray-500 dark:text-gray-300">Name, Email, Wins, Losses, Height(in), Age, Mobility, OFF, DEF, OVR</p>
+                <p className="font-semibold text-gray-500 dark:text-gray-300">Name, Email, Wins, Losses, Height(in), Age, SCR, DEF, OVR, ATH, FIT</p>
               </div>
               <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">
                 Email must be unique. Missing fields use defaults: 0W/0L, 5'10", age 30, ratings 3.0. Players get a random avatar, password <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">Password123</code>, and Regular status.
@@ -296,7 +301,7 @@ export default function PlayersPage() {
                 value={importText}
                 onChange={(e) => setImportText(e.target.value)}
                 className="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 font-mono focus:ring-2 focus:ring-court-500 focus:border-court-500 dark:bg-gray-700 dark:text-gray-200"
-                placeholder={`Bryan, bryan@email.com, 26, 14, 74, 28, 4.0, 4.5, 3.5, 4.0\nJulien, julien@email.com, 23, 12\nDenis, denis@email.com`}
+                placeholder={`Bryan, bryan@email.com, 26, 14, 74, 28, 4.5, 3.5, 4.0, 3.5, 4.0\nJulien, julien@email.com, 23, 12\nDenis, denis@email.com`}
               />
               <div className="flex items-center justify-between mt-4">
                 <span className="text-sm text-gray-500 dark:text-gray-400">
@@ -420,12 +425,6 @@ export default function PlayersPage() {
                       onChange={(e) => setAddForm({ ...addForm, age: parseInt(e.target.value) || 30 })}
                       className="input w-full" />
                   </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Mobility</label>
-                    <input type="number" min="1" max="5" step="0.5" value={addForm.mobility}
-                      onChange={(e) => setAddForm({ ...addForm, mobility: parseFloat(e.target.value) || 3.0 })}
-                      className="input w-full" />
-                  </div>
                 </div>
               </div>
 
@@ -433,9 +432,9 @@ export default function PlayersPage() {
                 <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Ratings</p>
                 <div className="grid grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Offense</label>
-                    <input type="number" min="1" max="5" step="0.5" value={addForm.avg_offense}
-                      onChange={(e) => setAddForm({ ...addForm, avg_offense: parseFloat(e.target.value) || 3.0 })}
+                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Scoring</label>
+                    <input type="number" min="1" max="5" step="0.5" value={addForm.avg_scoring}
+                      onChange={(e) => setAddForm({ ...addForm, avg_scoring: parseFloat(e.target.value) || 3.0 })}
                       className="input w-full" />
                   </div>
                   <div>
@@ -448,6 +447,18 @@ export default function PlayersPage() {
                     <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Overall</label>
                     <input type="number" min="1" max="5" step="0.5" value={addForm.avg_overall}
                       onChange={(e) => setAddForm({ ...addForm, avg_overall: parseFloat(e.target.value) || 3.0 })}
+                      className="input w-full" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Athleticism</label>
+                    <input type="number" min="1" max="5" step="0.5" value={addForm.avg_athleticism}
+                      onChange={(e) => setAddForm({ ...addForm, avg_athleticism: parseFloat(e.target.value) || 3.0 })}
+                      className="input w-full" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Fitness</label>
+                    <input type="number" min="1" max="5" step="0.5" value={addForm.avg_fitness}
+                      onChange={(e) => setAddForm({ ...addForm, avg_fitness: parseFloat(e.target.value) || 3.0 })}
                       className="input w-full" />
                   </div>
                 </div>
@@ -586,11 +597,13 @@ export default function PlayersPage() {
                 )}
 
                 {/* Stats Grid */}
-                <div className={`grid gap-2 mt-3 text-center ${isAdmin ? "grid-cols-5" : "grid-cols-2"}`}>
+                <div className={`grid gap-2 mt-3 text-center ${isAdmin ? "grid-cols-7" : "grid-cols-2"}`}>
                   {isAdmin && [
-                    { key: "avg_offense", label: "OFF", val: player.avg_offense, min: 1, max: 5, step: 0.5 },
+                    { key: "avg_scoring", label: "SCR", val: player.avg_scoring, min: 1, max: 5, step: 0.5 },
                     { key: "avg_defense", label: "DEF", val: player.avg_defense, min: 1, max: 5, step: 0.5 },
                     { key: "avg_overall", label: "OVR", val: player.avg_overall, min: 1, max: 5, step: 0.5 },
+                    { key: "avg_athleticism", label: "ATH", val: player.avg_athleticism, min: 1, max: 5, step: 0.5 },
+                    { key: "avg_fitness", label: "FIT", val: player.avg_fitness, min: 1, max: 5, step: 0.5 },
                   ].map((stat) => (
                     <div key={stat.key}>
                       <input

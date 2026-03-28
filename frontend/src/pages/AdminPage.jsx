@@ -56,11 +56,12 @@ import {
 const BUILTIN_LABELS = {
   overall: "Overall Rating",
   jordan_factor: "Win Rate",
-  offense: "Offense Rating",
+  scoring: "Scoring Rating",
   defense: "Defense Rating",
   height: "Height",
   age: "Age",
-  mobility: "Mobility",
+  athleticism: "Athleticism",
+  fitness: "Fitness",
 };
 
 export default function AdminPage() {
@@ -124,7 +125,7 @@ export default function AdminPage() {
   const [showAddPlayer, setShowAddPlayer] = useState(false);
   const [addForm, setAddForm] = useState({
     full_name: "", email: "", phone: "", wins: 0, losses: 0,
-    height_inches: 70, age: 30, mobility: 3.0, avg_offense: 3.0, avg_defense: 3.0, avg_overall: 3.0,
+    height_inches: 70, age: 30, avg_scoring: 3.0, avg_defense: 3.0, avg_overall: 3.0, avg_athleticism: 3.0, avg_fitness: 3.0,
   });
   const [adding, setAdding] = useState(false);
 
@@ -255,10 +256,11 @@ export default function AdminPage() {
       const metrics = approvalMetrics[userId];
       if (metrics) {
         const updates = {};
-        if (metrics.avg_offense) updates.avg_offense = parseFloat(metrics.avg_offense);
+        if (metrics.avg_scoring) updates.avg_scoring = parseFloat(metrics.avg_scoring);
         if (metrics.avg_defense) updates.avg_defense = parseFloat(metrics.avg_defense);
         if (metrics.avg_overall) updates.avg_overall = parseFloat(metrics.avg_overall);
-        if (metrics.mobility) updates.mobility = parseFloat(metrics.mobility);
+        if (metrics.avg_athleticism) updates.avg_athleticism = parseFloat(metrics.avg_athleticism);
+        if (metrics.avg_fitness) updates.avg_fitness = parseFloat(metrics.avg_fitness);
         if (metrics.height_inches) updates.height_inches = parseInt(metrics.height_inches);
         if (metrics.age) updates.age = parseInt(metrics.age);
         if (Object.keys(updates).length > 0) {
@@ -433,7 +435,7 @@ export default function AdminPage() {
       toast.success(`Player "${addForm.full_name}" added!`);
       setAddForm({
         full_name: "", email: "", phone: "", wins: 0, losses: 0,
-        height_inches: 70, age: 30, mobility: 3.0, avg_offense: 3.0, avg_defense: 3.0, avg_overall: 3.0,
+        height_inches: 70, age: 30, avg_scoring: 3.0, avg_defense: 3.0, avg_overall: 3.0, avg_athleticism: 3.0, avg_fitness: 3.0,
       });
       setShowAddPlayer(false);
       fetchPlayers();
@@ -585,9 +587,9 @@ export default function AdminPage() {
                           className="w-full text-xs text-center border rounded px-1 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600" />
                       </div>
                       <div>
-                        <label className="block text-[10px] text-gray-400 mb-0.5">Offense</label>
+                        <label className="block text-[10px] text-gray-400 mb-0.5">Scoring</label>
                         <input type="number" min="1" max="5" step="0.5" placeholder="3.0"
-                          value={m.avg_offense || ""} onChange={(e) => setM("avg_offense", e.target.value)}
+                          value={m.avg_scoring || ""} onChange={(e) => setM("avg_scoring", e.target.value)}
                           className="w-full text-xs text-center border rounded px-1 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600" />
                       </div>
                       <div>
@@ -603,9 +605,15 @@ export default function AdminPage() {
                           className="w-full text-xs text-center border rounded px-1 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600" />
                       </div>
                       <div>
-                        <label className="block text-[10px] text-gray-400 mb-0.5">Mobility</label>
+                        <label className="block text-[10px] text-gray-400 mb-0.5">Athleticism</label>
                         <input type="number" min="1" max="5" step="0.5" placeholder="3.0"
-                          value={m.mobility || ""} onChange={(e) => setM("mobility", e.target.value)}
+                          value={m.avg_athleticism || ""} onChange={(e) => setM("avg_athleticism", e.target.value)}
+                          className="w-full text-xs text-center border rounded px-1 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] text-gray-400 mb-0.5">Fitness</label>
+                        <input type="number" min="1" max="5" step="0.5" placeholder="3.0"
+                          value={m.avg_fitness || ""} onChange={(e) => setM("avg_fitness", e.target.value)}
                           className="w-full text-xs text-center border rounded px-1 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600" />
                       </div>
                     </div>
@@ -905,21 +913,15 @@ export default function AdminPage() {
                           onChange={(e) => setAddForm({ ...addForm, age: parseInt(e.target.value) || 30 })}
                           className="input w-full" />
                       </div>
-                      <div>
-                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Mobility</label>
-                        <input type="number" min="1" max="5" step="0.5" value={addForm.mobility || 3.0}
-                          onChange={(e) => setAddForm({ ...addForm, mobility: parseFloat(e.target.value) || 3.0 })}
-                          className="input w-full" />
-                      </div>
                     </div>
                   </div>
                   <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
                     <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Ratings</p>
                     <div className="grid grid-cols-3 gap-3">
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Offense</label>
-                        <input type="number" min="1" max="5" step="0.5" value={addForm.avg_offense || 3.0}
-                          onChange={(e) => setAddForm({ ...addForm, avg_offense: parseFloat(e.target.value) || 3.0 })}
+                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Scoring</label>
+                        <input type="number" min="1" max="5" step="0.5" value={addForm.avg_scoring || 3.0}
+                          onChange={(e) => setAddForm({ ...addForm, avg_scoring: parseFloat(e.target.value) || 3.0 })}
                           className="input w-full" />
                       </div>
                       <div>
@@ -932,6 +934,18 @@ export default function AdminPage() {
                         <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Overall</label>
                         <input type="number" min="1" max="5" step="0.5" value={addForm.avg_overall || 3.0}
                           onChange={(e) => setAddForm({ ...addForm, avg_overall: parseFloat(e.target.value) || 3.0 })}
+                          className="input w-full" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Athleticism</label>
+                        <input type="number" min="1" max="5" step="0.5" value={addForm.avg_athleticism || 3.0}
+                          onChange={(e) => setAddForm({ ...addForm, avg_athleticism: parseFloat(e.target.value) || 3.0 })}
+                          className="input w-full" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Fitness</label>
+                        <input type="number" min="1" max="5" step="0.5" value={addForm.avg_fitness || 3.0}
+                          onChange={(e) => setAddForm({ ...addForm, avg_fitness: parseFloat(e.target.value) || 3.0 })}
                           className="input w-full" />
                       </div>
                     </div>
@@ -1010,10 +1024,11 @@ export default function AdminPage() {
                       {currentRun?.dropin_priority_mode === "admin" && <SortTh field="dropin_priority">Wait List Priority</SortTh>}
                       <SortTh field="height_inches">Ht</SortTh>
                       <SortTh field="age">Age</SortTh>
-                      <SortTh field="mobility">Mob</SortTh>
-                      <SortTh field="avg_offense">OFF</SortTh>
+                      <SortTh field="avg_scoring">SCR</SortTh>
                       <SortTh field="avg_defense">DEF</SortTh>
                       <SortTh field="avg_overall">OVR</SortTh>
+                      <SortTh field="avg_athleticism">ATH</SortTh>
+                      <SortTh field="avg_fitness">FIT</SortTh>
                       <SortTh field="games_played">GP</SortTh>
                       <SortTh field="games_won">W</SortTh>
                       {isSuperAdmin && <SortTh field="role">Role</SortTh>}
@@ -1089,13 +1104,8 @@ export default function AdminPage() {
                             className={inputCls} />
                         </td>
                         <td className="py-2 px-2">
-                          <input type="number" min="1" max="5" step="0.5" defaultValue={player.mobility || ""} placeholder="1-5"
-                            onBlur={(e) => e.target.value && handleUpdatePlayer(player.id, "mobility", parseFloat(e.target.value))}
-                            className={inputCls} />
-                        </td>
-                        <td className="py-2 px-2">
-                          <input type="number" min="1" max="5" step="0.5" defaultValue={player.avg_offense?.toFixed(1) || ""} placeholder="1-5"
-                            onBlur={(e) => { const v = parseFloat(e.target.value); if (!isNaN(v)) handleUpdatePlayer(player.id, "avg_offense", v); }}
+                          <input type="number" min="1" max="5" step="0.5" defaultValue={player.avg_scoring?.toFixed(1) || ""} placeholder="1-5"
+                            onBlur={(e) => { const v = parseFloat(e.target.value); if (!isNaN(v)) handleUpdatePlayer(player.id, "avg_scoring", v); }}
                             className={inputCls} />
                         </td>
                         <td className="py-2 px-2">
@@ -1106,6 +1116,16 @@ export default function AdminPage() {
                         <td className="py-2 px-2">
                           <input type="number" min="1" max="5" step="0.5" defaultValue={player.avg_overall?.toFixed(1) || ""} placeholder="1-5"
                             onBlur={(e) => { const v = parseFloat(e.target.value); if (!isNaN(v)) handleUpdatePlayer(player.id, "avg_overall", v); }}
+                            className={inputCls} />
+                        </td>
+                        <td className="py-2 px-2">
+                          <input type="number" min="1" max="5" step="0.5" defaultValue={player.avg_athleticism?.toFixed(1) || ""} placeholder="1-5"
+                            onBlur={(e) => { const v = parseFloat(e.target.value); if (!isNaN(v)) handleUpdatePlayer(player.id, "avg_athleticism", v); }}
+                            className={inputCls} />
+                        </td>
+                        <td className="py-2 px-2">
+                          <input type="number" min="1" max="5" step="0.5" defaultValue={player.avg_fitness?.toFixed(1) || ""} placeholder="1-5"
+                            onBlur={(e) => { const v = parseFloat(e.target.value); if (!isNaN(v)) handleUpdatePlayer(player.id, "avg_fitness", v); }}
                             className={inputCls} />
                         </td>
                         <td className="py-2 px-2">

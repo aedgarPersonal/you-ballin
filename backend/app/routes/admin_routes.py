@@ -169,8 +169,10 @@ async def approve_membership(
         user.height_inches = 70  # 5'10"
     if user.age is None:
         user.age = 30
-    if user.mobility is None:
-        user.mobility = 3.0
+    if user.avg_athleticism is None:
+        user.avg_athleticism = 3.0
+    if user.avg_fitness is None:
+        user.avg_fitness = 3.0
 
     # Send approval notification
     notification = Notification(
@@ -336,12 +338,12 @@ async def update_run_player(
         user.is_active = update_data.pop("is_active")
 
     # Update physical fields on User
-    for field in ("height_inches", "age", "mobility"):
+    for field in ("height_inches", "age"):
         if field in update_data:
             setattr(user, field, update_data.pop(field))
 
     # Update rating fields on User and RunPlayerStats
-    rating_fields = ("avg_offense", "avg_defense", "avg_overall")
+    rating_fields = ("avg_scoring", "avg_defense", "avg_overall", "avg_athleticism", "avg_fitness")
     ratings_changed = any(f in update_data for f in rating_fields)
     for field in rating_fields:
         if field in update_data:
@@ -355,9 +357,11 @@ async def update_run_player(
         )
         rps = rps_result.scalar_one_or_none()
         if rps:
-            rps.avg_offense = user.avg_offense
+            rps.avg_scoring = user.avg_scoring
             rps.avg_defense = user.avg_defense
             rps.avg_overall = user.avg_overall
+            rps.avg_athleticism = user.avg_athleticism
+            rps.avg_fitness = user.avg_fitness
 
     # Update game stats on User and RunPlayerStats
     stats_changed = False
@@ -497,10 +501,11 @@ async def import_players(
             jordan_factor=jordan_factor,
             height_inches=entry.height_inches,
             age=entry.age,
-            mobility=entry.mobility,
-            avg_offense=entry.avg_offense,
+            avg_scoring=entry.avg_scoring,
             avg_defense=entry.avg_defense,
             avg_overall=entry.avg_overall,
+            avg_athleticism=entry.avg_athleticism,
+            avg_fitness=entry.avg_fitness,
         )
         db.add(user)
         await db.flush()  # Get user.id for membership/stats creation
@@ -587,10 +592,11 @@ async def quick_add_player(
         jordan_factor=jordan_factor,
         height_inches=data.height_inches,
         age=data.age,
-        mobility=data.mobility,
-        avg_offense=data.avg_offense,
+        avg_scoring=data.avg_scoring,
         avg_defense=data.avg_defense,
         avg_overall=data.avg_overall,
+        avg_athleticism=data.avg_athleticism,
+        avg_fitness=data.avg_fitness,
     )
     db.add(user)
     await db.flush()

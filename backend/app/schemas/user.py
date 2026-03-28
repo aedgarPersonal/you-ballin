@@ -87,11 +87,12 @@ class AdminUserUpdate(BaseModel):
     # Physical stats
     height_inches: int | None = None
     age: int | None = None
-    mobility: float | None = Field(None, ge=1.0, le=5.0)
     # Rating overrides
-    avg_offense: float | None = Field(None, ge=1.0, le=5.0)
+    avg_scoring: float | None = Field(None, ge=1.0, le=5.0)
     avg_defense: float | None = Field(None, ge=1.0, le=5.0)
     avg_overall: float | None = Field(None, ge=1.0, le=5.0)
+    avg_athleticism: float | None = Field(None, ge=1.0, le=5.0)
+    avg_fitness: float | None = Field(None, ge=1.0, le=5.0)
     # Game stats (for manual correction)
     games_played: int | None = Field(None, ge=0)
     games_won: int | None = Field(None, ge=0)
@@ -106,19 +107,15 @@ class QuickAddPlayer(BaseModel):
     losses: int = Field(default=0, ge=0)
     height_inches: int | None = Field(default=70, ge=48, le=96)
     age: int | None = Field(default=30, ge=16, le=70)
-    mobility: float | None = Field(default=3.0, ge=1.0, le=5.0)
-    avg_offense: float = Field(default=3.0, ge=1.0, le=5.0)
+    avg_scoring: float = Field(default=3.0, ge=1.0, le=5.0)
     avg_defense: float = Field(default=3.0, ge=1.0, le=5.0)
     avg_overall: float = Field(default=3.0, ge=1.0, le=5.0)
+    avg_athleticism: float = Field(default=3.0, ge=1.0, le=5.0)
+    avg_fitness: float = Field(default=3.0, ge=1.0, le=5.0)
 
 
 class UserResponse(BaseModel):
-    """Public user profile returned by the API.
-
-    Note: mobility, avg_offense, avg_defense, avg_overall are included
-    for admin use (team balancing). The frontend is responsible for
-    hiding these from non-admin users.
-    """
+    """Public user profile returned by the API."""
     id: int
     email: str
     username: str
@@ -129,10 +126,11 @@ class UserResponse(BaseModel):
     player_status: str
     height_inches: int | None
     age: int | None
-    mobility: float | None
-    avg_offense: float
+    avg_scoring: float
     avg_defense: float
     avg_overall: float
+    avg_athleticism: float
+    avg_fitness: float
     jordan_factor: float
     games_played: int
     games_won: int
@@ -163,10 +161,11 @@ class ImportPlayerEntry(BaseModel):
     losses: int = Field(default=0, ge=0)
     height_inches: int | None = Field(default=70, ge=48, le=96)
     age: int | None = Field(default=30, ge=16, le=70)
-    mobility: float | None = Field(default=3.0, ge=1.0, le=5.0)
-    avg_offense: float | None = Field(default=3.0, ge=1.0, le=5.0)
+    avg_scoring: float | None = Field(default=3.0, ge=1.0, le=5.0)
     avg_defense: float | None = Field(default=3.0, ge=1.0, le=5.0)
     avg_overall: float | None = Field(default=3.0, ge=1.0, le=5.0)
+    avg_athleticism: float | None = Field(default=3.0, ge=1.0, le=5.0)
+    avg_fitness: float | None = Field(default=3.0, ge=1.0, le=5.0)
 
 
 class ImportPlayersRequest(BaseModel):

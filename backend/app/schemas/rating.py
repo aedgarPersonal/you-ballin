@@ -10,25 +10,23 @@ from pydantic import BaseModel, Field
 
 
 class RatingCreate(BaseModel):
-    """Submit or update a rating for a player.
-
-    TEACHING NOTE:
-        All three dimensions are required. The rater_id is extracted
-        from the JWT token - it's never sent by the client, ensuring
-        anonymity in the API layer.
-    """
-    offense: float = Field(ge=1.0, le=5.0, description="Offensive skill (1-5)")
+    """Submit or update a rating for a player."""
+    scoring: float = Field(ge=1.0, le=5.0, description="Scoring ability (1-5)")
     defense: float = Field(ge=1.0, le=5.0, description="Defensive skill (1-5)")
     overall: float = Field(ge=1.0, le=5.0, description="Overall skill (1-5)")
+    athleticism: float = Field(ge=1.0, le=5.0, description="Athleticism (1-5)")
+    fitness: float = Field(ge=1.0, le=5.0, description="Fitness level (1-5)")
 
 
 class RatingResponse(BaseModel):
     """A single rating (rater identity is NEVER included)."""
     id: int
     player_id: int
-    offense: float
+    scoring: float
     defense: float
     overall: float
+    athleticism: float
+    fitness: float
     created_at: datetime
     updated_at: datetime
 
@@ -38,9 +36,11 @@ class RatingResponse(BaseModel):
 class PlayerRatingSummary(BaseModel):
     """Aggregated ratings for a player's profile page."""
     player_id: int
-    avg_offense: float
+    avg_scoring: float
     avg_defense: float
     avg_overall: float
+    avg_athleticism: float
+    avg_fitness: float
     total_ratings: int
     jordan_factor: float
     games_played: int
@@ -48,13 +48,7 @@ class PlayerRatingSummary(BaseModel):
 
 
 class MyRatingForPlayer(BaseModel):
-    """The current user's rating for a specific player.
-
-    TEACHING NOTE:
-        This lets the frontend show the user their own existing rating
-        when they visit a player's profile, so they know what they
-        previously rated and can update if eligible.
-    """
+    """The current user's rating for a specific player."""
     has_rated: bool
     rating: RatingResponse | None = None
     can_update: bool  # False if updated within the last month

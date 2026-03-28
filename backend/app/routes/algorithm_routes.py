@@ -45,21 +45,23 @@ router = APIRouter(prefix="/api/runs/{run_id}/algorithm", tags=["Algorithm Confi
 DEFAULT_WEIGHTS = {
     "overall": 0.35,
     "jordan_factor": 0.20,
-    "offense": 0.15,
+    "scoring": 0.15,
     "defense": 0.15,
-    "height": 0.05,
-    "age": 0.05,
-    "mobility": 0.05,
+    "athleticism": 0.05,
+    "fitness": 0.05,
+    "height": 0.03,
+    "age": 0.02,
 }
 
 BUILTIN_METRIC_LABELS = {
     "overall": "Overall Rating",
     "jordan_factor": "Win Rate",
-    "offense": "Offense Rating",
-    "defense": "Defense Rating",
+    "scoring": "Scoring",
+    "defense": "Defense",
+    "athleticism": "Athleticism",
+    "fitness": "Fitness",
     "height": "Height",
     "age": "Age",
-    "mobility": "Mobility",
 }
 
 

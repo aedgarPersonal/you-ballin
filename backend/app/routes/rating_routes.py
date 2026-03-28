@@ -74,9 +74,11 @@ async def get_player_rating_summary(
     if stats:
         return PlayerRatingSummary(
             player_id=player_id,
-            avg_offense=stats.avg_offense,
+            avg_scoring=stats.avg_scoring,
             avg_defense=stats.avg_defense,
             avg_overall=stats.avg_overall,
+            avg_athleticism=stats.avg_athleticism,
+            avg_fitness=stats.avg_fitness,
             total_ratings=total_ratings,
             jordan_factor=stats.jordan_factor,
             games_played=stats.games_played,
@@ -86,9 +88,11 @@ async def get_player_rating_summary(
     # Fall back to user-level stats if no run stats
     return PlayerRatingSummary(
         player_id=player_id,
-        avg_offense=player.avg_offense,
+        avg_scoring=player.avg_scoring,
         avg_defense=player.avg_defense,
         avg_overall=player.avg_overall,
+        avg_athleticism=player.avg_athleticism,
+        avg_fitness=player.avg_fitness,
         total_ratings=total_ratings,
         jordan_factor=player.jordan_factor,
         games_played=player.games_played,
@@ -183,9 +187,11 @@ async def rate_player(
                 detail=f"You can update this rating after {cooldown_end.isoformat()}",
             )
         # Update existing rating
-        existing.offense = data.offense
+        existing.scoring = data.scoring
         existing.defense = data.defense
         existing.overall = data.overall
+        existing.athleticism = data.athleticism
+        existing.fitness = data.fitness
         existing.updated_at = now
         rating = existing
     else:
@@ -194,9 +200,11 @@ async def rate_player(
             run_id=run_id,
             player_id=player_id,
             rater_id=user.id,
-            offense=data.offense,
+            scoring=data.scoring,
             defense=data.defense,
             overall=data.overall,
+            athleticism=data.athleticism,
+            fitness=data.fitness,
         )
         db.add(rating)
 
@@ -205,15 +213,19 @@ async def rate_player(
     # Recalculate global cached averages on the target player (across all runs)
     avg_result = await db.execute(
         select(
-            func.avg(PlayerRating.offense),
+            func.avg(PlayerRating.scoring),
             func.avg(PlayerRating.defense),
             func.avg(PlayerRating.overall),
+            func.avg(PlayerRating.athleticism),
+            func.avg(PlayerRating.fitness),
         ).where(PlayerRating.player_id == player_id)
     )
     avgs = avg_result.one()
-    target.avg_offense = round(avgs[0] or 3.0, 2)
+    target.avg_scoring = round(avgs[0] or 3.0, 2)
     target.avg_defense = round(avgs[1] or 3.0, 2)
     target.avg_overall = round(avgs[2] or 3.0, 2)
+    target.avg_athleticism = round(avgs[3] or 3.0, 2)
+    target.avg_fitness = round(avgs[4] or 3.0, 2)
 
     # Update run-specific stats
     run_stats_result = await db.execute(
@@ -224,21 +236,24 @@ async def rate_player(
     )
     run_stats = run_stats_result.scalar_one_or_none()
     if run_stats:
-        # Recalculate from run-scoped ratings only
         run_avg_result = await db.execute(
             select(
-                func.avg(PlayerRating.offense),
+                func.avg(PlayerRating.scoring),
                 func.avg(PlayerRating.defense),
                 func.avg(PlayerRating.overall),
+                func.avg(PlayerRating.athleticism),
+                func.avg(PlayerRating.fitness),
             ).where(
                 PlayerRating.player_id == player_id,
                 PlayerRating.run_id == run_id,
             )
         )
         run_avgs = run_avg_result.one()
-        run_stats.avg_offense = round(run_avgs[0] or 3.0, 2)
+        run_stats.avg_scoring = round(run_avgs[0] or 3.0, 2)
         run_stats.avg_defense = round(run_avgs[1] or 3.0, 2)
         run_stats.avg_overall = round(run_avgs[2] or 3.0, 2)
+        run_stats.avg_athleticism = round(run_avgs[3] or 3.0, 2)
+        run_stats.avg_fitness = round(run_avgs[4] or 3.0, 2)
 
     await db.flush()
     return rating

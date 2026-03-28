@@ -70,7 +70,6 @@ class User(Base):
     # --- Player Stats (admin-maintained) ---
     height_inches: Mapped[int | None] = mapped_column(Integer, nullable=True)
     age: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    mobility: Mapped[float | None] = mapped_column(Float, nullable=True)  # 1.0 - 5.0 scale
 
     # --- System Fields ---
     role: Mapped[UserRole] = mapped_column(
@@ -85,10 +84,11 @@ class User(Base):
     google_id: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True)
 
     # --- Computed Ratings (cached from PlayerRating averages) ---
-    # Win Rate: win percentage used by team balancing algorithm (games_won / games_played)
-    avg_offense: Mapped[float] = mapped_column(Float, default=3.0)
+    avg_scoring: Mapped[float] = mapped_column(Float, default=3.0)
     avg_defense: Mapped[float] = mapped_column(Float, default=3.0)
     avg_overall: Mapped[float] = mapped_column(Float, default=3.0)
+    avg_athleticism: Mapped[float] = mapped_column(Float, default=3.0)
+    avg_fitness: Mapped[float] = mapped_column(Float, default=3.0)
     jordan_factor: Mapped[float] = mapped_column(Float, default=0.5)  # Win Rate 0.0 - 1.0
     games_played: Mapped[int] = mapped_column(Integer, default=0)
     games_won: Mapped[int] = mapped_column(Integer, default=0)
