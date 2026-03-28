@@ -18,7 +18,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import get_current_super_admin, require_run_admin
+from app.auth.dependencies import get_current_super_admin, get_current_user, require_run_admin
 from app.auth.password import hash_password
 from app.database import get_db
 from app.models.notification import Notification, NotificationType
@@ -686,3 +686,185 @@ async def delete_player(
 
     await db.delete(user)
     await db.flush()
+
+
+# =============================================================================
+# Season Management
+# =============================================================================
+
+@run_admin_router.post("/season-reset")
+async def reset_season(
+    run_id: int,
+    data: dict,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(require_run_admin()),
+):
+    """Archive current season stats and reset for a new season.
+
+    Preserves all games, results, votes, and team assignments.
+    Only resets RunPlayerStats counters (games, wins, awards).
+    Player ratings (scoring, defense, etc.) are kept.
+    """
+    from app.models.season import SeasonArchive, SeasonPlayerSnapshot
+    from app.models.game import Game, GameStatus
+
+    label = data.get("label", "")
+
+    # Get the run
+    run_result = await db.execute(select(Run).where(Run.id == run_id))
+    run = run_result.scalar_one_or_none()
+    if not run:
+        raise HTTPException(status_code=404, detail="Run not found")
+
+    # Auto-generate label if not provided
+    if not label:
+        from datetime import datetime
+        label = f"Season ({run.start_date.strftime('%b %Y') if run.start_date else 'Start'} - {datetime.now().strftime('%b %Y')})"
+
+    # Count completed games in current season
+    game_count = await db.scalar(
+        select(func.count(Game.id)).where(
+            Game.run_id == run_id, Game.status == GameStatus.COMPLETED
+        )
+    )
+
+    # Get all current stats
+    stats_result = await db.execute(
+        select(RunPlayerStats).where(RunPlayerStats.run_id == run_id)
+    )
+    all_stats = stats_result.scalars().all()
+    active_players = [s for s in all_stats if s.games_played > 0]
+
+    # Create season archive
+    archive = SeasonArchive(
+        run_id=run_id,
+        label=label,
+        start_date=run.start_date,
+        end_date=run.end_date,
+        total_games=game_count or 0,
+        total_players=len(active_players),
+    )
+    db.add(archive)
+    await db.flush()
+
+    # Snapshot each player's stats
+    for stats in all_stats:
+        snapshot = SeasonPlayerSnapshot(
+            season_id=archive.id,
+            user_id=stats.user_id,
+            games_played=stats.games_played,
+            games_won=stats.games_won,
+            jordan_factor=stats.jordan_factor,
+            avg_scoring=stats.avg_scoring,
+            avg_defense=stats.avg_defense,
+            avg_overall=stats.avg_overall,
+            avg_athleticism=stats.avg_athleticism,
+            avg_fitness=stats.avg_fitness,
+            mvp_count=stats.mvp_count,
+            shaqtin_count=stats.shaqtin_count,
+            xfactor_count=stats.xfactor_count,
+        )
+        db.add(snapshot)
+
+    # Reset current stats (keep ratings, zero out game stats and awards)
+    for stats in all_stats:
+        stats.games_played = 0
+        stats.games_won = 0
+        stats.jordan_factor = 0.5
+        stats.mvp_count = 0
+        stats.shaqtin_count = 0
+        stats.xfactor_count = 0
+
+    # Also reset User-level cached stats
+    user_ids = [s.user_id for s in all_stats]
+    if user_ids:
+        users_result = await db.execute(select(User).where(User.id.in_(user_ids)))
+        for user in users_result.scalars().all():
+            user.games_played = 0
+            user.games_won = 0
+            user.jordan_factor = 0.5
+            user.mvp_count = 0
+            user.shaqtin_count = 0
+            user.xfactor_count = 0
+
+    await db.flush()
+
+    return {
+        "message": f"Season archived as '{label}'",
+        "archive_id": archive.id,
+        "players_archived": len(all_stats),
+        "games_in_season": game_count or 0,
+    }
+
+
+@run_admin_router.get("/seasons")
+async def list_seasons(
+    run_id: int,
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(get_current_user),
+):
+    """List all archived seasons for this run."""
+    from app.models.season import SeasonArchive
+    result = await db.execute(
+        select(SeasonArchive)
+        .where(SeasonArchive.run_id == run_id)
+        .order_by(SeasonArchive.created_at.desc())
+    )
+    archives = result.scalars().all()
+    return [
+        {
+            "id": a.id,
+            "label": a.label,
+            "start_date": a.start_date.isoformat() if a.start_date else None,
+            "end_date": a.end_date.isoformat() if a.end_date else None,
+            "total_games": a.total_games,
+            "total_players": a.total_players,
+            "created_at": a.created_at.isoformat(),
+        }
+        for a in archives
+    ]
+
+
+@run_admin_router.get("/seasons/{season_id}")
+async def get_season_detail(
+    run_id: int,
+    season_id: int,
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(get_current_user),
+):
+    """Get detailed stats for an archived season."""
+    from app.models.season import SeasonArchive, SeasonPlayerSnapshot
+    from sqlalchemy.orm import selectinload
+
+    result = await db.execute(
+        select(SeasonArchive)
+        .where(SeasonArchive.id == season_id, SeasonArchive.run_id == run_id)
+        .options(selectinload(SeasonArchive.player_snapshots).selectinload(SeasonPlayerSnapshot.user))
+    )
+    archive = result.scalar_one_or_none()
+    if not archive:
+        raise HTTPException(status_code=404, detail="Season not found")
+
+    players = sorted(archive.player_snapshots, key=lambda s: s.jordan_factor, reverse=True)
+    return {
+        "id": archive.id,
+        "label": archive.label,
+        "start_date": archive.start_date.isoformat() if archive.start_date else None,
+        "end_date": archive.end_date.isoformat() if archive.end_date else None,
+        "total_games": archive.total_games,
+        "total_players": archive.total_players,
+        "players": [
+            {
+                "user_id": s.user_id,
+                "full_name": s.user.full_name if s.user else "Unknown",
+                "avatar_url": s.user.avatar_url if s.user else None,
+                "games_played": s.games_played,
+                "games_won": s.games_won,
+                "jordan_factor": s.jordan_factor,
+                "mvp_count": s.mvp_count,
+                "shaqtin_count": s.shaqtin_count,
+                "xfactor_count": s.xfactor_count,
+            }
+            for s in players
+        ],
+    }

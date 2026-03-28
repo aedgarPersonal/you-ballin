@@ -90,6 +90,9 @@ async def get_db():
 
 async def init_db():
     """Create all tables on startup and seed the super admin account."""
+    # Import all models so Base.metadata knows about them
+    import app.models.season  # noqa: F401
+
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 

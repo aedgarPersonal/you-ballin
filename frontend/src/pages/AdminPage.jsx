@@ -1522,6 +1522,39 @@ export default function AdminPage() {
                       Set game day, time, and season dates to enable season generation.
                     </p>
                   )}
+
+                  {/* Season Reset */}
+                  <div className="pt-3 mt-3 border-t border-gray-200 dark:border-gray-700">
+                    <h4 className="text-sm font-semibold text-red-600 mb-2">Season Reset</h4>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                      Archives all current stats and resets W-L records, awards for the new season. Games and results are preserved.
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        placeholder="Season label (auto-generated if empty)"
+                        id="season-label"
+                        className="input text-sm flex-1"
+                      />
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const label = document.getElementById("season-label").value;
+                          if (!confirm(`Archive current season${label ? ` as "${label}"` : ""} and reset all stats? This cannot be undone.`)) return;
+                          try {
+                            const { resetSeason: doReset } = await import("../api/admin");
+                            const { data } = await doReset(runId, label);
+                            toast.success(`${data.message} (${data.players_archived} players, ${data.games_in_season} games)`);
+                          } catch (err) {
+                            toast.error(err.response?.data?.detail || "Season reset failed");
+                          }
+                        }}
+                        className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg text-sm whitespace-nowrap"
+                      >
+                        Reset Season
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </SettingsSection>
 

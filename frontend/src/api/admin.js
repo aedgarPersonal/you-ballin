@@ -29,3 +29,11 @@ export const updateInviteCode = (runId, codeId, data) =>
   api.patch(`/runs/${runId}/admin/invite-codes/${codeId}`, data);
 export const deleteInviteCode = (runId, codeId) =>
   api.delete(`/runs/${runId}/admin/invite-codes/${codeId}`);
+
+// --- Season Management ---
+export const resetSeason = (runId, label) =>
+  api.post(`/runs/${runId}/admin/season-reset`, { label });
+export const listSeasons = (runId) =>
+  api.get(`/runs/${runId}/admin/seasons`);
+export const getSeasonDetail = (runId, seasonId) =>
+  api.get(`/runs/${runId}/admin/seasons/${seasonId}`);
