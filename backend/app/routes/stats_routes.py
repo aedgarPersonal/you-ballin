@@ -307,9 +307,236 @@ async def _compute_matchups(run_id: int, target_user_id: int, db: AsyncSession) 
         return entries[:top_n]
 
     return MatchupsResponse(
-        best_teammates=build_entries(teammate_stats, sort_reverse=True),
-        toughest_opponents=build_entries(opponent_stats, sort_reverse=False),
+        best_teammates=build_entries(teammate_stats, sort_reverse=True, top_n=50),
+        toughest_opponents=build_entries(opponent_stats, sort_reverse=False, top_n=50),
     )
+
+
+# =============================================================================
+# Game History & Form
+# =============================================================================
+
+@router.get("/player/{player_id}/game-history")
+async def get_player_game_history(
+    run_id: int,
+    player_id: int,
+    _user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get a player's game-by-game history with outcomes and awards."""
+    from app.models.vote import GameVote, VoteType
+
+    # Get all completed games where this player has a team assignment
+    assignments_result = await db.execute(
+        select(TeamAssignment, Game)
+        .join(Game, TeamAssignment.game_id == Game.id)
+        .where(
+            Game.run_id == run_id,
+            Game.status == GameStatus.COMPLETED,
+            TeamAssignment.user_id == player_id,
+        )
+        .order_by(Game.game_date.desc())
+    )
+    rows = assignments_result.all()
+
+    if not rows:
+        return []
+
+    game_ids = [row[1].id for row in rows]
+
+    # Get all team assignments for these games (to find opponent team names)
+    all_assignments = await db.execute(
+        select(TeamAssignment).where(TeamAssignment.game_id.in_(game_ids))
+    )
+    game_team_names: dict[int, dict[str, str]] = {}
+    for a in all_assignments.scalars().all():
+        game_team_names.setdefault(a.game_id, {})[a.team] = a.team_name or a.team
+
+    # Get results
+    results_result = await db.execute(
+        select(GameResult)
+        .where(GameResult.game_id.in_(game_ids))
+        .options(selectinload(GameResult.team_scores))
+    )
+    game_results: dict[int, GameResult] = {}
+    for r in results_result.scalars().all():
+        game_results[r.game_id] = r
+
+    # Get awards won by this player
+    votes_result = await db.execute(
+        select(GameVote.game_id, GameVote.vote_type, sqlfunc.count(GameVote.id).label("cnt"))
+        .where(GameVote.nominee_id == player_id, GameVote.game_id.in_(game_ids))
+        .group_by(GameVote.game_id, GameVote.vote_type)
+    )
+    # Only include awards where this player got the most votes
+    all_votes_result = await db.execute(
+        select(GameVote).where(GameVote.game_id.in_(game_ids))
+    )
+    all_votes = all_votes_result.scalars().all()
+    game_award_winners: dict[int, dict[str, int]] = {}
+    for v in all_votes:
+        game_award_winners.setdefault(v.game_id, {}).setdefault(v.vote_type.value, {})
+        game_award_winners[v.game_id][v.vote_type.value][v.nominee_id] = \
+            game_award_winners[v.game_id][v.vote_type.value].get(v.nominee_id, 0) + 1
+
+    history = []
+    for assignment, game in rows:
+        result = game_results.get(game.id)
+        team_names = game_team_names.get(game.id, {})
+        player_team = assignment.team
+        player_team_name = assignment.team_name or player_team
+
+        # Find opponent team name
+        opponent_teams = [name for tid, name in team_names.items() if tid != player_team]
+        opponent_team = ", ".join(opponent_teams) if opponent_teams else "Unknown"
+
+        # Determine win/loss and score
+        won = False
+        score = ""
+        if result and result.team_scores:
+            scores_by_team = {ts.team: ts.wins for ts in result.team_scores}
+            player_wins = scores_by_team.get(player_team, 0)
+            max_wins = max(scores_by_team.values())
+            won = player_wins == max_wins and player_wins > 0
+            sorted_scores = sorted(result.team_scores, key=lambda ts: ts.wins, reverse=True)
+            score = "-".join(str(ts.wins) for ts in sorted_scores)
+
+        # Check awards
+        awards = []
+        for vtype in ["mvp", "xfactor", "shaqtin"]:
+            vote_counts = game_award_winners.get(game.id, {}).get(vtype, {})
+            if vote_counts:
+                winner_id = max(vote_counts, key=vote_counts.get)
+                if winner_id == player_id:
+                    awards.append(vtype)
+
+        history.append({
+            "game_id": game.id,
+            "title": game.title,
+            "game_date": game.game_date.isoformat(),
+            "team_name": player_team_name,
+            "opponent_team": opponent_team,
+            "won": won,
+            "score": score,
+            "awards": awards,
+        })
+
+    return history
+
+
+@router.get("/player/{player_id}/form")
+async def get_player_form(
+    run_id: int,
+    player_id: int,
+    _user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get a player's current form: streaks, recent record, trend."""
+    # Get all completed games chronologically
+    assignments_result = await db.execute(
+        select(TeamAssignment, Game)
+        .join(Game, TeamAssignment.game_id == Game.id)
+        .where(
+            Game.run_id == run_id,
+            Game.status == GameStatus.COMPLETED,
+            TeamAssignment.user_id == player_id,
+        )
+        .order_by(Game.game_date.asc())
+    )
+    rows = assignments_result.all()
+
+    if not rows:
+        return {
+            "current_streak": {"type": "none", "count": 0},
+            "last_5": {"wins": 0, "losses": 0, "win_rate": 0},
+            "last_10": {"wins": 0, "losses": 0, "win_rate": 0},
+            "best_win_streak": 0,
+            "worst_loss_streak": 0,
+            "trend": "stable",
+        }
+
+    game_ids = [row[1].id for row in rows]
+
+    # Get results
+    results_result = await db.execute(
+        select(GameResult)
+        .where(GameResult.game_id.in_(game_ids))
+        .options(selectinload(GameResult.team_scores))
+    )
+    game_winners: dict[int, str] = {}
+    for r in results_result.scalars().all():
+        if r.team_scores:
+            winner = max(r.team_scores, key=lambda ts: ts.wins)
+            if winner.wins > 0:
+                game_winners[r.game_id] = winner.team
+
+    # Build win/loss sequence (chronological)
+    outcomes = []
+    for assignment, game in rows:
+        winning_team = game_winners.get(game.id)
+        won = assignment.team == winning_team
+        outcomes.append(won)
+
+    total = len(outcomes)
+
+    # Current streak
+    if outcomes:
+        current_type = outcomes[-1]
+        current_count = 0
+        for o in reversed(outcomes):
+            if o == current_type:
+                current_count += 1
+            else:
+                break
+        current_streak = {"type": "win" if current_type else "loss", "count": current_count}
+    else:
+        current_streak = {"type": "none", "count": 0}
+
+    # Last 5 and last 10
+    def form_stats(n):
+        recent = outcomes[-n:] if len(outcomes) >= n else outcomes
+        w = sum(recent)
+        l = len(recent) - w
+        return {"wins": w, "losses": l, "win_rate": round(w / len(recent), 3) if recent else 0}
+
+    last_5 = form_stats(5)
+    last_10 = form_stats(10)
+
+    # Best win streak and worst loss streak
+    best_win = worst_loss = 0
+    streak = 0
+    for o in outcomes:
+        if o:
+            streak += 1
+            best_win = max(best_win, streak)
+        else:
+            streak = 0
+    streak = 0
+    for o in outcomes:
+        if not o:
+            streak += 1
+            worst_loss = max(worst_loss, streak)
+        else:
+            streak = 0
+
+    # Trend: compare last 10 win rate to all-time
+    all_time_rate = sum(outcomes) / total if total > 0 else 0.5
+    recent_rate = last_10["win_rate"]
+    if recent_rate > all_time_rate + 0.05:
+        trend = "improving"
+    elif recent_rate < all_time_rate - 0.05:
+        trend = "declining"
+    else:
+        trend = "stable"
+
+    return {
+        "current_streak": current_streak,
+        "last_5": last_5,
+        "last_10": last_10,
+        "best_win_streak": best_win,
+        "worst_loss_streak": worst_loss,
+        "trend": trend,
+    }
 
 
 # =============================================================================

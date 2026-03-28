@@ -12,14 +12,14 @@
  */
 
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import useAuthStore from "../stores/authStore";
 import useRunStore from "../stores/runStore";
 import { getPlayer, updateMyProfile } from "../api/players";
 import { updatePlayerAdmin } from "../api/admin";
 import { getPlayerRatingSummary, getMyRatingForPlayer, ratePlayer } from "../api/ratings";
-import { getPlayerMatchups } from "../api/stats";
+import { getPlayerMatchups, getPlayerGameHistory, getPlayerForm } from "../api/stats";
 import AvatarPicker, { AvatarBadge } from "../components/AvatarPicker";
 import { getPlayerById } from "../data/legacyPlayers";
 
@@ -36,6 +36,10 @@ export default function PlayerProfilePage() {
   const [submitting, setSubmitting] = useState(false);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [matchups, setMatchups] = useState(null);
+  const [gameHistory, setGameHistory] = useState(null);
+  const [form, setForm] = useState(null);
+  const [showAllTeammates, setShowAllTeammates] = useState(false);
+  const [showAllOpponents, setShowAllOpponents] = useState(false);
   const updateUser = useAuthStore((s) => s.updateUser);
 
   const isOwnProfile = currentUser?.id === parseInt(id);
@@ -51,12 +55,16 @@ export default function PlayerProfilePage() {
       ];
       if (runId) {
         fetches.push(getPlayerMatchups(runId, id));
+        fetches.push(getPlayerGameHistory(runId, id));
+        fetches.push(getPlayerForm(runId, id));
       }
 
       const results = await Promise.allSettled(fetches);
       if (results[0].status === "fulfilled") setPlayer(results[0].value.data);
       if (results[1].status === "fulfilled") setSummary(results[1].value.data);
       if (results[2]?.status === "fulfilled") setMatchups(results[2].value.data);
+      if (results[3]?.status === "fulfilled") setGameHistory(results[3].value.data);
+      if (results[4]?.status === "fulfilled") setForm(results[4].value.data);
 
       if (!isOwnProfile) {
         const myRatingRes = await getMyRatingForPlayer(runId, id);
@@ -279,7 +287,7 @@ export default function PlayerProfilePage() {
               <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
                 <h3 className="text-xs font-bold text-green-500 uppercase tracking-wider mb-2">Best Teammates</h3>
                 <div className="space-y-2">
-                  {matchups.best_teammates.map((m) => (
+                  {(showAllTeammates ? matchups.best_teammates : matchups.best_teammates.slice(0, 5)).map((m) => (
                     <div key={m.player_id} className="flex items-center gap-2">
                       {m.avatar_url && <AvatarBadge avatarId={m.avatar_url} size="xs" />}
                       <span className="text-sm font-medium text-gray-800 dark:text-gray-200 flex-1">{m.full_name}</span>
@@ -288,13 +296,21 @@ export default function PlayerProfilePage() {
                     </div>
                   ))}
                 </div>
+                {matchups.best_teammates.length > 5 && (
+                  <button
+                    onClick={() => setShowAllTeammates(!showAllTeammates)}
+                    className="text-xs text-court-600 hover:text-court-700 mt-2 font-medium"
+                  >
+                    {showAllTeammates ? "Show less" : `Show all (${matchups.best_teammates.length})`}
+                  </button>
+                )}
               </div>
             )}
             {matchups.toughest_opponents?.length > 0 && (
               <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
                 <h3 className="text-xs font-bold text-red-500 uppercase tracking-wider mb-2">Toughest Opponents</h3>
                 <div className="space-y-2">
-                  {matchups.toughest_opponents.map((m) => (
+                  {(showAllOpponents ? matchups.toughest_opponents : matchups.toughest_opponents.slice(0, 5)).map((m) => (
                     <div key={m.player_id} className="flex items-center gap-2">
                       {m.avatar_url && <AvatarBadge avatarId={m.avatar_url} size="xs" />}
                       <span className="text-sm font-medium text-gray-800 dark:text-gray-200 flex-1">{m.full_name}</span>
@@ -303,9 +319,138 @@ export default function PlayerProfilePage() {
                     </div>
                   ))}
                 </div>
+                {matchups.toughest_opponents.length > 5 && (
+                  <button
+                    onClick={() => setShowAllOpponents(!showAllOpponents)}
+                    className="text-xs text-court-600 hover:text-court-700 mt-2 font-medium"
+                  >
+                    {showAllOpponents ? "Show less" : `Show all (${matchups.toughest_opponents.length})`}
+                  </button>
+                )}
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Current Form */}
+      {form && form.current_streak && (
+        <div className="card mb-6">
+          <h2 className="text-sm font-semibold text-court-600 uppercase tracking-wide mb-3">Current Form</h2>
+          <div className="flex flex-wrap items-center gap-4">
+            {/* Streak badge */}
+            {form.current_streak.count > 0 && (
+              <div className={`px-3 py-1 rounded-full text-sm font-bold ${
+                form.current_streak.type === "win"
+                  ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                  : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+              }`}>
+                {form.current_streak.type === "win" ? "🔥" : "❄️"} {form.current_streak.count}{form.current_streak.type === "win" ? "W" : "L"}
+              </div>
+            )}
+
+            {/* Last 5 */}
+            {form.last_5 && (
+              <div className="text-center">
+                <div className="text-sm font-bold text-gray-800 dark:text-gray-200">
+                  {form.last_5.wins}W-{form.last_5.losses}L
+                  <span className="text-xs text-gray-400 ml-1">({Math.round(form.last_5.win_rate * 100)}%)</span>
+                </div>
+                <div className="text-xs text-gray-400">Last 5</div>
+              </div>
+            )}
+
+            {/* Last 10 */}
+            {form.last_10 && (
+              <div className="text-center">
+                <div className="text-sm font-bold text-gray-800 dark:text-gray-200">
+                  {form.last_10.wins}W-{form.last_10.losses}L
+                  <span className="text-xs text-gray-400 ml-1">({Math.round(form.last_10.win_rate * 100)}%)</span>
+                </div>
+                <div className="text-xs text-gray-400">Last 10</div>
+              </div>
+            )}
+
+            {/* Best win streak */}
+            {form.best_win_streak !== undefined && (
+              <div className="text-center">
+                <div className="text-sm font-bold text-green-500">{form.best_win_streak}W</div>
+                <div className="text-xs text-gray-400">Best</div>
+              </div>
+            )}
+
+            {/* Worst loss streak */}
+            {form.worst_loss_streak !== undefined && (
+              <div className="text-center">
+                <div className="text-sm font-bold text-red-500">{form.worst_loss_streak}L</div>
+                <div className="text-xs text-gray-400">Worst</div>
+              </div>
+            )}
+
+            {/* Trend */}
+            {form.trend && (
+              <div className="text-center">
+                <div className={`text-lg font-bold ${
+                  form.trend === "improving" ? "text-green-500" :
+                  form.trend === "declining" ? "text-red-500" :
+                  "text-gray-400"
+                }`}>
+                  {form.trend === "improving" ? "\u2191" : form.trend === "declining" ? "\u2193" : "\u2192"}
+                </div>
+                <div className="text-xs text-gray-400">Trend</div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Game History */}
+      {gameHistory && (
+        <div className="card mb-6">
+          <h2 className="text-sm font-semibold text-court-600 uppercase tracking-wide mb-3">Game History</h2>
+          {gameHistory.length > 0 ? (
+            <div className="max-h-80 overflow-y-auto space-y-1">
+              {gameHistory.map((g) => {
+                const date = new Date(g.game_date);
+                const shortDate = date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+                return (
+                  <Link
+                    key={g.game_id}
+                    to={`/games/${g.game_id}`}
+                    className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  >
+                    <span className="text-xs text-gray-400 w-14 shrink-0">{shortDate}</span>
+                    <span className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate flex-1">
+                      {g.team_name}
+                    </span>
+                    <span className="text-xs text-gray-400 shrink-0">vs</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400 truncate flex-1">
+                      {g.opponent_team}
+                    </span>
+                    <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${
+                      g.won
+                        ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                        : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                    }`}>
+                      {g.won ? "W" : "L"}
+                    </span>
+                    {g.score && (
+                      <span className="text-xs text-gray-400 shrink-0">{g.score}</span>
+                    )}
+                    {g.awards?.length > 0 && (
+                      <span className="text-xs shrink-0">
+                        {g.awards.map((a) =>
+                          a === "mvp" ? "🏆" : a === "xfactor" ? "⚡" : a === "shaqtin" ? "🤦" : ""
+                        ).join("")}
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-400">No games played yet</p>
+          )}
         </div>
       )}
 
