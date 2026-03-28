@@ -11,7 +11,7 @@ import { moveTeamAssignment, removeTeamAssignment, addTeamAssignment } from "../
 import { listPlayers } from "../api/players";
 import { AvatarBadge } from "./AvatarPicker";
 
-function DraggableCard({ assignment, onRemove }) {
+function DraggableCard({ assignment, onRemove, otherTeams, onMoveTo }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `assignment-${assignment.id}`,
     data: { assignment },
@@ -31,7 +31,8 @@ function DraggableCard({ assignment, onRemove }) {
         isDragging ? "shadow-lg ring-2 ring-cyan-400" : ""
       }`}
     >
-      <div {...listeners} {...attributes} className="cursor-grab active:cursor-grabbing text-gray-500 hover:text-gray-300 touch-none">
+      {/* Drag handle — hidden on mobile */}
+      <div {...listeners} {...attributes} className="cursor-grab active:cursor-grabbing text-gray-500 hover:text-gray-300 touch-none hidden sm:block">
         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
           <path d="M7 2a2 2 0 10.001 4.001A2 2 0 007 2zm0 6a2 2 0 10.001 4.001A2 2 0 007 8zm0 6a2 2 0 10.001 4.001A2 2 0 007 14zm6-8a2 2 0 10-.001-4.001A2 2 0 0013 6zm0 2a2 2 0 10.001 4.001A2 2 0 0013 8zm0 6a2 2 0 10.001 4.001A2 2 0 0013 14z" />
         </svg>
@@ -49,9 +50,22 @@ function DraggableCard({ assignment, onRemove }) {
           {((player?.jordan_factor || 0.5) * 100).toFixed(0)}% W
         </p>
       </div>
+      {/* Mobile: move-to buttons */}
+      <div className="flex items-center gap-1 sm:hidden">
+        {otherTeams.map(([tid, tname], i) => (
+          <button
+            key={tid}
+            onClick={(e) => { e.stopPropagation(); onMoveTo(tid); }}
+            className="text-[9px] font-bold px-1.5 py-1 rounded bg-gray-700 hover:bg-gray-600 text-gray-300"
+            title={`Move to ${tname}`}
+          >
+            → {tname.split(" ")[0]}
+          </button>
+        ))}
+      </div>
       <button
         onClick={(e) => { e.stopPropagation(); onRemove(); }}
-        className="text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity p-1"
+        className="text-red-400 hover:text-red-300 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity p-1"
         title="Mark as no-show"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -346,7 +360,9 @@ export default function TeamEditor({ teams, runId, gameId, onSave, onCancel }) {
         </div>
 
         <p className="text-xs text-gray-500 mb-4">
-          Drag players between teams. Changes are saved when you click Save.
+          <span className="hidden sm:inline">Drag players between teams.</span>
+          <span className="sm:hidden">Tap the arrow buttons to move players.</span>
+          {" "}Changes are saved when you click Save.
         </p>
 
         {hasChanges && (
@@ -367,7 +383,11 @@ export default function TeamEditor({ teams, runId, gameId, onSave, onCancel }) {
           <div className={`grid grid-cols-1 ${
             teamEntries.length === 2 ? "lg:grid-cols-2" : "lg:grid-cols-3"
           } gap-4`}>
-            {teamEntries.map(([teamId, group], idx) => (
+            {teamEntries.map(([teamId, group], idx) => {
+              const otherTeams = teamEntries
+                .filter(([tid]) => tid !== teamId)
+                .map(([tid, g]) => [tid, g.name]);
+              return (
               <DroppableColumn
                 key={teamId}
                 teamId={teamId}
@@ -381,10 +401,34 @@ export default function TeamEditor({ teams, runId, gameId, onSave, onCancel }) {
                     key={assignment.id}
                     assignment={assignment}
                     onRemove={() => handleRemove(assignment)}
+                    otherTeams={otherTeams}
+                    onMoveTo={(targetTeam) => {
+                      // Reuse drag-end logic for mobile move
+                      setLocalTeams((prev) =>
+                        prev.map((t) =>
+                          t.id === assignment.id
+                            ? { ...t, team: targetTeam, team_name: teamStructure.current[targetTeam] || targetTeam }
+                            : t
+                        )
+                      );
+                      if (typeof assignment.id === "number") {
+                        const origTeam = originalTeamFor(assignment.id);
+                        if (origTeam === targetTeam) {
+                          setMovedPlayers((prev) => { const n = { ...prev }; delete n[assignment.id]; return n; });
+                        } else {
+                          setMovedPlayers((prev) => ({ ...prev, [assignment.id]: targetTeam }));
+                        }
+                      } else {
+                        setAddedPlayers((prev) =>
+                          prev.map((p) => p._tempId === assignment.id ? { ...p, team: targetTeam } : p)
+                        );
+                      }
+                    }}
                   />
                 ))}
               </DroppableColumn>
-            ))}
+              );
+            })}
           </div>
 
           <DragOverlay>
