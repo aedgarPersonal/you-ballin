@@ -20,6 +20,7 @@ export default function StatsPage() {
   const [stats, setStats] = useState(null);
   const [matchups, setMatchups] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [myForm, setMyForm] = useState(null);
   const [allPlayers, setAllPlayers] = useState([]);
   const [selectedPlayerId, setSelectedPlayerId] = useState(null);
   const [selectedPlayerName, setSelectedPlayerName] = useState(null);
@@ -66,6 +67,11 @@ export default function StatsPage() {
         ]);
         setStats(statsRes.data);
         setMatchups(matchupsRes.data);
+
+        // Fetch current user's form (for "Your Stats" streak display)
+        if (!selectedPlayerId && user?.id) {
+          getPlayerForm(runId, user.id).then(({ data }) => setMyForm(data)).catch(() => {});
+        }
       } catch {
         setStats(null);
       } finally {
@@ -132,7 +138,7 @@ export default function StatsPage() {
       {stats.personal && !selectedPlayerId && (
         <div className="card mb-6 border-2 border-court-300 dark:border-court-700">
           <h2 className="text-sm font-semibold text-court-600 uppercase tracking-wide mb-3">Your Stats</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-4">
             <div className="text-center">
               <div className="text-2xl font-bold text-court-600">
                 {(stats.personal.jordan_factor * 100).toFixed(0)}%
@@ -146,6 +152,31 @@ export default function StatsPage() {
               </div>
               <div className="text-xs text-gray-500 dark:text-gray-400">W-L Record</div>
             </div>
+            {/* Streak */}
+            <div className="text-center">
+              {myForm?.current_streak?.count > 0 ? (
+                <>
+                  <div className={`text-2xl font-bold ${myForm.current_streak.type === "win" ? "text-green-500" : "text-red-500"}`}>
+                    {myForm.current_streak.type === "win" ? "🔥" : "❄️"} {myForm.current_streak.count}{myForm.current_streak.type === "win" ? "W" : "L"}
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">Streak</div>
+                </>
+              ) : (
+                <>
+                  <div className="text-2xl font-bold text-gray-400">—</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">Streak</div>
+                </>
+              )}
+            </div>
+            {/* Last 5 */}
+            {myForm?.last_5 && (
+              <div className="text-center">
+                <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                  {myForm.last_5.wins}W-{myForm.last_5.losses}L
+                </div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">Last 5</div>
+              </div>
+            )}
             <div className="text-center">
               <div className="text-2xl font-bold text-yellow-600">
                 {stats.personal.mvp_count}
