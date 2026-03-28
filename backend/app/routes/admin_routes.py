@@ -618,6 +618,24 @@ async def quick_add_player(
     return user
 
 
+@run_admin_router.post("/players/{user_id}/reset-password")
+async def admin_reset_password(
+    run_id: int,
+    user_id: int,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(require_run_admin()),
+):
+    """Reset a player's password to 'Password123' (run admin only)."""
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="Player not found")
+
+    user.hashed_password = hash_password("Password123")
+    await db.flush()
+    return {"message": f"Password for {user.full_name} has been reset to default."}
+
+
 @run_admin_router.delete("/players/{user_id}", status_code=204)
 async def delete_player(
     run_id: int,

@@ -23,13 +23,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.jwt import (
     create_access_token,
     create_magic_link_token,
+    create_password_reset_token,
     verify_magic_link_token,
+    verify_password_reset_token,
 )
 from app.auth.password import hash_password, verify_password
+from app.config import settings
 from app.database import get_db
 from app.models.user import PlayerStatus, User, UserRole
 from app.schemas.user import (
+    ForgotPasswordRequest,
     MagicLinkRequest,
+    ResetPasswordSubmit,
     TokenResponse,
     UserLogin,
     UserRegister,
@@ -310,3 +315,48 @@ async def google_auth(google_token: dict, db: AsyncSession = Depends(get_db)):
         access_token=access_token,
         user=UserResponse.model_validate(user),
     )
+
+
+# =============================================================================
+# Password Reset
+# =============================================================================
+
+@router.post("/forgot-password")
+async def forgot_password(data: ForgotPasswordRequest, db: AsyncSession = Depends(get_db)):
+    """Request a password reset email. Always returns 200 to prevent email enumeration."""
+    result = await db.execute(select(User).where(User.email == data.email))
+    user = result.scalar_one_or_none()
+
+    if user and user.hashed_password:
+        token = create_password_reset_token(user.id)
+        reset_url = f"{settings.frontend_url}/reset-password?token={token}"
+
+        from app.services.notification_service import _send_email
+        await _send_email(
+            user.email,
+            "Reset Your Password — Game Runner",
+            f"Hi {user.full_name},\n\n"
+            f"Click the link below to reset your password:\n{reset_url}\n\n"
+            f"This link expires in 1 hour.\n\n"
+            f"If you didn't request this, you can safely ignore this email.",
+        )
+
+    return {"message": "If that email exists, a reset link has been sent."}
+
+
+@router.post("/reset-password")
+async def reset_password(data: ResetPasswordSubmit, db: AsyncSession = Depends(get_db)):
+    """Reset password using a valid reset token."""
+    user_id = verify_password_reset_token(data.token)
+    if user_id is None:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset link")
+
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset link")
+
+    user.hashed_password = hash_password(data.new_password)
+    await db.flush()
+
+    return {"message": "Password has been reset. You can now log in."}

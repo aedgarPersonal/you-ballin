@@ -100,6 +100,29 @@ def verify_magic_link_token(token: str) -> str | None:
         return None
 
 
+def create_password_reset_token(user_id: int) -> str:
+    """Create a token for password reset. Expires in 1 hour."""
+    now = datetime.now(timezone.utc)
+    payload = {
+        "sub": str(user_id),
+        "exp": now + timedelta(hours=1),
+        "iat": now,
+        "type": "password_reset",
+    }
+    return jwt.encode(payload, settings.secret_key, algorithm=settings.jwt_algorithm)
+
+
+def verify_password_reset_token(token: str) -> int | None:
+    """Verify a password reset token. Returns user_id or None."""
+    try:
+        payload = jwt.decode(token, settings.secret_key, algorithms=[settings.jwt_algorithm])
+        if payload.get("type") != "password_reset":
+            return None
+        return int(payload["sub"])
+    except (JWTError, ValueError):
+        return None
+
+
 def create_game_action_token(user_id: int, game_id: int, run_id: int) -> str:
     """Create a token for RSVP/voting without login. Expires in 7 days."""
     now = datetime.now(timezone.utc)

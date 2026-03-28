@@ -45,6 +45,22 @@ class MagicLinkRequest(BaseModel):
     email: EmailStr
 
 
+class ForgotPasswordRequest(BaseModel):
+    """Request a password reset email."""
+    email: EmailStr
+
+
+class ResetPasswordSubmit(BaseModel):
+    """Submit a new password with reset token."""
+    token: str
+    new_password: str = Field(min_length=8)
+
+
+class AdminResetPassword(BaseModel):
+    """Admin resets a player's password."""
+    new_password: str = Field(min_length=8, default="Password123")
+
+
 class TokenResponse(BaseModel):
     """JWT token returned after successful authentication."""
     access_token: str

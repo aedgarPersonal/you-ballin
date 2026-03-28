@@ -35,6 +35,7 @@ import {
   listInviteCodes,
   updateInviteCode,
 } from "../api/admin";
+import { adminResetPassword } from "../api/auth";
 import { createGame, generateSeasonGames, listGames, updateGame, cancelGame } from "../api/games";
 import {
   updateRun,
@@ -1148,7 +1149,23 @@ export default function AdminPage() {
                             </select>
                           </td>
                         )}
-                        <td className="py-2 px-2">
+                        <td className="py-2 px-2 flex items-center gap-2">
+                          {player.role !== "super_admin" && (
+                            <button
+                              onClick={async () => {
+                                try {
+                                  await adminResetPassword(runId, player.id);
+                                  toast.success("Password reset to default");
+                                } catch (err) {
+                                  toast.error(err.response?.data?.detail || "Failed to reset password");
+                                }
+                              }}
+                              className="text-xs text-yellow-500 hover:text-yellow-400"
+                              title={`Reset password for ${player.full_name}`}
+                            >
+                              🔑
+                            </button>
+                          )}
                           {player.role !== "super_admin" && (
                             <button
                               onClick={async () => {
