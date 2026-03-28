@@ -159,7 +159,17 @@ async def update_my_profile(
     user: User = Depends(get_current_user),
 ):
     """Update the current user's profile."""
-    for field, value in data.model_dump(exclude_unset=True).items():
+    update_fields = data.model_dump(exclude_unset=True)
+
+    # Check email uniqueness if changing email
+    if "email" in update_fields and update_fields["email"] != user.email:
+        existing = await db.execute(
+            select(User).where(User.email == update_fields["email"], User.id != user.id)
+        )
+        if existing.scalar_one_or_none():
+            raise HTTPException(status_code=409, detail="Email already in use")
+
+    for field, value in update_fields.items():
         setattr(user, field, value)
     await db.flush()
     return user

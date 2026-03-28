@@ -151,9 +151,47 @@ export default function PlayerProfilePage() {
             </button>
           )}
 
-          <div>
+          <div className="flex-1 min-w-0">
             <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{player.full_name}</h1>
             <p className="text-gray-500 dark:text-gray-400">@{player.username}</p>
+
+            {/* Editable email & phone for own profile */}
+            {isOwnProfile && (
+              <div className="flex flex-col sm:flex-row gap-2 mt-2">
+                <input
+                  type="email"
+                  defaultValue={player.email}
+                  placeholder="Email"
+                  onBlur={(e) => {
+                    const val = e.target.value.trim();
+                    if (val && val !== player.email) {
+                      updateMyProfile({ email: val })
+                        .then(() => { setPlayer({ ...player, email: val }); updateUser({ email: val }); toast.success("Email updated"); })
+                        .catch((err) => { e.target.value = player.email; toast.error(err.response?.data?.detail || "Failed to update email"); });
+                    }
+                  }}
+                  className="text-sm border border-transparent hover:border-gray-300 dark:hover:border-gray-600 rounded px-2 py-1 bg-transparent dark:text-gray-300 focus:border-court-500 focus:outline-none"
+                />
+                <input
+                  type="tel"
+                  defaultValue={player.phone || ""}
+                  placeholder="Phone (optional)"
+                  onBlur={(e) => {
+                    const val = e.target.value.trim() || null;
+                    if (val !== (player.phone || null)) {
+                      updateMyProfile({ phone: val })
+                        .then(() => { setPlayer({ ...player, phone: val }); updateUser({ phone: val }); toast.success("Phone updated"); })
+                        .catch(() => toast.error("Failed to update phone"));
+                    }
+                  }}
+                  className="text-sm border border-transparent hover:border-gray-300 dark:hover:border-gray-600 rounded px-2 py-1 bg-transparent dark:text-gray-300 focus:border-court-500 focus:outline-none"
+                />
+              </div>
+            )}
+            {!isOwnProfile && (
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{player.email}</p>
+            )}
+
             <div className="flex items-center gap-2 mt-2">
               {isAdmin ? (
                 <select

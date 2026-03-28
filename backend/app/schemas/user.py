@@ -75,6 +75,7 @@ class TokenResponse(BaseModel):
 class UserUpdate(BaseModel):
     """Fields a user can update about themselves."""
     full_name: str | None = None
+    email: EmailStr | None = None
     phone: str | None = None
     avatar_url: str | None = None
     height_inches: int | None = Field(None, ge=48, le=96)
