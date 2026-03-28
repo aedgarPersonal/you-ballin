@@ -96,6 +96,12 @@ class User(Base):
     shaqtin_count: Mapped[int] = mapped_column(Integer, default=0)    # Times won Shaqtin' a Fool
     xfactor_count: Mapped[int] = mapped_column(Integer, default=0)    # Times won X Factor award
 
+    @property
+    def player_rating(self) -> int:
+        """Computed 1-100 rating based on the team balancing composite score."""
+        from app.services.team_balancer import compute_player_rating
+        return compute_player_rating(self)
+
     # --- Timestamps ---
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())

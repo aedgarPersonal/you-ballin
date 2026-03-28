@@ -155,6 +155,7 @@ class UserResponse(BaseModel):
     shaqtin_count: int = 0
     xfactor_count: int = 0
     dropin_priority: int | None = None
+    player_rating: int = 50
     created_at: datetime
 
     model_config = {"from_attributes": True}

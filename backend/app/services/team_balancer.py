@@ -161,6 +161,19 @@ def compute_player_score(
     return PlayerScore(user=player, composite=composite, breakdown=factors)
 
 
+def compute_player_rating(player: User) -> int:
+    """Calculate a 1-100 player rating from the same composite used for team balancing.
+
+    Uses DEFAULT_WEIGHTS (no custom metrics) for consistency across views.
+    The raw composite (0.0-1.0) is scaled to 40-99 range to feel like
+    a realistic basketball rating (no one gets 100, no one gets below 40).
+    """
+    score = compute_player_score(player, DEFAULT_WEIGHTS)
+    # Scale 0.0-1.0 composite to 40-99 range
+    rating = int(40 + score.composite * 59)
+    return max(40, min(99, rating))
+
+
 # =============================================================================
 # Team Creation Algorithm
 # =============================================================================

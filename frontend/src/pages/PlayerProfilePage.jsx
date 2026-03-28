@@ -250,6 +250,7 @@ export default function PlayerProfilePage() {
         {isAdmin && <StatCard label="Overall" value={summary?.avg_overall?.toFixed(1)} max="5.0" highlight />}
         {isAdmin && <StatCard label="Athleticism" value={summary?.avg_athleticism?.toFixed(1)} max="5.0" />}
         {isAdmin && <StatCard label="Fitness" value={summary?.avg_fitness?.toFixed(1)} max="5.0" />}
+        <StatCard label="Rating" value={player?.player_rating || 50} highlight />
         <StatCard label="Win Rate" value={`${((summary?.jordan_factor || 0.5) * 100).toFixed(0)}%`} subtitle={`${summary?.games_won || 0}W - ${(summary?.games_played || 0) - (summary?.games_won || 0)}L`} />
         <StatCard label="Games" value={summary?.games_played || 0} subtitle={`${summary?.games_won || 0} wins`} />
       </div>
