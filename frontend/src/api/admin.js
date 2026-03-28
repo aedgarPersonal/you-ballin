@@ -33,7 +33,3 @@ export const deleteInviteCode = (runId, codeId) =>
 // --- Season Management ---
 export const resetSeason = (runId, label) =>
   api.post(`/runs/${runId}/admin/season-reset`, { label });
-export const listSeasons = (runId) =>
-  api.get(`/runs/${runId}/admin/seasons`);
-export const getSeasonDetail = (runId, seasonId) =>
-  api.get(`/runs/${runId}/admin/seasons/${seasonId}`);

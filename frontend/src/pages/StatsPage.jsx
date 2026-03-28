@@ -8,7 +8,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import useAuthStore from "../stores/authStore";
 import useRunStore from "../stores/runStore";
-import { getRunStats, getMyMatchups, getPlayerMatchups } from "../api/stats";
+import { getRunStats, getMyMatchups, getPlayerMatchups, listSeasons, getSeasonDetail } from "../api/stats";
 import { listPlayers } from "../api/players";
 import { AvatarBadge } from "../components/AvatarPicker";
 
@@ -23,6 +23,14 @@ export default function StatsPage() {
   const [allPlayers, setAllPlayers] = useState([]);
   const [selectedPlayerId, setSelectedPlayerId] = useState(null);
   const [selectedPlayerName, setSelectedPlayerName] = useState(null);
+  const [seasons, setSeasons] = useState([]);
+  const [selectedSeason, setSelectedSeason] = useState(null);
+
+  // Load seasons
+  useEffect(() => {
+    if (!runId) return;
+    listSeasons(runId).then(({ data }) => setSeasons(data)).catch(() => {});
+  }, [runId]);
 
   // Load player list for admin selector
   useEffect(() => {
@@ -322,6 +330,68 @@ export default function StatsPage() {
                   </div>
                 </div>
               </Link>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Season History */}
+      {seasons.length > 0 && (
+        <>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 mt-8">Past Seasons</h2>
+          <div className="space-y-3">
+            {seasons.map((season) => (
+              <button
+                key={season.id}
+                onClick={async () => {
+                  if (selectedSeason?.id === season.id) {
+                    setSelectedSeason(null);
+                    return;
+                  }
+                  try {
+                    const { data } = await getSeasonDetail(runId, season.id);
+                    setSelectedSeason(data);
+                  } catch { /* ignore */ }
+                }}
+                className="card block w-full text-left hover:shadow-md transition-shadow"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold text-gray-900 dark:text-gray-100">{season.label}</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      {season.total_games} games &middot; {season.total_players} players
+                    </p>
+                  </div>
+                  <span className="text-xs text-gray-400">{selectedSeason?.id === season.id ? "▼" : "▶"}</span>
+                </div>
+
+                {selectedSeason?.id === season.id && (
+                  <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+                    <div className="space-y-2">
+                      {selectedSeason.players.map((p, idx) => (
+                        <Link
+                          key={p.user_id}
+                          to={`/players/${p.user_id}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="flex items-center gap-3 hover:opacity-80"
+                        >
+                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black shrink-0 ${
+                            idx === 0 ? "bg-yellow-400 text-yellow-900" :
+                            idx === 1 ? "bg-gray-300 text-gray-700" :
+                            idx === 2 ? "bg-orange-300 text-orange-800" :
+                            "bg-gray-100 dark:bg-gray-700 text-gray-500"
+                          }`}>{idx + 1}</div>
+                          {p.avatar_url && <AvatarBadge avatarId={p.avatar_url} size="sm" />}
+                          <span className="text-sm font-medium flex-1 truncate">{p.full_name}</span>
+                          <span className="text-sm font-bold text-court-600">{(p.jordan_factor * 100).toFixed(0)}%</span>
+                          <span className="text-xs text-gray-400">{p.games_won}W-{p.games_played - p.games_won}L</span>
+                          {p.mvp_count > 0 && <span className="text-xs">🏆{p.mvp_count}</span>}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </button>
             ))}
           </div>
         </>
