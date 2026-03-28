@@ -404,6 +404,13 @@ async def update_game(
         game.commentary = None
         game.odds_line = None
 
+    # If moving backwards from teams_set, clear team assignments
+    if new_status and old_status == GameStatus.TEAMS_SET and GameStatus(new_status) in (
+        GameStatus.SCHEDULED, GameStatus.INVITES_SENT, GameStatus.DROPIN_OPEN,
+    ):
+        await db.execute(delete(TeamAssignment).where(TeamAssignment.game_id == game_id))
+        game.odds_line = None
+
     # Auto-promote waitlisted drop-ins when status changes to DROPIN_OPEN
     if new_status and new_status != old_status.value and GameStatus(new_status) == GameStatus.DROPIN_OPEN:
         from app.services.dropin_promotion import promote_waitlisted_dropins
