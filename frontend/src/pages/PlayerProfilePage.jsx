@@ -252,10 +252,17 @@ export default function PlayerProfilePage() {
       )}
 
       {/* Stats Summary Row (always visible above tabs) */}
-      <div className="grid gap-4 mb-6 grid-cols-1 md:grid-cols-3">
-        <StatCard label="Player Rating" value={player?.player_rating || 50} highlight />
-        <StatCard label="Win Rate" value={`${((summary?.jordan_factor || 0.5) * 100).toFixed(0)}%`} subtitle={`${summary?.games_won || 0}W - ${(summary?.games_played || 0) - (summary?.games_won || 0)}L`} />
+      <div className="grid gap-3 mb-6 grid-cols-3 md:grid-cols-6">
+        <StatCard label="Rating" value={player?.player_rating || 50} highlight />
+        <StatCard label="Win Rate" value={`${((summary?.jordan_factor || 0.5) * 100).toFixed(0)}%`} subtitle={`${summary?.games_won || 0}W-${(summary?.games_played || 0) - (summary?.games_won || 0)}L`} />
         <StatCard label="Games" value={summary?.games_played || 0} subtitle={`${summary?.games_won || 0} wins`} />
+        {(player?.mvp_count > 0 || player?.xfactor_count > 0 || player?.shaqtin_count > 0) && (
+          <>
+            {player.mvp_count > 0 && <StatCard label="MVP" value={`🏆 ${player.mvp_count}`} />}
+            {player.xfactor_count > 0 && <StatCard label="X Factor" value={`⚡ ${player.xfactor_count}`} />}
+            {player.shaqtin_count > 0 && <StatCard label="Shaqtin'" value={`🤦 ${player.shaqtin_count}`} />}
+          </>
+        )}
       </div>
 
       {/* Tab Bar */}
