@@ -22,7 +22,7 @@ from app.auth.dependencies import get_current_super_admin, get_current_user, req
 from app.auth.password import hash_password
 from app.database import get_db
 from app.models.notification import Notification, NotificationType
-from app.models.run import RunMembership, RunPlayerStats
+from app.models.run import Run, RunMembership, RunPlayerStats
 from app.models.user import PlayerStatus, User, UserRole
 from app.schemas.user import (
     AdminUserUpdate,

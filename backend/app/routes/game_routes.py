@@ -285,10 +285,18 @@ async def generate_season_games(
 
     # Get existing game dates for this run to skip duplicates
     existing_result = await db.execute(
-        select(sqlfunc.date_trunc("day", Game.game_date))
-        .where(Game.run_id == run_id)
+        select(Game.game_date).where(Game.run_id == run_id)
     )
-    existing_dates = {row[0].date() if hasattr(row[0], "date") else row[0] for row in existing_result.all()}
+    existing_dates = set()
+    for row in existing_result.all():
+        dt = row[0]
+        if hasattr(dt, "date"):
+            existing_dates.add(dt.date())
+        elif isinstance(dt, str):
+            from datetime import date as date_type
+            existing_dates.add(date_type.fromisoformat(dt[:10]))
+        else:
+            existing_dates.add(dt)
 
     # Iterate from start_date to end_date, finding every matching weekday
     current = run.start_date

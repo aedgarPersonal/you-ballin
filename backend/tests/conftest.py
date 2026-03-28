@@ -9,6 +9,7 @@ from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 
 from app.database import Base, get_db
+import app.models.season  # noqa: F401 — ensure season tables are registered
 from app.main import app
 
 
