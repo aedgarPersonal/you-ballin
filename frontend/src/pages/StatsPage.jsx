@@ -318,13 +318,25 @@ export default function StatsPage() {
                     </p>
                   </div>
                   <div className="flex items-center gap-4">
+                    {/* User's team + W/L */}
+                    {game.my_team && (
+                      <span className={`text-xs font-bold px-2 py-1 rounded ${
+                        game.my_won
+                          ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                          : game.my_won === false
+                          ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                          : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
+                      }`}>
+                        {game.my_team} {game.my_won ? "W" : game.my_won === false ? "L" : ""}
+                      </span>
+                    )}
                     {/* Scores */}
                     {game.team_scores.length > 0 && (
                       <div className="flex items-center gap-2">
                         {game.team_scores.map((ts, idx) => (
                           <span key={idx} className="flex items-center gap-1">
                             {idx > 0 && <span className="text-gray-400 dark:text-gray-500 font-bold">-</span>}
-                            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{ts.team_name}</span>
+                            <span className={`text-sm font-medium ${ts.team_name === game.my_team ? "text-white font-bold" : "text-gray-600 dark:text-gray-400"}`}>{ts.team_name}</span>
                             <span className="text-lg font-black text-court-600">{ts.wins}</span>
                           </span>
                         ))}

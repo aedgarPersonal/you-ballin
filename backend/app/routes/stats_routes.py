@@ -147,14 +147,35 @@ async def get_run_stats(
             vote_count=vote_count,
         )
 
+    # Get user's team assignments for recent games
+    user_assignments: dict[int, TeamAssignment] = {}
+    if game_ids:
+        ua_result = await db.execute(
+            select(TeamAssignment).where(
+                TeamAssignment.game_id.in_(game_ids),
+                TeamAssignment.user_id == user.id,
+            )
+        )
+        for a in ua_result.scalars().all():
+            user_assignments[a.game_id] = a
+
     recent_games = []
     for game in recent_games_rows:
         scores = []
+        winning_team = None
         if game.result and game.result.team_scores:
+            sorted_scores = sorted(game.result.team_scores, key=lambda t: t.wins, reverse=True)
             scores = [
                 TeamScoreInfo(team_name=ts.team_name or ts.team, wins=ts.wins)
-                for ts in sorted(game.result.team_scores, key=lambda t: t.wins, reverse=True)
+                for ts in sorted_scores
             ]
+            if sorted_scores and sorted_scores[0].wins > 0:
+                winning_team = sorted_scores[0].team
+
+        # User's team info
+        my_assignment = user_assignments.get(game.id)
+        my_team = my_assignment.team_name if my_assignment else None
+        my_won = (my_assignment.team == winning_team) if my_assignment and winning_team else None
 
         gv = game_vote_map.get(game.id, {})
         recent_games.append(
@@ -165,6 +186,8 @@ async def get_run_stats(
                 team_scores=scores,
                 mvp=get_winner(gv.get("mvp", [])),
                 shaqtin=get_winner(gv.get("shaqtin", [])),
+                my_team=my_team,
+                my_won=my_won,
             )
         )
 

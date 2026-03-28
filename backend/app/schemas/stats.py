@@ -50,6 +50,8 @@ class RecentGameSummary(BaseModel):
     team_scores: list[TeamScoreInfo]
     mvp: AwardWinnerInfo | None = None
     shaqtin: AwardWinnerInfo | None = None
+    my_team: str | None = None
+    my_won: bool | None = None
 
 
 class PersonalStats(BaseModel):
