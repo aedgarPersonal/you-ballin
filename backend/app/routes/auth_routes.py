@@ -20,6 +20,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.dependencies import get_current_user
 from app.auth.jwt import (
     create_access_token,
     create_magic_link_token,
@@ -313,6 +314,25 @@ async def google_auth(google_token: dict, db: AsyncSession = Depends(get_db)):
     access_token = create_access_token(user.id)
     return TokenResponse(
         access_token=access_token,
+        user=UserResponse.model_validate(user),
+    )
+
+
+# =============================================================================
+# Token Refresh
+# =============================================================================
+
+@router.post("/refresh", response_model=TokenResponse)
+async def refresh_token(user: User = Depends(get_current_user)):
+    """Issue a fresh access token for an already-authenticated user.
+
+    The client calls this on app startup so that active users are silently
+    re-issued a full-duration token, keeping them logged in indefinitely
+    as long as they use the app within the token's lifetime.
+    """
+    token = create_access_token(user.id)
+    return TokenResponse(
+        access_token=token,
         user=UserResponse.model_validate(user),
     )
 

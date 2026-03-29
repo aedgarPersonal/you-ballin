@@ -8,6 +8,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import { forgotPassword } from "../api/auth";
+import Logo from "../components/layout/Logo";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -28,23 +29,18 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div
-      className="min-h-screen flex items-center justify-center px-4 relative"
-      style={{
-        backgroundImage: "url(/logo.png)",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-      }}
-    >
-      {/* Dark overlay for readability */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+    <div className="min-h-screen flex items-center justify-center px-4 relative bg-gradient-to-br from-gray-900 via-gray-800 to-court-900">
+      {/* Decorative background elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-96 h-96 bg-court-500/10 rounded-full blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-court-600/10 rounded-full blur-3xl" />
+      </div>
 
       <div className="w-full max-w-md relative z-10">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-white mt-4 drop-shadow-lg">You Ballin</h1>
-          <p className="text-gray-200 mt-2 drop-shadow">Reset your password</p>
+        <div className="flex flex-col items-center mb-8">
+          <Logo size="lg" className="[&_span]:text-white [&_span]:from-court-300 [&_span]:via-court-400 [&_span]:to-court-500" />
+          <p className="text-gray-400 mt-3">Reset your password</p>
         </div>
 
         {/* Card */}

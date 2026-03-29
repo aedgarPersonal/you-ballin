@@ -14,8 +14,9 @@
  */
 
 import { create } from "zustand";
+import { refreshToken as refreshTokenApi } from "../api/auth";
 
-const useAuthStore = create((set) => ({
+const useAuthStore = create((set, get) => ({
   // State
   user: JSON.parse(localStorage.getItem("user") || "null"),
   token: localStorage.getItem("token") || null,
@@ -38,6 +39,24 @@ const useAuthStore = create((set) => ({
     const updated = { ...JSON.parse(localStorage.getItem("user") || "{}"), ...userData };
     localStorage.setItem("user", JSON.stringify(updated));
     set({ user: updated });
+  },
+
+  /**
+   * Silently refresh the token on app startup.
+   * If the current token is still valid, the server issues a fresh one
+   * with a full 30-day lifetime, keeping the user logged in indefinitely.
+   * If the token has expired, the 401 interceptor handles logout.
+   */
+  refreshSession: async () => {
+    if (!get().isAuthenticated) return;
+    try {
+      const { data } = await refreshTokenApi();
+      localStorage.setItem("token", data.access_token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+      set({ token: data.access_token, user: data.user });
+    } catch {
+      // Token invalid/expired — the 401 interceptor will handle logout
+    }
   },
 }));
 

@@ -11,6 +11,7 @@ import { registerUser, validateInviteCode } from "../api/auth";
 import useAuthStore from "../stores/authStore";
 import AvatarPicker, { AvatarBadge } from "../components/AvatarPicker";
 import { getPlayerById } from "../data/legacyPlayers";
+import Logo from "../components/layout/Logo";
 
 export default function RegisterPage() {
   const [searchParams] = useSearchParams();
@@ -90,7 +91,7 @@ export default function RegisterPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-court-50 to-orange-100 dark:from-gray-900 dark:to-gray-800 px-4">
         <div className="w-full max-w-md text-center">
-          <img src="/logo.png" alt="Game Runner" className="h-24 mx-auto rounded-lg" />
+          <div className="flex justify-center"><Logo size="lg" /></div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-6">Invite Only</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-3">
             Registration is by invite only. If you've received an invite link, please use it to sign up.
@@ -108,7 +109,7 @@ export default function RegisterPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-court-50 to-orange-100 dark:from-gray-900 dark:to-gray-800 px-4">
         <div className="w-full max-w-md text-center">
-          <img src="/logo.png" alt="Game Runner" className="h-24 mx-auto rounded-lg" />
+          <div className="flex justify-center"><Logo size="lg" /></div>
           <h1 className="text-2xl font-bold text-red-600 mt-6">Invalid Invite</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-3">
             {codeMessage || "This invite link is invalid or has expired."}
@@ -135,7 +136,7 @@ export default function RegisterPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-court-50 to-orange-100 dark:from-gray-900 dark:to-gray-800 px-4 py-8">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <img src="/logo.png" alt="Game Runner" className="h-24 mx-auto rounded-lg" />
+          <div className="flex justify-center"><Logo size="lg" /></div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mt-4">Join the Game</h1>
           {runName && (
             <div className="mt-3 inline-block bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 text-sm font-medium px-4 py-1.5 rounded-full">

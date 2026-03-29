@@ -10,6 +10,7 @@
  *   for the admin role.
  */
 
+import { useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import useAuthStore from "./stores/authStore";
 import useRunStore from "./stores/runStore";
@@ -17,6 +18,7 @@ import useRunStore from "./stores/runStore";
 // Layout
 import Navbar from "./components/layout/Navbar";
 import PushPrompt from "./components/PushPrompt";
+import { InstallBanner } from "./components/InstallPrompt";
 
 // Pages
 import LoginPage from "./pages/LoginPage";
@@ -49,12 +51,19 @@ function AdminRoute({ children }) {
 
 export default function App() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const refreshSession = useAuthStore((s) => s.refreshSession);
+
+  // Silently refresh the token on app startup so active users stay logged in
+  useEffect(() => {
+    refreshSession();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {isAuthenticated && <Navbar />}
       {isAuthenticated && <PushPrompt />}
-      <main className={isAuthenticated ? "pt-16" : ""}>
+      {isAuthenticated && <InstallBanner />}
+      <main className={isAuthenticated ? "pt-[68px]" : ""}>
         <Routes>
           {/* Public routes */}
           <Route path="/login" element={<LoginPage />} />
