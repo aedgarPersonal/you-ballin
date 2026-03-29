@@ -194,7 +194,7 @@ async def migrate():
         # Step 4g: Create RunPlayerStats for all active users
         stats_created = 0
         result = await db.execute(text("""
-            SELECT id, games_played, games_won, jordan_factor,
+            SELECT id, games_played, games_won, win_rate,
                    avg_offense, avg_defense, avg_overall,
                    mvp_count, shaqtin_count, xfactor_count
             FROM users WHERE is_active = 1
@@ -212,7 +212,7 @@ async def migrate():
 
             await db.execute(text("""
                 INSERT INTO run_player_stats (run_id, user_id, games_played, games_won,
-                                              jordan_factor, avg_offense, avg_defense,
+                                              win_rate, avg_offense, avg_defense,
                                               avg_overall, mvp_count, shaqtin_count, xfactor_count)
                 VALUES (:run_id, :user_id, :gp, :gw, :jf, :ao, :ad, :aov, :mvp, :shaq, :xf)
             """), {

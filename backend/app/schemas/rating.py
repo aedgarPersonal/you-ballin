@@ -42,7 +42,7 @@ class PlayerRatingSummary(BaseModel):
     avg_athleticism: float
     avg_fitness: float
     total_ratings: int
-    jordan_factor: float
+    win_rate: float
     games_played: int
     games_won: int
 

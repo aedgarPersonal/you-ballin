@@ -113,13 +113,13 @@ async def seed():
             user = existing.scalar_one_or_none()
 
             games_played = entry["wins"] + entry["losses"]
-            jordan_factor = entry["wins"] / games_played if games_played > 0 else 0.5
+            win_rate = entry["wins"] / games_played if games_played > 0 else 0.5
 
             if user:
                 # Update existing user's stats
                 user.games_played = games_played
                 user.games_won = entry["wins"]
-                user.jordan_factor = jordan_factor
+                user.win_rate = win_rate
                 print(f"  Updated existing user: {name} (@{username})")
             else:
                 # Pick a random avatar
@@ -140,7 +140,7 @@ async def seed():
                     is_active=True,
                     games_played=games_played,
                     games_won=entry["wins"],
-                    jordan_factor=jordan_factor,
+                    win_rate=win_rate,
                 )
                 session.add(user)
                 await session.flush()
@@ -159,7 +159,7 @@ async def seed():
                 user_id=user.id,
                 games_played=games_played,
                 games_won=entry["wins"],
-                jordan_factor=jordan_factor,
+                win_rate=win_rate,
             ))
 
             if name.lower() == "carey":

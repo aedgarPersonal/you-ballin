@@ -24,7 +24,7 @@ class LeaderboardEntry(BaseModel):
 
 
 class Leaderboards(BaseModel):
-    jordan_factor: list[LeaderboardEntry]
+    win_rate: list[LeaderboardEntry]
     mvp_leaders: list[LeaderboardEntry]
     xfactor_leaders: list[LeaderboardEntry]
     shaqtin_leaders: list[LeaderboardEntry]
@@ -57,8 +57,8 @@ class RecentGameSummary(BaseModel):
 class PersonalStats(BaseModel):
     games_played: int
     games_won: int
-    jordan_factor: float
-    jordan_factor_rank: int
+    win_rate: float
+    win_rate_rank: int
     mvp_count: int
     xfactor_count: int
     shaqtin_count: int

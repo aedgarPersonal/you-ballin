@@ -148,7 +148,7 @@ class UserResponse(BaseModel):
     avg_overall: float
     avg_athleticism: float
     avg_fitness: float
-    jordan_factor: float
+    win_rate: float
     games_played: int
     games_won: int
     mvp_count: int = 0

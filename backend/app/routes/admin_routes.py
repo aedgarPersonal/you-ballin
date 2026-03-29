@@ -370,7 +370,7 @@ async def update_run_player(
             user.games_played = update_data.pop("games_played")
         if "games_won" in update_data:
             user.games_won = update_data.pop("games_won")
-        user.jordan_factor = user.games_won / user.games_played if user.games_played > 0 else 0.5
+        user.win_rate = user.games_won / user.games_played if user.games_played > 0 else 0.5
         stats_changed = True
 
         # Also update RunPlayerStats for this run
@@ -384,7 +384,7 @@ async def update_run_player(
         if rps:
             rps.games_played = user.games_played
             rps.games_won = user.games_won
-            rps.jordan_factor = user.jordan_factor
+            rps.win_rate = user.win_rate
 
     # Notify the player if their run membership status changed
     if membership.player_status != old_status:
@@ -485,7 +485,7 @@ async def import_players(
 
         # Calculate Win Rate from win/loss record
         games_played = entry.wins + entry.losses
-        jordan_factor = entry.wins / games_played if games_played > 0 else 0.5
+        win_rate = entry.wins / games_played if games_played > 0 else 0.5
 
         user = User(
             email=email,
@@ -498,7 +498,7 @@ async def import_players(
             is_active=True,
             games_played=games_played,
             games_won=entry.wins,
-            jordan_factor=jordan_factor,
+            win_rate=win_rate,
             height_inches=entry.height_inches,
             age=entry.age,
             avg_scoring=entry.avg_scoring,
@@ -523,7 +523,7 @@ async def import_players(
             user_id=user.id,
             games_played=games_played,
             games_won=entry.wins,
-            jordan_factor=jordan_factor,
+            win_rate=win_rate,
         ))
 
         created.append(name)
@@ -575,7 +575,7 @@ async def quick_add_player(
     avatar = random.choice(available)
 
     games_played = data.wins + data.losses
-    jordan_factor = data.wins / games_played if games_played > 0 else 0.5
+    win_rate = data.wins / games_played if games_played > 0 else 0.5
 
     user = User(
         email=email,
@@ -589,7 +589,7 @@ async def quick_add_player(
         is_active=True,
         games_played=games_played,
         games_won=data.wins,
-        jordan_factor=jordan_factor,
+        win_rate=win_rate,
         height_inches=data.height_inches,
         age=data.age,
         avg_scoring=data.avg_scoring,
@@ -611,7 +611,7 @@ async def quick_add_player(
         user_id=user.id,
         games_played=games_played,
         games_won=data.wins,
-        jordan_factor=jordan_factor,
+        win_rate=win_rate,
     ))
 
     await db.flush()
@@ -754,7 +754,7 @@ async def reset_season(
             user_id=stats.user_id,
             games_played=stats.games_played,
             games_won=stats.games_won,
-            jordan_factor=stats.jordan_factor,
+            win_rate=stats.win_rate,
             avg_scoring=stats.avg_scoring,
             avg_defense=stats.avg_defense,
             avg_overall=stats.avg_overall,
@@ -770,7 +770,7 @@ async def reset_season(
     for stats in all_stats:
         stats.games_played = 0
         stats.games_won = 0
-        stats.jordan_factor = 0.5
+        stats.win_rate = 0.5
         stats.mvp_count = 0
         stats.shaqtin_count = 0
         stats.xfactor_count = 0
@@ -782,7 +782,7 @@ async def reset_season(
         for user in users_result.scalars().all():
             user.games_played = 0
             user.games_won = 0
-            user.jordan_factor = 0.5
+            user.win_rate = 0.5
             user.mvp_count = 0
             user.shaqtin_count = 0
             user.xfactor_count = 0

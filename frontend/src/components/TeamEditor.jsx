@@ -47,7 +47,7 @@ function DraggableCard({ assignment, onRemove, otherTeams, onMoveTo }) {
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-white truncate">{player?.full_name}</p>
         <p className="text-[10px] text-gray-400">
-          {((player?.jordan_factor || 0.5) * 100).toFixed(0)}% W
+          {((player?.win_rate || 0.5) * 100).toFixed(0)}% W
         </p>
       </div>
       {/* Mobile: move-to buttons */}

@@ -254,7 +254,7 @@ export default function PlayerProfilePage() {
       {/* Stats Summary Row (always visible above tabs) */}
       <div className="grid gap-3 mb-6 grid-cols-3 md:grid-cols-6">
         <StatCard label="Rating" value={player?.player_rating || 50} highlight />
-        <StatCard label="Win Rate" value={`${((summary?.jordan_factor || 0.5) * 100).toFixed(0)}%`} subtitle={`${summary?.games_won || 0}W-${(summary?.games_played || 0) - (summary?.games_won || 0)}L`} />
+        <StatCard label="Win Rate" value={`${((summary?.win_rate || 0.5) * 100).toFixed(0)}%`} subtitle={`${summary?.games_won || 0}W-${(summary?.games_played || 0) - (summary?.games_won || 0)}L`} />
         <StatCard label="Games" value={summary?.games_played || 0} subtitle={`${summary?.games_won || 0} wins`} />
         {(player?.mvp_count > 0 || player?.xfactor_count > 0 || player?.shaqtin_count > 0) && (
           <>
@@ -514,7 +514,7 @@ export default function PlayerProfilePage() {
               </h2>
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-4">
                 <div className="text-center">
-                  <div className="text-2xl font-black text-court-600">{((player.jordan_factor || 0.5) * 100).toFixed(0)}%</div>
+                  <div className="text-2xl font-black text-court-600">{((player.win_rate || 0.5) * 100).toFixed(0)}%</div>
                   <div className="text-xs text-gray-400">Win Rate</div>
                 </div>
                 <div className="text-center">

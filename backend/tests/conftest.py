@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, Asyn
 
 from app.database import Base, get_db
 import app.models.season  # noqa: F401 — ensure season tables are registered
+import app.models.rating  # noqa: F401 — ensure rating tables are registered
 from app.main import app
 
 

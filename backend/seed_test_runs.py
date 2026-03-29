@@ -98,7 +98,7 @@ async def seed():
                 is_active=True,
                 games_played=gp,
                 games_won=wins,
-                jordan_factor=jf,
+                win_rate=jf,
             )
             db.add(user)
             new_players.append(user)
@@ -194,7 +194,7 @@ async def seed():
                 user_id=player.id,
                 games_played=player.games_played,
                 games_won=player.games_won,
-                jordan_factor=player.jordan_factor,
+                win_rate=player.win_rate,
             ))
             wed_memberships_created += 1
         print(f"[OK] Created {wed_memberships_created} memberships for Wednesday Warriors")
@@ -230,7 +230,7 @@ async def seed():
                 user_id=player.id,
                 games_played=player.games_played,
                 games_won=player.games_won,
-                jordan_factor=player.jordan_factor,
+                win_rate=player.win_rate,
             ))
             sun_memberships_created += 1
         print(f"[OK] Created {sun_memberships_created} memberships for Sunday Funday")

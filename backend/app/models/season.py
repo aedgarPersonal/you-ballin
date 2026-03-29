@@ -43,7 +43,7 @@ class SeasonPlayerSnapshot(Base):
 
     games_played: Mapped[int] = mapped_column(Integer, default=0)
     games_won: Mapped[int] = mapped_column(Integer, default=0)
-    jordan_factor: Mapped[float] = mapped_column(Float, default=0.5)
+    win_rate: Mapped[float] = mapped_column(Float, default=0.5)
     avg_scoring: Mapped[float] = mapped_column(Float, default=3.0)
     avg_defense: Mapped[float] = mapped_column(Float, default=3.0)
     avg_overall: Mapped[float] = mapped_column(Float, default=3.0)

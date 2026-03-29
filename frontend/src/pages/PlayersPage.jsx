@@ -19,7 +19,7 @@ import toast from "react-hot-toast";
 const SORT_OPTIONS = [
   { value: "name", label: "Name" },
   { value: "player_rating", label: "Player Rating" },
-  { value: "jordan_factor", label: "Win Rate" },
+  { value: "win_rate", label: "Win Rate" },
   { value: "games_won", label: "Total Wins" },
   { value: "games_played", label: "Games Played" },
   { value: "mvp_count", label: "MVP Awards" },
@@ -75,7 +75,7 @@ export default function PlayersPage() {
   const isAdmin = currentUser?.role === "super_admin" || isRunAdmin;
   const [players, setPlayers] = useState([]);
   const [search, setSearch] = useState("");
-  const [sortBy, setSortBy] = useState("jordan_factor");
+  const [sortBy, setSortBy] = useState("win_rate");
   const [loading, setLoading] = useState(true);
   const [customMetrics, setCustomMetrics] = useState([]);
   const [playerMetricsMap, setPlayerMetricsMap] = useState({});
@@ -631,7 +631,7 @@ export default function PlayersPage() {
                     <div className="text-xs text-gray-400 dark:text-gray-500">RTG</div>
                   </div>
                   <div>
-                    <div className="text-sm font-bold text-court-600">{((player.jordan_factor || 0.5) * 100).toFixed(0)}%</div>
+                    <div className="text-sm font-bold text-court-600">{((player.win_rate || 0.5) * 100).toFixed(0)}%</div>
                     <div className="text-xs text-gray-400 dark:text-gray-500">WIN</div>
                   </div>
                   <div>

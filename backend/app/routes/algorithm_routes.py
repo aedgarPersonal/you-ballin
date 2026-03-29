@@ -44,7 +44,7 @@ router = APIRouter(prefix="/api/runs/{run_id}/algorithm", tags=["Algorithm Confi
 # Default weights used when no database entries exist
 DEFAULT_WEIGHTS = {
     "overall": 0.35,
-    "jordan_factor": 0.20,
+    "win_rate": 0.20,
     "scoring": 0.15,
     "defense": 0.15,
     "athleticism": 0.05,
@@ -55,7 +55,7 @@ DEFAULT_WEIGHTS = {
 
 BUILTIN_METRIC_LABELS = {
     "overall": "Overall Rating",
-    "jordan_factor": "Win Rate",
+    "win_rate": "Win Rate",
     "scoring": "Scoring",
     "defense": "Defense",
     "athleticism": "Athleticism",

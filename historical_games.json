@@ -1,0 +1,347 @@
+[
+  {
+    "winners": [
+      24,
+      1,
+      25,
+      30,
+      23,
+      26,
+      28,
+      32
+    ],
+    "losers": [
+      27,
+      29,
+      22,
+      31,
+      33
+    ],
+    "winner_score": 3,
+    "loser_score": 2
+  },
+  {
+    "winners": [
+      30,
+      27,
+      22
+    ],
+    "losers": [
+      24,
+      28,
+      25,
+      29,
+      32,
+      26,
+      31
+    ],
+    "winner_score": 3,
+    "loser_score": 2
+  },
+  {
+    "winners": [
+      23,
+      32,
+      33,
+      30,
+      29,
+      22,
+      26,
+      31
+    ],
+    "losers": [
+      34,
+      1,
+      28,
+      27,
+      24
+    ],
+    "winner_score": 3,
+    "loser_score": 2
+  },
+  {
+    "winners": [
+      28,
+      34,
+      23,
+      22,
+      1,
+      25
+    ],
+    "losers": [
+      26,
+      38,
+      31,
+      29,
+      32,
+      24,
+      30,
+      33
+    ],
+    "winner_score": 3,
+    "loser_score": 2
+  },
+  {
+    "winners": [
+      24,
+      27,
+      1,
+      25,
+      37
+    ],
+    "losers": [
+      22,
+      35,
+      23,
+      36,
+      26
+    ],
+    "winner_score": 3,
+    "loser_score": 2
+  },
+  {
+    "winners": [
+      33,
+      27,
+      34,
+      28,
+      30
+    ],
+    "losers": [
+      32,
+      38,
+      35,
+      25,
+      31,
+      29
+    ],
+    "winner_score": 3,
+    "loser_score": 2
+  },
+  {
+    "winners": [
+      22,
+      36,
+      30
+    ],
+    "losers": [
+      29,
+      26,
+      1,
+      28,
+      23,
+      24,
+      37,
+      39
+    ],
+    "winner_score": 3,
+    "loser_score": 2
+  },
+  {
+    "winners": [
+      25,
+      32,
+      31,
+      34,
+      38,
+      37
+    ],
+    "losers": [
+      1,
+      27,
+      35,
+      33
+    ],
+    "winner_score": 3,
+    "loser_score": 2
+  },
+  {
+    "winners": [
+      22,
+      23,
+      24,
+      28,
+      29,
+      36
+    ],
+    "losers": [
+      32,
+      39,
+      30,
+      26,
+      31
+    ],
+    "winner_score": 3,
+    "loser_score": 0
+  },
+  {
+    "winners": [
+      35,
+      34,
+      23,
+      22,
+      33,
+      39,
+      24
+    ],
+    "losers": [
+      38,
+      27,
+      40,
+      36
+    ],
+    "winner_score": 3,
+    "loser_score": 0
+  },
+  {
+    "winners": [
+      26,
+      38,
+      40,
+      37,
+      25
+    ],
+    "losers": [
+      34,
+      29,
+      32,
+      30,
+      31,
+      28
+    ],
+    "winner_score": 3,
+    "loser_score": 0
+  },
+  {
+    "winners": [
+      39,
+      35,
+      27,
+      36,
+      26,
+      23,
+      22
+    ],
+    "losers": [
+      24,
+      33,
+      1,
+      25
+    ],
+    "winner_score": 1,
+    "loser_score": 0
+  },
+  {
+    "winners": [
+      31,
+      29,
+      35,
+      32,
+      27,
+      36
+    ],
+    "losers": [
+      28,
+      34,
+      1,
+      30,
+      37,
+      33
+    ],
+    "winner_score": 2,
+    "loser_score": 0
+  },
+  {
+    "winners": [
+      23,
+      38,
+      26,
+      22,
+      27,
+      29,
+      25,
+      24,
+      28
+    ],
+    "losers": [
+      39,
+      1,
+      40,
+      33,
+      30
+    ],
+    "winner_score": 1,
+    "loser_score": 0
+  },
+  {
+    "winners": [
+      22,
+      33,
+      31,
+      26,
+      39,
+      25,
+      24,
+      23
+    ],
+    "losers": [
+      1,
+      38,
+      32,
+      40
+    ],
+    "winner_score": 1,
+    "loser_score": 0
+  },
+  {
+    "winners": [
+      22,
+      23,
+      24,
+      36,
+      39,
+      35
+    ],
+    "losers": [
+      40,
+      38,
+      37,
+      34
+    ],
+    "winner_score": 1,
+    "loser_score": 0
+  },
+  {
+    "winners": [
+      31,
+      28,
+      25,
+      27,
+      30,
+      26
+    ],
+    "losers": [
+      1,
+      33,
+      32,
+      29
+    ],
+    "winner_score": 1,
+    "loser_score": 0
+  },
+  {
+    "winners": [
+      36,
+      39,
+      35
+    ],
+    "losers": [
+      37,
+      40,
+      34,
+      38
+    ],
+    "winner_score": 1,
+    "loser_score": 0
+  }
+]

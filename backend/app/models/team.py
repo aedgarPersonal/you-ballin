@@ -9,7 +9,7 @@ TEACHING NOTE:
     Each team gets a random fun basketball-themed name.
 
     After the game, an admin records the scores for each team (e.g.,
-    Team A won 3 games, Team B won 2). This feeds into the `jordan_factor`
+    Team A won 3 games, Team B won 2). This feeds into the `win_rate`
     (Win Rate) on the User model, which tracks each player's historical win
     percentage (games_won / games_played). Win Rate is used by the team
     balancing algorithm to create fair teams.

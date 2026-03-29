@@ -117,7 +117,7 @@ class RunPlayerStatsResponse(BaseModel):
     user_id: int
     games_played: int
     games_won: int
-    jordan_factor: float
+    win_rate: float
     avg_scoring: float
     avg_defense: float
     avg_overall: float

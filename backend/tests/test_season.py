@@ -176,7 +176,7 @@ async def test_season_detail(client):
     player = data["players"][0]
     assert "user_id" in player
     assert "games_played" in player
-    assert "jordan_factor" in player
+    assert "win_rate" in player
 
 
 @pytest.mark.asyncio

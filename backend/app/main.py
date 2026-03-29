@@ -22,6 +22,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.database import init_db
+import app.models.rating  # noqa: F401 — ensure model is registered even without routes
 from app.routes import (
     admin_routes,
     algorithm_routes,
@@ -32,7 +33,6 @@ from app.routes import (
     notification_routes,
     player_routes,
     push_routes,
-    rating_routes,
     run_routes,
     stats_routes,
     vote_routes,
@@ -108,7 +108,6 @@ app.include_router(run_routes.router)
 app.include_router(player_routes.router)
 app.include_router(player_routes.run_players_router)
 app.include_router(game_routes.router)
-app.include_router(rating_routes.router)
 app.include_router(admin_routes.router)
 app.include_router(admin_routes.run_admin_router)
 app.include_router(notification_routes.router)

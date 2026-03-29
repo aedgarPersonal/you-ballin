@@ -45,7 +45,7 @@ from app.models.user import User
 
 DEFAULT_WEIGHTS = {
     "overall": 0.35,         # Peer-rated overall skill (highest weight)
-    "jordan_factor": 0.20,   # Historical win percentage (Win Rate)
+    "win_rate": 0.20,   # Historical win percentage (Win Rate)
     "scoring": 0.15,         # Peer-rated scoring ability
     "defense": 0.15,         # Peer-rated defensive skill
     "athleticism": 0.05,     # Peer-rated athleticism
@@ -137,7 +137,7 @@ def compute_player_score(
     # Calculate built-in factors (normalized to 0.0-1.0)
     factors = {
         "overall": normalize(player.avg_overall or 3.0, 1.0, 5.0),
-        "jordan_factor": player.jordan_factor if player.jordan_factor is not None else 0.5,
+        "win_rate": player.win_rate if player.win_rate is not None else 0.5,
         "scoring": normalize(player.avg_scoring or 3.0, 1.0, 5.0),
         "defense": normalize(player.avg_defense or 3.0, 1.0, 5.0),
         "athleticism": normalize(player.avg_athleticism or 3.0, 1.0, 5.0),

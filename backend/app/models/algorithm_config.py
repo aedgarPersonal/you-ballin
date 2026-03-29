@@ -9,7 +9,7 @@ TEACHING NOTE:
 
     1. AlgorithmWeight: Stores the weight (0.0-1.0) for each metric used
        in team balancing. Includes both built-in metrics (overall, offense,
-       defense, jordan_factor/win_rate, height, age, mobility) and any custom metrics
+       defense, win_rate/win_rate, height, age, mobility) and any custom metrics
        created by admins.
 
     2. CustomMetric: Defines a new metric that admins can create (e.g.,

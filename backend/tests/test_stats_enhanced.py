@@ -179,9 +179,9 @@ async def test_player_rating_range(client):
     )
     assert resp.status_code == 200
     data = resp.json()
-    # jordan_factor should be between 0 and 1, games_played should be >= 1
+    # win_rate should be between 0 and 1, games_played should be >= 1
     assert data["games_played"] >= 1
-    assert 0 <= data["jordan_factor"] <= 1
+    assert 0 <= data["win_rate"] <= 1
 
 
 @pytest.mark.asyncio

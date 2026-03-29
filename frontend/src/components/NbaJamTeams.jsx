@@ -28,7 +28,7 @@ function playerComposite(user) {
   const ovr = (user.avg_overall || 3) / 5;
   const ath = (user.avg_athleticism || 3) / 5;
   const fit = (user.avg_fitness || 3) / 5;
-  const jf = user.jordan_factor || 0.5;
+  const jf = user.win_rate || 0.5;
   const height = Math.min((user.height_inches || 70) / 84, 1);
   const age = 1 - Math.min(Math.max((user.age || 30) - 18, 0) / 32, 1);
   return ovr * 0.35 + jf * 0.20 + scr * 0.15 + def * 0.15 + ath * 0.05 + fit * 0.05 + height * 0.03 + age * 0.02;
@@ -106,7 +106,7 @@ function JamPlayerCard({ player, isAdmin }) {
     ? `linear-gradient(160deg, ${legacy.colors[0]}dd, ${legacy.colors[1]}dd)`
     : "linear-gradient(160deg, #374151, #1f2937)";
 
-  const winPct = ((player.jordan_factor || 0.5) * 100).toFixed(0);
+  const winPct = ((player.win_rate || 0.5) * 100).toFixed(0);
 
   return (
     <Link

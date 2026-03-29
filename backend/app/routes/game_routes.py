@@ -155,7 +155,7 @@ async def _recalculate_odds(game: Game, db: AsyncSession):
         ovr = (u.avg_overall or 3) / 5
         ath = (u.avg_athleticism or 3) / 5
         fit = (u.avg_fitness or 3) / 5
-        jf = u.jordan_factor or 0.5
+        jf = u.win_rate or 0.5
         ht = min((u.height_inches or 70) / 84, 1)
         ag = 1 - min(max(((u.age or 30) - 18), 0) / 32, 1)
         return ovr * 0.35 + jf * 0.20 + scr * 0.15 + dfe * 0.15 + ath * 0.05 + fit * 0.05 + ht * 0.03 + ag * 0.02
@@ -1281,7 +1281,7 @@ async def record_result(
             # Update global User stats
             player.games_played += total_games
             player.games_won += team_wins
-            player.jordan_factor = player.games_won / player.games_played if player.games_played > 0 else 0.5
+            player.win_rate = player.games_won / player.games_played if player.games_played > 0 else 0.5
 
             # Update per-run RunPlayerStats
             rps_result = await db.execute(
@@ -1302,7 +1302,7 @@ async def record_result(
 
             run_stats.games_played += total_games
             run_stats.games_won += team_wins
-            run_stats.jordan_factor = run_stats.games_won / run_stats.games_played if run_stats.games_played > 0 else 0.5
+            run_stats.win_rate = run_stats.games_won / run_stats.games_played if run_stats.games_played > 0 else 0.5
 
     game.status = GameStatus.COMPLETED
 

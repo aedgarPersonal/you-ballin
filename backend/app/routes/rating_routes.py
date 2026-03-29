@@ -80,7 +80,7 @@ async def get_player_rating_summary(
             avg_athleticism=stats.avg_athleticism,
             avg_fitness=stats.avg_fitness,
             total_ratings=total_ratings,
-            jordan_factor=stats.jordan_factor,
+            win_rate=stats.win_rate,
             games_played=stats.games_played,
             games_won=stats.games_won,
         )
@@ -94,7 +94,7 @@ async def get_player_rating_summary(
         avg_athleticism=player.avg_athleticism,
         avg_fitness=player.avg_fitness,
         total_ratings=total_ratings,
-        jordan_factor=player.jordan_factor,
+        win_rate=player.win_rate,
         games_played=player.games_played,
         games_won=player.games_won,
     )

@@ -103,7 +103,7 @@ async def get_run_stats(
         ]
 
     leaderboards = Leaderboards(
-        jordan_factor=make_leaderboard(all_stats, "jordan_factor", min_games=3),
+        win_rate=make_leaderboard(all_stats, "win_rate", min_games=3),
         mvp_leaders=make_leaderboard(all_stats, "mvp_count"),
         xfactor_leaders=make_leaderboard(all_stats, "xfactor_count"),
         shaqtin_leaders=make_leaderboard(all_stats, "shaqtin_count"),
@@ -204,13 +204,13 @@ async def get_run_stats(
     if user_stats:
         jf_rank = 1 + sum(
             1 for s in all_stats
-            if s.games_played >= 3 and s.jordan_factor > user_stats.jordan_factor
+            if s.games_played >= 3 and s.win_rate > user_stats.win_rate
         )
         personal = PersonalStats(
             games_played=user_stats.games_played,
             games_won=user_stats.games_won,
-            jordan_factor=round(user_stats.jordan_factor, 3),
-            jordan_factor_rank=jf_rank,
+            win_rate=round(user_stats.win_rate, 3),
+            win_rate_rank=jf_rank,
             mvp_count=user_stats.mvp_count,
             xfactor_count=user_stats.xfactor_count,
             shaqtin_count=user_stats.shaqtin_count,
@@ -614,7 +614,7 @@ async def get_season_detail(
         from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="Season not found")
 
-    players = sorted(archive.player_snapshots, key=lambda s: s.jordan_factor, reverse=True)
+    players = sorted(archive.player_snapshots, key=lambda s: s.win_rate, reverse=True)
     return {
         "id": archive.id,
         "label": archive.label,
@@ -629,7 +629,7 @@ async def get_season_detail(
                 "avatar_url": s.user.avatar_url if s.user else None,
                 "games_played": s.games_played,
                 "games_won": s.games_won,
-                "jordan_factor": s.jordan_factor,
+                "win_rate": s.win_rate,
                 "mvp_count": s.mvp_count,
                 "shaqtin_count": s.shaqtin_count,
                 "xfactor_count": s.xfactor_count,

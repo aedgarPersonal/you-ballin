@@ -215,7 +215,7 @@ export default function DashboardPage() {
           <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Win Rate</h3>
           <div className="mt-2">
             <div className="text-3xl font-bold text-court-600">
-              {((user?.jordan_factor || 0.5) * 100).toFixed(0)}%
+              {((user?.win_rate || 0.5) * 100).toFixed(0)}%
             </div>
             <div className="text-xs text-gray-500 dark:text-gray-400">
               {user?.games_won || 0}W - {(user?.games_played || 0) - (user?.games_won || 0)}L

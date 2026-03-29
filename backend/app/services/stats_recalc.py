@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 async def recalculate_run_stats(db: AsyncSession, run_id: int):
-    """Recalculate games_played, games_won, jordan_factor for all players in a run.
+    """Recalculate games_played, games_won, win_rate for all players in a run.
 
     Computes from actual completed game results (team_assignments + team_scores).
     Updates both RunPlayerStats and the User model's cached fields.
@@ -53,14 +53,14 @@ async def recalculate_run_stats(db: AsyncSession, run_id: int):
         for rps in all_rps.scalars().all():
             rps.games_played = 0
             rps.games_won = 0
-            rps.jordan_factor = 0.5
+            rps.win_rate = 0.5
             # Also update User
             user_result = await db.execute(select(User).where(User.id == rps.user_id))
             user = user_result.scalar_one_or_none()
             if user:
                 user.games_played = 0
                 user.games_won = 0
-                user.jordan_factor = 0.5
+                user.win_rate = 0.5
         await db.flush()
         logger.info(f"Run {run_id}: zeroed stats (no completed games)")
         return
@@ -88,7 +88,7 @@ async def recalculate_run_stats(db: AsyncSession, run_id: int):
         ps = player_stats.get(rps.user_id, {"played": 0, "won": 0})
         rps.games_played = ps["played"]
         rps.games_won = ps["won"]
-        rps.jordan_factor = round(ps["won"] / ps["played"], 3) if ps["played"] > 0 else 0.5
+        rps.win_rate = round(ps["won"] / ps["played"], 3) if ps["played"] > 0 else 0.5
 
         # Also update User cached fields
         user_result = await db.execute(select(User).where(User.id == rps.user_id))
@@ -96,7 +96,7 @@ async def recalculate_run_stats(db: AsyncSession, run_id: int):
         if user:
             user.games_played = ps["played"]
             user.games_won = ps["won"]
-            user.jordan_factor = rps.jordan_factor
+            user.win_rate = rps.win_rate
 
     await db.flush()
     logger.info(f"Run {run_id}: recalculated stats for {len(player_stats)} players from {len(game_ids)} completed games")

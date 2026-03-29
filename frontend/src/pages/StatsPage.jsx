@@ -141,10 +141,10 @@ export default function StatsPage() {
           <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-4">
             <div className="text-center">
               <div className="text-2xl font-bold text-court-600">
-                {(stats.personal.jordan_factor * 100).toFixed(0)}%
+                {(stats.personal.win_rate * 100).toFixed(0)}%
               </div>
               <div className="text-xs text-gray-500 dark:text-gray-400">Win Rate</div>
-              <div className="text-xs text-gray-400 dark:text-gray-500">Rank #{stats.personal.jordan_factor_rank}</div>
+              <div className="text-xs text-gray-400 dark:text-gray-500">Rank #{stats.personal.win_rate_rank}</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
@@ -401,7 +401,7 @@ export default function StatsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         <LeaderboardCard
           title="Win Rate"
-          entries={stats.leaderboards.jordan_factor}
+          entries={stats.leaderboards.win_rate}
           formatValue={(v) => `${(v * 100).toFixed(0)}%`}
         />
         <LeaderboardCard
@@ -549,7 +549,7 @@ export default function StatsPage() {
                           }`}>{idx + 1}</div>
                           {p.avatar_url && <AvatarBadge avatarId={p.avatar_url} size="sm" />}
                           <span className="text-sm font-medium flex-1 truncate">{p.full_name}</span>
-                          <span className="text-sm font-bold text-court-600">{(p.jordan_factor * 100).toFixed(0)}%</span>
+                          <span className="text-sm font-bold text-court-600">{(p.win_rate * 100).toFixed(0)}%</span>
                           <span className="text-xs text-gray-400">{p.games_won}W-{p.games_played - p.games_won}L</span>
                           {p.mvp_count > 0 && <span className="text-xs">🏆{p.mvp_count}</span>}
                         </Link>

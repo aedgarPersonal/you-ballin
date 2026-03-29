@@ -635,7 +635,7 @@ async def announce_awards():
                 standings_lines = []
                 for rank, player in enumerate(top10, 1):
                     medal = {1: "\U0001f947", 2: "\U0001f948", 3: "\U0001f949"}.get(rank, f"{rank}.")
-                    jf_pct = int((player.jordan_factor or 0.5) * 100)
+                    jf_pct = int((player.win_rate or 0.5) * 100)
                     standings_lines.append(
                         f"{medal} {player.full_name} - {jf_pct}% Win Rate ({player.games_won}W-{player.games_played - player.games_won}L)"
                     )
@@ -751,7 +751,7 @@ async def _get_top10_standings(db) -> list[User]:
     result = await db.execute(
         select(User)
         .where(User.games_played > 0, User.is_active == True)  # noqa: E712
-        .order_by(User.jordan_factor.desc(), User.games_won.desc())
+        .order_by(User.win_rate.desc(), User.games_won.desc())
         .limit(10)
     )
     return list(result.scalars().all())
