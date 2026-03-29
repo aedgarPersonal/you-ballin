@@ -25,8 +25,8 @@ self.addEventListener("push", (event) => {
   const title = data.title || "Double Dribble";
   const options = {
     body: data.body || "",
-    icon: "/pwa-192x192.png",
-    badge: "/pwa-192x192.png",
+    icon: "/app-icon.svg",
+    badge: "/app-icon.svg",
     data: { url: data.url || "/" },
     tag: data.tag || "doubledribble-" + Date.now(),
     renotify: true,

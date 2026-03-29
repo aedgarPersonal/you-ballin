@@ -97,21 +97,7 @@ export function InstallBanner() {
     <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:w-[420px] z-50 animate-slide-up">
       <div className="bg-gradient-to-r from-court-600 to-court-700 rounded-2xl shadow-2xl p-4 text-white">
         <div className="flex items-start gap-3">
-          <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center flex-shrink-0">
-            <svg viewBox="0 0 64 64" className="w-8 h-8">
-              <defs>
-                <linearGradient id="ib" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#fff" stopOpacity="0.9" />
-                  <stop offset="100%" stopColor="#fed7aa" />
-                </linearGradient>
-              </defs>
-              <circle cx="32" cy="32" r="29" fill="url(#ib)" />
-              <path d="M32 3 Q32 32 32 61" fill="none" stroke="#c2410c" strokeWidth="1.8" />
-              <path d="M3 32 Q32 32 61 32" fill="none" stroke="#c2410c" strokeWidth="1.8" />
-              <path d="M10 10 Q32 24 54 10" fill="none" stroke="#c2410c" strokeWidth="1.8" />
-              <path d="M10 54 Q32 40 54 54" fill="none" stroke="#c2410c" strokeWidth="1.8" />
-            </svg>
-          </div>
+          <img src="/app-icon.svg" alt="Double Dribble" className="w-12 h-12 rounded-xl flex-shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="font-bold text-sm">
               Install Double Dribble
