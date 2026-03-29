@@ -24,6 +24,7 @@ const SORT_OPTIONS = [
   { value: "games_played", label: "Games Played" },
   { value: "mvp_count", label: "MVP Awards" },
   { value: "xfactor_count", label: "X Factor Awards" },
+  { value: "shaqtin_count", label: "Shaqtin' Awards" },
 ];
 
 // Admin sort options are now just the base options — custom metrics
