@@ -562,9 +562,7 @@ export default function PlayersPage() {
                       <h3 className="font-retro text-[8px] text-white leading-tight truncate">
                         {player.full_name.toUpperCase()}
                       </h3>
-                      {player.position && player.position !== "Mascot" && (
-                        <p className="text-[9px] font-bold text-arcade-400 mt-0.5">{player.position}</p>
-                      )}
+                      <p className="text-[9px] font-bold text-arcade-400 mt-0.5">{player.position || "Mascot"}</p>
                       <div className="flex items-center justify-center gap-2 mt-1 text-[9px] text-gray-500">
                         {height && <span>{height}</span>}
                         {player.age && <span>Age {player.age}</span>}
