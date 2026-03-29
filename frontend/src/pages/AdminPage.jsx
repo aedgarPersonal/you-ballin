@@ -1597,32 +1597,32 @@ export default function AdminPage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Award voting deadline</label>
                     <div className="flex items-center gap-2">
-                      <input type="number" min="1" max="72" value={runForm.voting_deadline_hours ?? 16}
-                        onChange={(e) => setRunForm({ ...runForm, voting_deadline_hours: parseInt(e.target.value) || 16 })} className="input w-20" />
+                      <input type="number" min="1" max="72" value={runForm.voting_deadline_hours ?? ""}
+                        onChange={(e) => setRunForm({ ...runForm, voting_deadline_hours: e.target.value === "" ? "" : parseInt(e.target.value) })} className="input w-20" />
                       <span className="text-xs text-gray-500">hrs after game</span>
                     </div>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Auto-generate teams</label>
                     <div className="flex items-center gap-2">
-                      <input type="number" min="0" max="1440" value={runForm.auto_team_minutes_before ?? 15}
-                        onChange={(e) => setRunForm({ ...runForm, auto_team_minutes_before: parseInt(e.target.value) || null })} className="input w-20" />
+                      <input type="number" min="0" max="1440" value={runForm.auto_team_minutes_before ?? ""}
+                        onChange={(e) => setRunForm({ ...runForm, auto_team_minutes_before: e.target.value === "" ? "" : parseInt(e.target.value) })} className="input w-20" />
                       <span className="text-xs text-gray-500">min before game</span>
                     </div>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Award voting reminder</label>
                     <div className="flex items-center gap-2">
-                      <input type="number" min="0" max="48" value={runForm.voting_reminder_hours_before ?? 4}
-                        onChange={(e) => setRunForm({ ...runForm, voting_reminder_hours_before: parseInt(e.target.value) || 0 })} className="input w-20" />
+                      <input type="number" min="0" max="48" value={runForm.voting_reminder_hours_before ?? ""}
+                        onChange={(e) => setRunForm({ ...runForm, voting_reminder_hours_before: e.target.value === "" ? "" : parseInt(e.target.value) })} className="input w-20" />
                       <span className="text-xs text-gray-500">hrs before close</span>
                     </div>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Auto-send invites</label>
                     <div className="flex items-center gap-2">
-                      <input type="number" min="0" max="168" value={runForm.invite_hours_before ?? 48}
-                        onChange={(e) => setRunForm({ ...runForm, invite_hours_before: parseInt(e.target.value) || null })} className="input w-20" />
+                      <input type="number" min="0" max="168" value={runForm.invite_hours_before ?? ""}
+                        onChange={(e) => setRunForm({ ...runForm, invite_hours_before: e.target.value === "" ? "" : parseInt(e.target.value) })} className="input w-20" />
                       <span className="text-xs text-gray-500">hrs before game</span>
                     </div>
                   </div>
