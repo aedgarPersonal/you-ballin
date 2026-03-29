@@ -87,9 +87,37 @@ async def list_run_players(
 
     # Check run's show_player_rating setting
     from app.models.run import Run
+    from app.models.algorithm_config import AlgorithmWeight, CustomMetric, PlayerCustomMetric
+    from app.services.team_balancer import compute_player_rating_with_metrics, CustomMetricDef
+
     run_result = await db.execute(select(Run).where(Run.id == run_id))
     run_obj = run_result.scalar_one_or_none()
     hide_rating = not is_admin and run_obj and not run_obj.show_player_rating
+
+    # Load run's metrics and weights for run-scoped player rating
+    cm_result = await db.execute(select(CustomMetric).where(CustomMetric.run_id == run_id))
+    custom_metrics_db = cm_result.scalars().all()
+    cm_defs = [CustomMetricDef(name=cm.name, min_value=cm.min_value, max_value=cm.max_value, default_value=cm.default_value) for cm in custom_metrics_db]
+
+    aw_result = await db.execute(select(AlgorithmWeight).where(AlgorithmWeight.run_id == run_id))
+    weights = {aw.metric_name: aw.weight for aw in aw_result.scalars().all()}
+
+    # Load all player custom metric values in one query
+    user_ids = [u.id for u, _ in rows]
+    pcm_result = await db.execute(
+        select(PlayerCustomMetric)
+        .join(CustomMetric, PlayerCustomMetric.metric_id == CustomMetric.id)
+        .where(PlayerCustomMetric.user_id.in_(user_ids), CustomMetric.run_id == run_id)
+    )
+    pcm_rows = pcm_result.scalars().all()
+
+    # Build metric values map: {user_id: {metric_name: value}}
+    pcm_map: dict[int, dict[str, float]] = {}
+    cm_id_to_name = {cm.id: cm.name for cm in custom_metrics_db}
+    for pcm in pcm_rows:
+        metric_name = cm_id_to_name.get(pcm.metric_id)
+        if metric_name:
+            pcm_map.setdefault(pcm.user_id, {})[metric_name] = pcm.value
 
     user_dicts = []
     for user_obj, membership in rows:
@@ -97,6 +125,12 @@ async def list_run_players(
         # Override with run-scoped membership fields
         d["player_status"] = membership.player_status.value if hasattr(membership.player_status, 'value') else membership.player_status
         d["dropin_priority"] = membership.dropin_priority
+
+        # Compute run-scoped player rating using full metrics
+        if weights and cm_defs:
+            player_values = pcm_map.get(user_obj.id, {})
+            d["player_rating"] = compute_player_rating_with_metrics(user_obj, weights, cm_defs, player_values)
+
         user_dicts.append(d)
 
     if not is_admin:

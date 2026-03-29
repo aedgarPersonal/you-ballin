@@ -163,6 +163,22 @@ def compute_player_rating(player: User) -> int:
     return max(40, min(99, rating))
 
 
+def compute_player_rating_with_metrics(
+    player: User,
+    weights: dict[str, float],
+    custom_metrics: list[CustomMetricDef],
+    player_custom_values: dict[str, float],
+) -> int:
+    """Calculate a 1-100 player rating using full run-scoped metrics.
+
+    Unlike compute_player_rating(), this uses the run's custom metrics
+    and weights for a true composite rating.
+    """
+    score = compute_player_score(player, weights, custom_metrics, player_custom_values)
+    rating = int(40 + score.composite * 59)
+    return max(40, min(99, rating))
+
+
 # =============================================================================
 # Team Creation Algorithm
 # =============================================================================

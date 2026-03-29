@@ -470,8 +470,14 @@ export default function PlayersPage() {
             const height = formatHeight(player.height_inches);
 
             return (
-              <div key={player.id} className="card hover:shadow-md transition-shadow">
-                <Link to={`/players/${player.id}`} className="flex items-center gap-4">
+              <div key={player.id} className="card hover:shadow-md transition-shadow relative">
+                {/* Overall Rating Badge — top right */}
+                {player.player_rating && (
+                  <div className="absolute top-3 right-3 w-10 h-10 rounded-full bg-court-500 flex items-center justify-center shadow-lg">
+                    <span className="text-sm font-black text-white">{player.player_rating}</span>
+                  </div>
+                )}
+                <Link to={`/players/${player.id}`} className="flex items-center gap-4 pr-12">
                   {isRanked && (
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-black shrink-0 ${
                       idx === 0 ? "bg-yellow-400 text-yellow-900" :
@@ -575,11 +581,7 @@ export default function PlayersPage() {
                 )}
 
                 {/* Stats Grid */}
-                <div className={`grid gap-2 mt-3 text-center grid-cols-3`}>
-                  <div>
-                    <div className="text-sm font-bold text-yellow-500">{player.player_rating || 50}</div>
-                    <div className="text-xs text-gray-400 dark:text-gray-500">RTG</div>
-                  </div>
+                <div className="grid gap-2 mt-3 text-center grid-cols-2">
                   <div>
                     <div className="text-sm font-bold text-court-600">{((player.win_rate || 0.5) * 100).toFixed(0)}%</div>
                     <div className="text-xs text-gray-400 dark:text-gray-500">WIN</div>
