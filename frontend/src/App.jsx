@@ -54,7 +54,7 @@ export default function App() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {isAuthenticated && <Navbar />}
       {isAuthenticated && <PushPrompt />}
-      <main className={isAuthenticated ? "pt-16" : ""}>
+      <main className={isAuthenticated ? "pt-[68px]" : ""}>
         <Routes>
           {/* Public routes */}
           <Route path="/login" element={<LoginPage />} />

@@ -1,7 +1,20 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="#f97316">
-  <circle cx="50" cy="50" r="45" fill="none" stroke="#f97316" stroke-width="4"/>
-  <path d="M50 5 Q50 50 50 95" fill="none" stroke="#f97316" stroke-width="2"/>
-  <path d="M5 50 Q50 50 95 50" fill="none" stroke="#f97316" stroke-width="2"/>
-  <path d="M15 15 Q50 30 85 15" fill="none" stroke="#f97316" stroke-width="2"/>
-  <path d="M15 85 Q50 70 85 85" fill="none" stroke="#f97316" stroke-width="2"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fb923c"/>
+      <stop offset="50%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#ea580c"/>
+    </linearGradient>
+    <linearGradient id="lines" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#c2410c"/>
+      <stop offset="100%" stop-color="#9a3412"/>
+    </linearGradient>
+  </defs>
+  <circle cx="50" cy="50" r="46" fill="url(#bg)"/>
+  <ellipse cx="36" cy="32" rx="18" ry="15" fill="white" opacity="0.12"/>
+  <path d="M50 4 Q50 50 50 96" fill="none" stroke="url(#lines)" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M4 50 Q50 50 96 50" fill="none" stroke="url(#lines)" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M14 14 Q50 30 86 14" fill="none" stroke="url(#lines)" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M14 86 Q50 70 86 86" fill="none" stroke="url(#lines)" stroke-width="2.5" stroke-linecap="round"/>
+  <circle cx="50" cy="50" r="46" fill="none" stroke="#9a3412" stroke-width="3" opacity="0.25"/>
 </svg>
