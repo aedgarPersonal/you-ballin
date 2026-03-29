@@ -203,18 +203,21 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (runId) {
-      Promise.all([fetchPending(), fetchPlayers()]).then(() => setLoading(false));
+      fetchPending().then(() => setLoading(false));
     } else {
       setLoading(false);
     }
   }, [runId]);
 
-  // Load balancer data when tab is selected
+  // Lazy-load tab data when selected
   useEffect(() => {
     if (tab === "games" && runId) {
       fetchAdminGames();
     }
-    if (tab === "players" && runId) {
+    if (tab === "players" && runId && players.length === 0) {
+      fetchPlayers();
+    }
+    if (tab === "players" && runId && players.length > 0) {
       fetchCustomMetrics();
     }
     if (tab === "balancer") {
@@ -539,7 +542,7 @@ export default function AdminPage() {
         ))}
       </div>
 
-      {loading && tab !== "balancer" ? (
+      {loading && tab === "registration" ? (
         <p className="text-gray-500 dark:text-gray-400">Loading...</p>
       ) : tab === "registration" ? (
         /* ===== Registration: Pending + Invite Codes ===== */
