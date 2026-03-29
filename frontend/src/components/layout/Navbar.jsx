@@ -15,6 +15,7 @@ import { createRun } from "../../api/runs";
 import { generateSeasonGames } from "../../api/games";
 import { AvatarBadge } from "../AvatarPicker";
 import Logo from "./Logo";
+import { InstallButton } from "../InstallPrompt";
 import toast from "react-hot-toast";
 
 const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -189,6 +190,9 @@ export default function Navbar() {
                 )}
               </button>
 
+              {/* Install app button (desktop) */}
+              <InstallButton className="hidden sm:inline-flex" />
+
               {/* Desktop user info */}
               <div className="hidden md:flex items-center space-x-2 ml-2 pl-2 border-l border-gray-200 dark:border-gray-700">
                 <Link to={`/players/${user?.id}`} className="flex items-center space-x-2 px-2 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all">
@@ -283,6 +287,9 @@ export default function Navbar() {
                 + Create New Run
               </button>
             )}
+
+            {/* Install app button (mobile) */}
+            <InstallButton className="w-full justify-center py-2.5" />
 
             {/* Divider */}
             <div className="border-t border-gray-100 dark:border-gray-700/50 my-2" />

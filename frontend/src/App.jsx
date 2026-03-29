@@ -17,6 +17,7 @@ import useRunStore from "./stores/runStore";
 // Layout
 import Navbar from "./components/layout/Navbar";
 import PushPrompt from "./components/PushPrompt";
+import { InstallBanner } from "./components/InstallPrompt";
 
 // Pages
 import LoginPage from "./pages/LoginPage";
@@ -54,6 +55,7 @@ export default function App() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {isAuthenticated && <Navbar />}
       {isAuthenticated && <PushPrompt />}
+      {isAuthenticated && <InstallBanner />}
       <main className={isAuthenticated ? "pt-[68px]" : ""}>
         <Routes>
           {/* Public routes */}
