@@ -96,7 +96,7 @@ export default function Navbar() {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50">
       {/* Gradient accent bar */}
-      <div className="h-1 bg-gradient-to-r from-court-400 via-court-500 to-court-700" />
+      <div className="h-1 bg-gradient-to-r from-arcade-500 via-court-500 to-court-700" />
 
       {/* Main navbar */}
       <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50 shadow-sm">
@@ -111,13 +111,13 @@ export default function Navbar() {
               {/* Desktop nav links */}
               <div className="hidden md:flex items-center space-x-1">
                 <Link to="/" className={navLinkClass("/")}>
-                  Dashboard
+                  Scoreboard
                 </Link>
                 <Link to="/games" className={navLinkClass("/games")}>
                   Games
                 </Link>
                 <Link to="/players" className={navLinkClass("/players")}>
-                  Players
+                  Roster
                 </Link>
                 <Link to="/stats" className={navLinkClass("/stats")}>
                   Stats
@@ -150,7 +150,7 @@ export default function Navbar() {
                       className="text-sm bg-gradient-to-r from-court-500 to-court-600 text-white rounded-lg px-3 py-1.5 hover:from-court-600 hover:to-court-700 transition-all shadow-sm hover:shadow-md"
                       title="Create new run"
                     >
-                      + Run
+                      + Season
                     </button>
                   )}
                 </div>
@@ -239,13 +239,13 @@ export default function Navbar() {
           <div className="px-4 py-3 space-y-1">
             {/* Nav links */}
             <Link to="/" onClick={closeMobileMenu} className={`block ${navLinkClass("/")}`}>
-              Dashboard
+              Scoreboard
             </Link>
             <Link to="/games" onClick={closeMobileMenu} className={`block ${navLinkClass("/games")}`}>
               Games
             </Link>
             <Link to="/players" onClick={closeMobileMenu} className={`block ${navLinkClass("/players")}`}>
-              Players
+              Roster
             </Link>
             <Link to="/stats" onClick={closeMobileMenu} className={`block ${navLinkClass("/stats")}`}>
               Stats
@@ -262,7 +262,7 @@ export default function Navbar() {
             {/* Run Switcher */}
             {runs.length > 0 && (
               <div className="px-3 py-2">
-                <label className="block text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1.5">Current Run</label>
+                <label className="block text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1.5">Season</label>
                 <select
                   value={currentRun?.id || ""}
                   onChange={(e) => {
@@ -284,7 +284,7 @@ export default function Navbar() {
                 onClick={() => { setShowCreateRun(true); closeMobileMenu(); }}
                 className="w-full text-left text-sm bg-gradient-to-r from-court-50 to-court-100 dark:from-court-900/20 dark:to-court-900/30 text-court-700 dark:text-court-400 font-medium px-3 py-2.5 rounded-lg hover:from-court-100 hover:to-court-200 dark:hover:from-court-900/30 dark:hover:to-court-900/40 transition-all"
               >
-                + Create New Run
+                + New Season
               </button>
             )}
 

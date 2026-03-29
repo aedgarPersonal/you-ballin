@@ -7,9 +7,9 @@
 
 export default function Logo({ size = "sm", className = "" }) {
   const sizes = {
-    sm: { height: 36, iconSize: 36, textClass: "text-lg" },
-    md: { height: 48, iconSize: 48, textClass: "text-2xl" },
-    lg: { height: 64, iconSize: 64, textClass: "text-4xl" },
+    sm: { height: 36, iconSize: 36, textClass: "text-[10px]" },
+    md: { height: 48, iconSize: 48, textClass: "text-sm" },
+    lg: { height: 64, iconSize: 64, textClass: "text-lg" },
   };
 
   const { iconSize, textClass } = sizes[size] || sizes.sm;
@@ -87,13 +87,13 @@ export default function Logo({ size = "sm", className = "" }) {
       {/* Wordmark */}
       <div className="flex flex-col leading-none">
         <span
-          className={`${textClass} font-extrabold tracking-tight bg-gradient-to-r from-court-500 via-court-600 to-court-700 bg-clip-text text-transparent`}
+          className={`${textClass} font-retro bg-gradient-to-r from-court-400 via-court-500 to-arcade-500 bg-clip-text text-transparent drop-shadow-sm`}
         >
           DOUBLE DRIBBLE
         </span>
         {size !== "sm" && (
-          <span className="text-xs font-medium tracking-[0.2em] text-gray-400 dark:text-gray-500 mt-0.5 uppercase">
-            Pickup Basketball
+          <span className="text-[8px] font-retro tracking-widest text-gray-400 dark:text-gray-500 mt-1.5 uppercase">
+            Est. 1987
           </span>
         )}
       </div>
