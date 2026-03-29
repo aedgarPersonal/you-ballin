@@ -296,88 +296,55 @@ export default function PlayerProfilePage() {
         />
       )}
 
-      {/* Combined Stats + Form + Awards (always visible above tabs) */}
+      {/* Stats Bar — compact horizontal chips */}
       <div className="card mb-6">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {/* Rating */}
-          <div className="text-center">
-            <div className="text-3xl font-black text-court-600">{player?.player_rating || 50}</div>
-            <div className="text-xs text-gray-400 uppercase tracking-wide">Rating</div>
-          </div>
-          {/* Win Rate + W-L */}
-          <div className="text-center">
-            <div className="text-3xl font-black text-gray-900 dark:text-gray-100">{((player?.win_rate || 0.5) * 100).toFixed(0)}%</div>
-            <div className="text-xs text-gray-400">{player?.games_won || 0}W-{(player?.games_played || 0) - (player?.games_won || 0)}L ({player?.games_played || 0} GP)</div>
-          </div>
-          {/* Streak */}
-          <div className="text-center">
-            {form?.current_streak?.count > 0 ? (
-              <>
-                <div className={`text-3xl font-black ${form.current_streak.type === "win" ? "text-green-500" : "text-red-500"}`}>
-                  {form.current_streak.type === "win" ? "\uD83D\uDD25" : "\u2744\uFE0F"}{form.current_streak.count}{form.current_streak.type === "win" ? "W" : "L"}
-                </div>
-                <div className="text-xs text-gray-400">
-                  {form.trend === "improving" ? "\u2191 Improving" : form.trend === "declining" ? "\u2193 Declining" : "Streak"}
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="text-3xl font-black text-gray-400">&mdash;</div>
-                <div className="text-xs text-gray-400">Streak</div>
-              </>
-            )}
-          </div>
-          {/* Last 5 */}
-          <div className="text-center">
-            {form?.last_5 ? (
-              <>
-                <div className="text-3xl font-black text-gray-900 dark:text-gray-100">{form.last_5.wins}W-{form.last_5.losses}L</div>
-                <div className="text-xs text-gray-400">Last 5</div>
-              </>
-            ) : (
-              <>
-                <div className="text-3xl font-black text-gray-400">&mdash;</div>
-                <div className="text-xs text-gray-400">Last 5</div>
-              </>
-            )}
-          </div>
+        {/* Main stats row */}
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-court-500/10 border border-court-500/30">
+            <span className="text-lg font-black text-court-600">{player?.player_rating || 50}</span>
+            <span className="text-[10px] text-court-500 uppercase font-bold">RTG</span>
+          </span>
+          <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+            <span className="text-lg font-black text-gray-900 dark:text-gray-100">{((player?.win_rate || 0.5) * 100).toFixed(0)}%</span>
+            <span className="text-[10px] text-gray-500 uppercase font-bold">WIN</span>
+          </span>
+          <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+            <span className="text-lg font-black text-gray-900 dark:text-gray-100">{player?.games_won || 0}-{(player?.games_played || 0) - (player?.games_won || 0)}</span>
+            <span className="text-[10px] text-gray-500 uppercase font-bold">W-L</span>
+          </span>
+          {form?.current_streak?.count > 0 && (
+            <span className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border ${
+              form.current_streak.type === "win"
+                ? "bg-green-500/10 border-green-500/30"
+                : "bg-red-500/10 border-red-500/30"
+            }`}>
+              <span className={`text-lg font-black ${form.current_streak.type === "win" ? "text-green-500" : "text-red-500"}`}>
+                {form.current_streak.type === "win" ? "\uD83D\uDD25" : "\u2744\uFE0F"}{form.current_streak.count}{form.current_streak.type === "win" ? "W" : "L"}
+              </span>
+            </span>
+          )}
+          {form?.last_5 && (
+            <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+              <span className="text-lg font-black text-gray-900 dark:text-gray-100">{form.last_5.wins}-{form.last_5.losses}</span>
+              <span className="text-[10px] text-gray-500 uppercase font-bold">L5</span>
+            </span>
+          )}
         </div>
 
-        {/* Awards row */}
-        {(player?.mvp_count > 0 || player?.xfactor_count > 0 || player?.shaqtin_count > 0) && (
-          <div className="flex items-center justify-center gap-4 mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+        {/* Awards + streaks row */}
+        {(player?.mvp_count > 0 || player?.xfactor_count > 0 || player?.shaqtin_count > 0 || form?.best_win_streak > 0) && (
+          <div className="flex flex-wrap items-center justify-center gap-3 mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 text-sm">
             {player.mvp_count > 0 && (
-              <div className="flex items-center gap-1.5">
-                <span className="text-lg">{"\uD83C\uDFC6"}</span>
-                <span className="text-sm font-bold text-yellow-600">{player.mvp_count}</span>
-                <span className="text-xs text-gray-400">MVP</span>
-              </div>
+              <span className="text-yellow-600 font-bold">{"\uD83C\uDFC6"} {player.mvp_count} MVP</span>
             )}
             {player.xfactor_count > 0 && (
-              <div className="flex items-center gap-1.5">
-                <span className="text-lg">{"\u26A1"}</span>
-                <span className="text-sm font-bold text-blue-600">{player.xfactor_count}</span>
-                <span className="text-xs text-gray-400">X Factor</span>
-              </div>
+              <span className="text-blue-600 font-bold">{"\u26A1"} {player.xfactor_count} XF</span>
             )}
             {player.shaqtin_count > 0 && (
-              <div className="flex items-center gap-1.5">
-                <span className="text-lg">{"\uD83E\uDD26"}</span>
-                <span className="text-sm font-bold text-purple-600">{player.shaqtin_count}</span>
-                <span className="text-xs text-gray-400">Shaqtin'</span>
-              </div>
+              <span className="text-purple-600 font-bold">{"\uD83E\uDD26"} {player.shaqtin_count} Shaqtin'</span>
             )}
-          </div>
-        )}
-
-        {/* Best/worst streaks */}
-        {(form?.best_win_streak > 0 || form?.worst_loss_streak > 0) && (
-          <div className="flex items-center justify-center gap-6 mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 text-sm text-gray-500 dark:text-gray-400">
             {form?.best_win_streak > 0 && (
-              <span className="text-green-500">Best Streak: {form.best_win_streak}W</span>
-            )}
-            {form?.worst_loss_streak > 0 && (
-              <span className="text-red-500">Worst Streak: {form.worst_loss_streak}L</span>
+              <span className="text-green-500">Best: {form.best_win_streak}W</span>
             )}
           </div>
         )}
