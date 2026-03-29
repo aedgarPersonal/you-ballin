@@ -121,6 +121,7 @@ async def register(data: UserRegister, db: AsyncSession = Depends(get_db)):
         avatar_url=data.avatar_url or random.choice(_LEGACY_AVATAR_IDS),
         player_status=PlayerStatus.PENDING,
         role=UserRole.PLAYER,
+        position="Mascot",
     )
     db.add(user)
     await db.flush()
@@ -307,6 +308,7 @@ async def google_auth(google_token: dict, db: AsyncSession = Depends(get_db)):
             avatar_url=google_data.get("picture"),
             player_status=PlayerStatus.PENDING,
             role=UserRole.PLAYER,
+            position="Mascot",
         )
         db.add(user)
         await db.flush()

@@ -117,6 +117,7 @@ async def _seed_super_admin():
             hashed_password=hash_password("Super123"),
             role=UserRole.SUPER_ADMIN,
             player_status=PlayerStatus.REGULAR,
+            position="Mascot",
         )
         session.add(admin)
         await session.commit()

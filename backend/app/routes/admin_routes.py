@@ -483,6 +483,7 @@ async def import_players(
             win_rate=win_rate,
             height_inches=entry.height_inches,
             age=entry.age,
+            position="Mascot",
         )
         db.add(user)
         await db.flush()  # Get user.id for membership/stats creation
