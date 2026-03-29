@@ -520,50 +520,28 @@ export default function GameDetailPage() {
       {/* Player Award Voting (shown for participants when voting is open) */}
       {game.status === "completed" && awards?.voting_open && isParticipant && (
         <div className="card mb-6">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-semibold">Player Award Voting</h2>
-            <span className="text-sm text-gray-500 dark:text-gray-400">
-              Closes {new Date(awards.voting_deadline).toLocaleString("en-US", {
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              {awards.votes_cast}/{awards.total_voters} voted &middot; Closes {new Date(awards.voting_deadline).toLocaleString("en-US", {
                 month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
               })}
             </span>
           </div>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-            {awards.votes_cast} of {awards.total_voters} participants have voted.
-            Results are hidden until award voting closes.
-          </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <VotingCard
-              title="MVP"
-              emoji="🏆"
-              description="Who had the best game?"
-              color="yellow"
-              participants={allParticipants}
-              currentUserId={user?.id}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <VoteDropdown label="MVP" emoji="🏆" voteType="mvp"
+              players={allParticipants.filter((p) => p.id !== user?.id)}
               currentVoteId={myVotes?.mvp_vote?.nominee_id}
-              onVote={(nomineeId) => handleVote("mvp", nomineeId)}
-            />
-            <VotingCard
-              title="X Factor"
-              emoji="⚡"
-              description="Who was the biggest game-changer?"
-              color="blue"
-              participants={allParticipants}
-              currentUserId={user?.id}
+              onVote={(nomineeId) => handleVote("mvp", nomineeId)} />
+            <VoteDropdown label="X Factor" emoji="⚡" voteType="xfactor"
+              players={allParticipants.filter((p) => p.id !== user?.id)}
               currentVoteId={myVotes?.xfactor_vote?.nominee_id}
-              onVote={(nomineeId) => handleVote("xfactor", nomineeId)}
-            />
-            <VotingCard
-              title="Shaqtin' a Fool"
-              emoji="🤦"
-              description="Who had the worst play?"
-              color="purple"
-              participants={allParticipants}
-              currentUserId={user?.id}
+              onVote={(nomineeId) => handleVote("xfactor", nomineeId)} />
+            <VoteDropdown label="Shaqtin'" emoji="🤦" voteType="shaqtin"
+              players={allParticipants.filter((p) => p.id !== user?.id)}
               currentVoteId={myVotes?.shaqtin_vote?.nominee_id}
-              onVote={(nomineeId) => handleVote("shaqtin", nomineeId)}
-            />
+              onVote={(nomineeId) => handleVote("shaqtin", nomineeId)} />
           </div>
         </div>
       )}
@@ -948,48 +926,22 @@ function AdminRsvpSection({ runId, gameId, onUpdate }) {
 /**
  * VotingCard Component
  */
-function VotingCard({ title, emoji, description, color, participants, currentUserId, currentVoteId, onVote }) {
-  const colorMap = {
-    yellow: { border: "border-yellow-300 dark:border-yellow-700", header: "text-yellow-700", selected: "bg-yellow-100 dark:bg-yellow-900/30 border-yellow-400 dark:border-yellow-600" },
-    purple: { border: "border-purple-300 dark:border-purple-700", header: "text-purple-700", selected: "bg-purple-100 dark:bg-purple-900/30 border-purple-400 dark:border-purple-600" },
-    blue: { border: "border-blue-300 dark:border-blue-700", header: "text-blue-700", selected: "bg-blue-100 dark:bg-blue-900/30 border-blue-400 dark:border-blue-600" },
-  };
-  const colors = colorMap[color] || colorMap.yellow;
-  const borderColor = colors.border;
-  const headerColor = colors.header;
-  const selectedBg = colors.selected;
-
-  const eligible = participants.filter((p) => p.id !== currentUserId);
-
+function VoteDropdown({ label, emoji, players, currentVoteId, onVote }) {
   return (
-    <div className={`border-2 ${borderColor} rounded-xl p-4`}>
-      <div className="flex items-center gap-2 mb-1">
-        <span className="text-xl">{emoji}</span>
-        <h3 className={`font-bold ${headerColor}`}>{title}</h3>
-      </div>
-      <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">{description}</p>
-
-      <div className="space-y-2">
-        {eligible.map((player) => {
-          const isSelected = currentVoteId === player.id;
-          return (
-            <button
-              key={player.id}
-              onClick={() => onVote(player.id)}
-              className={`w-full text-left px-3 py-2 rounded-lg border-2 transition-all text-sm ${
-                isSelected
-                  ? `${selectedBg} font-semibold`
-                  : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <span>{player.full_name}</span>
-                {isSelected && <span className="text-xs">Your vote</span>}
-              </div>
-            </button>
-          );
-        })}
-      </div>
+    <div>
+      <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 mb-1">
+        {emoji} {label}
+      </label>
+      <select
+        value={currentVoteId || ""}
+        onChange={(e) => onVote(parseInt(e.target.value))}
+        className="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 dark:bg-gray-800 dark:text-gray-100 focus:border-court-500 focus:outline-none"
+      >
+        <option value="">Select player...</option>
+        {players.map((p) => (
+          <option key={p.id} value={p.id}>{p.full_name}</option>
+        ))}
+      </select>
     </div>
   );
 }
