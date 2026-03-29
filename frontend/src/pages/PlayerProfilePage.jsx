@@ -31,7 +31,7 @@ export default function PlayerProfilePage() {
   const [showAllTeammates, setShowAllTeammates] = useState(false);
   const [showAllOpponents, setShowAllOpponents] = useState(false);
   const updateUser = useAuthStore((s) => s.updateUser);
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState("history");
 
   // Dynamic metrics state
   const [customMetrics, setCustomMetrics] = useState([]);
@@ -43,7 +43,6 @@ export default function PlayerProfilePage() {
   const canEditPhysical = isAdmin || isOwnProfile;
 
   const TABS = [
-    { id: "overview", label: "Overview" },
     { id: "history", label: "History" },
     { id: "matchups", label: "Matchups" },
     ...(isAdmin ? [{ id: "ratings", label: "Ratings" }] : []),
@@ -212,6 +211,76 @@ export default function PlayerProfilePage() {
               )}
               {isOwnProfile && <span className="badge bg-court-100 text-court-800">You</span>}
             </div>
+
+            {/* Physical stats inline */}
+            <div className="flex items-center gap-3 mt-2 text-sm text-gray-500 dark:text-gray-400">
+              {canEditPhysical ? (
+                <>
+                  <div className="flex items-center gap-1">
+                    <input type="number" min="3" max="7"
+                      defaultValue={player.height_inches ? Math.floor(player.height_inches / 12) : ""}
+                      placeholder="ft"
+                      onBlur={(e) => {
+                        const ft = parseInt(e.target.value) || 0;
+                        const inch = player.height_inches ? player.height_inches % 12 : 0;
+                        const total = ft * 12 + inch;
+                        if (total > 0 && total !== player.height_inches) {
+                          const save = isOwnProfile
+                            ? updateMyProfile({ height_inches: total }).then(() => updateUser({ height_inches: total }))
+                            : updatePlayerAdmin(runId, player.id, { height_inches: total });
+                          save.then(() => { setPlayer({ ...player, height_inches: total }); toast.success("Height updated"); })
+                            .catch(() => toast.error("Failed"));
+                        }
+                      }}
+                      className="w-10 text-center text-sm border border-transparent hover:border-gray-300 dark:hover:border-gray-600 rounded bg-transparent dark:text-gray-300 focus:border-court-500 focus:outline-none"
+                    />
+                    <span>'</span>
+                    <input type="number" min="0" max="11"
+                      defaultValue={player.height_inches ? player.height_inches % 12 : ""}
+                      placeholder="in"
+                      onBlur={(e) => {
+                        const inch = parseInt(e.target.value) || 0;
+                        const ft = player.height_inches ? Math.floor(player.height_inches / 12) : 5;
+                        const total = ft * 12 + inch;
+                        if (total > 0 && total !== player.height_inches) {
+                          const save = isOwnProfile
+                            ? updateMyProfile({ height_inches: total }).then(() => updateUser({ height_inches: total }))
+                            : updatePlayerAdmin(runId, player.id, { height_inches: total });
+                          save.then(() => { setPlayer({ ...player, height_inches: total }); toast.success("Height updated"); })
+                            .catch(() => toast.error("Failed"));
+                        }
+                      }}
+                      className="w-10 text-center text-sm border border-transparent hover:border-gray-300 dark:hover:border-gray-600 rounded bg-transparent dark:text-gray-300 focus:border-court-500 focus:outline-none"
+                    />
+                    <span>"</span>
+                  </div>
+                  <span className="text-gray-300 dark:text-gray-600">|</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs">Age</span>
+                    <input type="number" min="16" max="70"
+                      defaultValue={player.age || ""}
+                      placeholder="—"
+                      onBlur={(e) => {
+                        const val = parseInt(e.target.value) || null;
+                        if (val !== player.age) {
+                          const save = isOwnProfile
+                            ? updateMyProfile({ age: val }).then(() => updateUser({ age: val }))
+                            : updatePlayerAdmin(runId, player.id, { age: val });
+                          save.then(() => { setPlayer({ ...player, age: val }); toast.success("Age updated"); })
+                            .catch(() => toast.error("Failed"));
+                        }
+                      }}
+                      className="w-10 text-center text-sm border border-transparent hover:border-gray-300 dark:hover:border-gray-600 rounded bg-transparent dark:text-gray-300 focus:border-court-500 focus:outline-none"
+                    />
+                  </div>
+                </>
+              ) : (
+                <>
+                  {player.height_inches && <span>{Math.floor(player.height_inches / 12)}'{player.height_inches % 12}"</span>}
+                  {player.age && <span>Age {player.age}</span>}
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -301,19 +370,17 @@ export default function PlayerProfilePage() {
           </div>
         )}
 
-        {/* Physical info row */}
-        <div className="flex items-center justify-center gap-6 mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 text-sm text-gray-500 dark:text-gray-400">
-          {player.height_inches && (
-            <span>{Math.floor(player.height_inches / 12)}'{player.height_inches % 12}"</span>
-          )}
-          {player.age && <span>Age {player.age}</span>}
-          {form?.best_win_streak > 0 && (
-            <span className="text-green-500">Best: {form.best_win_streak}W</span>
-          )}
-          {form?.worst_loss_streak > 0 && (
-            <span className="text-red-500">Worst: {form.worst_loss_streak}L</span>
-          )}
-        </div>
+        {/* Best/worst streaks */}
+        {(form?.best_win_streak > 0 || form?.worst_loss_streak > 0) && (
+          <div className="flex items-center justify-center gap-6 mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 text-sm text-gray-500 dark:text-gray-400">
+            {form?.best_win_streak > 0 && (
+              <span className="text-green-500">Best Streak: {form.best_win_streak}W</span>
+            )}
+            {form?.worst_loss_streak > 0 && (
+              <span className="text-red-500">Worst Streak: {form.worst_loss_streak}L</span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Tab Bar */}
@@ -331,101 +398,7 @@ export default function PlayerProfilePage() {
       </div>
 
       {/* Tab 1: Overview */}
-      {activeTab === "overview" && (
-        <>
-          {/* Physical Stats */}
-          <div className="card mb-6">
-            <h2 className="text-lg font-semibold mb-3">Physical Stats</h2>
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Height</p>
-                {canEditPhysical ? (
-                  <div className="flex items-center gap-1">
-                    <input
-                      type="number"
-                      min="3"
-                      max="7"
-                      defaultValue={player.height_inches ? Math.floor(player.height_inches / 12) : ""}
-                      placeholder="ft"
-                      onBlur={(e) => {
-                        const ft = parseInt(e.target.value) || 0;
-                        const inchesEl = e.target.parentElement.querySelector('[data-field="inches"]');
-                        const inch = parseInt(inchesEl?.value) || 0;
-                        const totalInches = ft * 12 + inch;
-                        if (totalInches > 0 && totalInches !== player.height_inches) {
-                          const save = isOwnProfile
-                            ? updateMyProfile({ height_inches: totalInches }).then(() => updateUser({ height_inches: totalInches }))
-                            : updatePlayerAdmin(runId, player.id, { height_inches: totalInches });
-                          save
-                            .then(() => { setPlayer({ ...player, height_inches: totalInches }); toast.success("Height updated"); })
-                            .catch(() => toast.error("Failed to update"));
-                        }
-                      }}
-                      className="w-12 text-lg font-semibold border border-transparent hover:border-gray-300 dark:hover:border-gray-600 rounded px-1 py-0.5 bg-transparent dark:text-gray-100 focus:border-court-500 focus:outline-none text-center"
-                    />
-                    <span className="text-gray-500 dark:text-gray-400 font-medium">ft</span>
-                    <input
-                      type="number"
-                      min="0"
-                      max="11"
-                      data-field="inches"
-                      defaultValue={player.height_inches ? player.height_inches % 12 : ""}
-                      placeholder="in"
-                      onBlur={(e) => {
-                        const inch = parseInt(e.target.value) || 0;
-                        const ftEl = e.target.parentElement.querySelector('input:first-child');
-                        const ft = parseInt(ftEl?.value) || 0;
-                        const totalInches = ft * 12 + inch;
-                        if (totalInches > 0 && totalInches !== player.height_inches) {
-                          const save = isOwnProfile
-                            ? updateMyProfile({ height_inches: totalInches }).then(() => updateUser({ height_inches: totalInches }))
-                            : updatePlayerAdmin(runId, player.id, { height_inches: totalInches });
-                          save
-                            .then(() => { setPlayer({ ...player, height_inches: totalInches }); toast.success("Height updated"); })
-                            .catch(() => toast.error("Failed to update"));
-                        }
-                      }}
-                      className="w-12 text-lg font-semibold border border-transparent hover:border-gray-300 dark:hover:border-gray-600 rounded px-1 py-0.5 bg-transparent dark:text-gray-100 focus:border-court-500 focus:outline-none text-center"
-                    />
-                    <span className="text-gray-500 dark:text-gray-400 font-medium">in</span>
-                  </div>
-                ) : (
-                  <p className="text-lg font-semibold">
-                    {player.height_inches ? `${Math.floor(player.height_inches / 12)}'${player.height_inches % 12}"` : "N/A"}
-                  </p>
-                )}
-              </div>
-              <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Age</p>
-                {canEditPhysical ? (
-                  <input
-                    type="number"
-                    defaultValue={player.age || ""}
-                    placeholder="age"
-                    onBlur={(e) => {
-                      const val = parseInt(e.target.value);
-                      if (val && val !== player.age) {
-                        const save = isOwnProfile
-                          ? updateMyProfile({ age: val }).then(() => updateUser({ age: val }))
-                          : updatePlayerAdmin(runId, player.id, { age: val });
-                        save
-                          .then(() => { setPlayer({ ...player, age: val }); toast.success("Age updated"); })
-                          .catch(() => toast.error("Failed to update"));
-                      }
-                    }}
-                    className="w-full text-lg font-semibold border border-transparent hover:border-gray-300 dark:hover:border-gray-600 rounded px-1 py-0.5 bg-transparent dark:text-gray-100 focus:border-court-500 focus:outline-none"
-                  />
-                ) : (
-                  <p className="text-lg font-semibold">{player.age || "N/A"}</p>
-                )}
-              </div>
-            </div>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">
-              {canEditPhysical ? "Click a value to edit. Changes save on blur." : "Physical stats are maintained by admins."}
-            </p>
-          </div>
-        </>
-      )}
+      {/* Overview tab removed — data now in header and stats card */}
 
       {/* Tab 2: History */}
       {activeTab === "history" && (
