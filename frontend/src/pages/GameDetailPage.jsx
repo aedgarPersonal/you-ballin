@@ -24,6 +24,8 @@ import { listPlayers } from "../api/players";
 import { castVote, getMyVotes, getGameAwards } from "../api/votes";
 import NbaJamTeams from "../components/NbaJamTeams";
 import TeamEditor from "../components/TeamEditor";
+import { AvatarBadge } from "../components/AvatarPicker";
+import { playSuccess, playBuzzer, playWhistle, playCrowdCheer } from "../utils/retroSounds";
 
 export default function GameDetailPage() {
   const { id } = useParams();
@@ -94,6 +96,7 @@ export default function GameDetailPage() {
   const handleRsvp = async (status) => {
     try {
       await rsvpToGame(runId, id, status);
+      playBuzzer();
       toast.success(status === "accepted" ? "You're in!" : "RSVP updated");
       fetchGame();
     } catch (err) {
@@ -104,6 +107,7 @@ export default function GameDetailPage() {
   const handleGenerateTeams = async () => {
     try {
       await generateTeams(runId, id);
+      playWhistle();
       toast.success("Teams generated! Players have been notified.");
       fetchGame();
     } catch (err) {
@@ -130,6 +134,7 @@ export default function GameDetailPage() {
         team_scores,
         commentary: gameCommentary.trim() || null,
       });
+      playCrowdCheer();
       toast.success("Results recorded! Players have been notified.");
       fetchGame();
     } catch (err) {
@@ -196,6 +201,7 @@ export default function GameDetailPage() {
   const handleVote = async (voteType, nomineeId) => {
     try {
       await castVote(runId, id, { vote_type: voteType, nominee_id: nomineeId });
+      playSuccess();
       const labels = { mvp: "MVP", shaqtin: "Shaqtin'", xfactor: "X Factor" };
       toast.success(`${labels[voteType] || voteType} vote recorded!`);
       const [awardsRes, votesRes] = await Promise.all([
@@ -409,6 +415,55 @@ export default function GameDetailPage() {
                 {line}
               </p>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Player of the Game — retro halftime show style */}
+      {game.status === "completed" && awards && !awards.voting_open && awards.mvp && (
+        <div className="mb-6 relative overflow-hidden rounded-xl border-2 border-arcade-600/50 bg-gradient-to-b from-gray-950 via-arcade-950 to-gray-950">
+          {/* Scanline overlay */}
+          <div
+            className="absolute inset-0 pointer-events-none opacity-[0.04] z-10"
+            style={{
+              backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.4) 2px, rgba(0,0,0,0.4) 4px)",
+            }}
+          />
+          <div className="relative z-20 py-8 px-6 text-center">
+            <p className="font-retro text-[8px] text-arcade-400 tracking-[0.3em] uppercase mb-4 animate-pulse">
+              Player of the Game
+            </p>
+            <div className="flex justify-center mb-3">
+              {awards.mvp.player.avatar_url ? (
+                <div className="ring-4 ring-court-500/50 rounded-full">
+                  <AvatarBadge avatarId={awards.mvp.player.avatar_url} size="lg" />
+                </div>
+              ) : (
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-court-400 to-arcade-500 flex items-center justify-center text-white font-bold text-2xl ring-4 ring-court-500/50">
+                  {awards.mvp.player.full_name.charAt(0)}
+                </div>
+              )}
+            </div>
+            <h3 className="font-retro text-sm text-white mb-1">
+              {awards.mvp.player.full_name.toUpperCase()}
+            </h3>
+            <p className="text-xs text-arcade-400">
+              {awards.mvp.vote_count} vote{awards.mvp.vote_count !== 1 ? "s" : ""}
+            </p>
+            <div className="mt-4 flex justify-center gap-4">
+              {awards.xfactor && (
+                <div className="text-center">
+                  <p className="font-retro text-[6px] text-gray-500 mb-1">X FACTOR</p>
+                  <p className="text-xs text-court-400 font-bold">{awards.xfactor.player.full_name}</p>
+                </div>
+              )}
+              {awards.shaqtin && (
+                <div className="text-center">
+                  <p className="font-retro text-[6px] text-gray-500 mb-1">SHAQTIN</p>
+                  <p className="text-xs text-purple-400 font-bold">{awards.shaqtin.player.full_name}</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

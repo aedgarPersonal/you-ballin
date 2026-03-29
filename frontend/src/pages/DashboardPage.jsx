@@ -16,6 +16,7 @@ import { getRecentAwards, getGameAwards, getMyVotes, castVote } from "../api/vot
 import { getPlayerForm } from "../api/stats";
 import { AvatarBadge } from "../components/AvatarPicker";
 import { getPlayerById } from "../data/legacyPlayers";
+import { playSuccess, playBuzzer } from "../utils/retroSounds";
 
 export default function DashboardPage() {
   const user = useAuthStore((s) => s.user);
@@ -89,6 +90,7 @@ export default function DashboardPage() {
     if (!nextGame) return;
     try {
       await rsvpToGame(runId, nextGame.id, status);
+      playBuzzer();
       toast.success(status === "accepted" ? "You're in!" : "RSVP updated");
       const { data } = await getGame(runId, nextGame.id);
       setNextGame(data);
@@ -101,6 +103,7 @@ export default function DashboardPage() {
     if (!lastCompleted || !nomineeId) return;
     try {
       await castVote(runId, lastCompleted.id, { vote_type: voteType, nominee_id: parseInt(nomineeId) });
+      playSuccess();
       toast.success("Vote recorded!");
       const [awardsRes, votesRes] = await Promise.all([
         getGameAwards(runId, lastCompleted.id),
@@ -418,12 +421,12 @@ export default function DashboardPage() {
       {/* Quick Links */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mt-8">
         <Link to="/games" className="card hover:shadow-md transition-shadow text-center">
-          <span className="text-3xl">📅</span>
+          <span className="text-3xl">🏀</span>
           <p className="mt-2 font-medium">All Games</p>
         </Link>
         <Link to="/players" className="card hover:shadow-md transition-shadow text-center">
           <span className="text-3xl">👥</span>
-          <p className="mt-2 font-medium">Players</p>
+          <p className="mt-2 font-medium">Roster</p>
         </Link>
         <Link to="/stats" className="card hover:shadow-md transition-shadow text-center">
           <span className="text-3xl">📊</span>
@@ -442,7 +445,7 @@ export default function DashboardPage() {
         {(user?.role === "super_admin" || user?.role === "admin") && (
           <Link to="/admin" className="card hover:shadow-md transition-shadow text-center border-court-300 dark:border-court-700">
             <span className="text-3xl">⚙️</span>
-            <p className="mt-2 font-medium text-court-600">Admin Panel</p>
+            <p className="mt-2 font-medium text-court-600">Admin</p>
           </Link>
         )}
       </div>
