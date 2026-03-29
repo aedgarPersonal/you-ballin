@@ -17,7 +17,7 @@
 import { Link } from "react-router-dom";
 import useAuthStore from "../stores/authStore";
 import { getPlayerById } from "../data/legacyPlayers";
-import PixelAvatar from "./PixelAvatar";
+import { AvatarBadge } from "./AvatarPicker";
 
 /**
  * Calculate a player's composite score.
@@ -83,31 +83,7 @@ const TEAM_COLORS = [
   "#ec4899", // pink
 ];
 
-function StatBar({ label, value, max = 5.0, color = "#22d3ee" }) {
-  const pct = Math.min((value / max) * 100, 100);
-  return (
-    <div className="flex items-center gap-2">
-      <span className="text-[10px] font-bold text-gray-300 uppercase tracking-wider w-12 text-right shrink-0">
-        {label}
-      </span>
-      <div className="flex-1 h-2.5 bg-gray-800 rounded-sm overflow-hidden border border-gray-600">
-        <div
-          className="h-full rounded-sm transition-all duration-500"
-          style={{ width: `${pct}%`, backgroundColor: color }}
-        />
-      </div>
-    </div>
-  );
-}
-
 function JamPlayerCard({ player, isAdmin }) {
-  const legacy = getPlayerById(player.avatar_url);
-  const initial = player.full_name?.charAt(0) || "?";
-
-  const bgGradient = legacy
-    ? `linear-gradient(160deg, ${legacy.colors[0]}dd, ${legacy.colors[1]}dd)`
-    : "linear-gradient(160deg, #374151, #1f2937)";
-
   const winPct = ((player.win_rate || 0.5) * 100).toFixed(0);
 
   return (
@@ -115,52 +91,51 @@ function JamPlayerCard({ player, isAdmin }) {
       to={`/players/${player.id}`}
       className="block rounded-lg overflow-hidden transition-transform hover:scale-[1.03]"
     >
-      <div className="bg-gray-800 border border-gray-600 rounded-lg overflow-hidden">
-        {/* Player visual */}
-        <div
-          className="relative flex items-center justify-center py-3"
-          style={{ background: bgGradient }}
-        >
-          {legacy ? (
-            <PixelAvatar playerId={player.avatar_url} size={56} />
-          ) : (
-            <div className="w-14 h-14 rounded-full bg-black/30 border-2 border-white/30 flex items-center justify-center">
-              <span className="text-2xl font-black text-white leading-none">
-                {initial}
-              </span>
+      <div className="rounded-lg bg-gradient-to-b from-amber-300 via-yellow-400 to-amber-500 p-[1.5px]">
+        <div className="rounded-[6px] bg-gradient-to-b from-gray-950 via-gray-900 to-gray-950 overflow-hidden">
+
+          {/* Avatar area */}
+          <div className="flex justify-center pt-3 pb-1 px-2">
+            <div className="relative">
+              {player.avatar_url ? (
+                <AvatarBadge avatarId={player.avatar_url} size="md" />
+              ) : (
+                <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-court-500 to-arcade-500 flex items-center justify-center text-white font-bold text-lg">
+                  {player.full_name?.charAt(0) || "?"}
+                </div>
+              )}
+              {player.player_rating && (
+                <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-gradient-to-br from-court-500 to-court-600 border-2 border-gray-950 flex items-center justify-center">
+                  <span className="font-retro text-[6px] text-white">{player.player_rating}</span>
+                </div>
+              )}
             </div>
-          )}
-        </div>
-
-        {/* Name plate */}
-        <div className="bg-gray-900 px-2 py-1.5 border-t border-gray-600">
-          <p className="text-xs font-black text-white uppercase tracking-wide truncate text-center">
-            {player.full_name}
-          </p>
-          {legacy && (
-            <p className="text-[9px] text-gray-500 text-center truncate">
-              {legacy.name} — {legacy.team}
-            </p>
-          )}
-        </div>
-
-        {/* Player info — visible to all */}
-        <div className="bg-gray-900 px-2 pb-2">
-          <div className="flex justify-between text-[10px] text-gray-400 py-1">
-            {player.height_inches && (
-              <span>{Math.floor(player.height_inches / 12)}'{player.height_inches % 12}"</span>
-            )}
-            {player.age && <span>Age {player.age}</span>}
-            <span className="text-court-500 font-bold">{winPct}% W</span>
           </div>
 
-          {/* Admin-only stat bars */}
-          {isAdmin && (
-            <div className="space-y-1 mt-1 pt-1 border-t border-gray-700">
-              <StatBar label="WIN" value={(player.win_rate || 0.5) * 10} max={10} color="#4ade80" />
-              <StatBar label="RTG" value={(player.player_rating || 50) / 10} max={10} color="#facc15" />
+          {/* Name & position */}
+          <div className="text-center px-2 pb-1">
+            <p className="font-retro text-[7px] text-white truncate leading-tight">
+              {player.full_name?.toUpperCase()}
+            </p>
+            <p className="text-[8px] font-bold text-arcade-400 mt-0.5">
+              {player.position || "Mascot"}
+            </p>
+          </div>
+
+          {/* Stats strip */}
+          <div className="bg-gray-800/50 border-t border-gray-700/50 px-2 py-1.5">
+            <div className="grid grid-cols-2 gap-1 text-center">
+              <div>
+                <div className="font-retro text-[7px] text-court-400">{winPct}%</div>
+                <div className="text-[6px] text-gray-500 uppercase">Win</div>
+              </div>
+              <div>
+                <div className="font-retro text-[7px] text-white">{player.games_won || 0}-{(player.games_played || 0) - (player.games_won || 0)}</div>
+                <div className="text-[6px] text-gray-500 uppercase">W-L</div>
+              </div>
             </div>
-          )}
+          </div>
+
         </div>
       </div>
     </Link>
