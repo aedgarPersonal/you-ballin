@@ -90,6 +90,7 @@ async def create_user(client: AsyncClient, name="Test User", email="test@test.co
             role=role,
             player_status=PlayerStatus.PENDING if not make_admin else PlayerStatus.REGULAR,
             avatar_url="bensimmons",
+            position="Mascot",
         )
         session.add(user)
         await session.commit()

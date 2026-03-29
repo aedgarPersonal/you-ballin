@@ -335,7 +335,7 @@ async def update_run_player(
         user.is_active = update_data.pop("is_active")
 
     # Update physical fields on User
-    for field in ("height_inches", "age"):
+    for field in ("height_inches", "age", "position"):
         if field in update_data:
             setattr(user, field, update_data.pop(field))
 
