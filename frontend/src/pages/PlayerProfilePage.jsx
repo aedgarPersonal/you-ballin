@@ -485,31 +485,6 @@ export default function PlayerProfilePage() {
         <>
           {matchups && (matchups.best_teammates?.length > 0 || matchups.toughest_opponents?.length > 0) ? (
             <div className="card mb-6">
-              <h2 className="text-sm font-semibold text-court-600 uppercase tracking-wide mb-2">
-                {isOwnProfile ? "Your Stats" : `${player.full_name}'s Stats`}
-              </h2>
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-4">
-                <div className="text-center">
-                  <div className="text-2xl font-black text-court-600">{((player.win_rate || 0.5) * 100).toFixed(0)}%</div>
-                  <div className="text-xs text-gray-400">Win Rate</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-black text-gray-200">{player.games_won || 0}-{(player.games_played || 0) - (player.games_won || 0)}</div>
-                  <div className="text-xs text-gray-400">W-L Record</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-black text-yellow-500">{player.mvp_count || 0}</div>
-                  <div className="text-xs text-gray-400">MVPs</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-black text-blue-500">{player.xfactor_count || 0}</div>
-                  <div className="text-xs text-gray-400">X Factors</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-black text-purple-500">{player.shaqtin_count || 0}</div>
-                  <div className="text-xs text-gray-400">Shaqtin'</div>
-                </div>
-              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {matchups.best_teammates?.length > 0 && (
                   <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
