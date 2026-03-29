@@ -36,7 +36,7 @@ class Settings(BaseSettings):
     # --- Authentication ---
     secret_key: str = "change-me-in-production"
     jwt_algorithm: str = "HS256"
-    access_token_expire_minutes: int = 60
+    access_token_expire_minutes: int = 43200  # 30 days
 
     # --- Google OAuth ---
     google_client_id: str = ""
