@@ -204,16 +204,7 @@ export default function DashboardPage() {
 
       {/* Status Cards — only for run members */}
       {isRunMember && (
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="card">
-          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Your Status</h3>
-          <div className="mt-2 flex items-center gap-2">
-            <span className={`badge-${user?.player_status}`}>{user?.player_status}</span>
-            <span className="text-sm text-gray-500 dark:text-gray-400">
-              {user?.role === "super_admin" && "(Super Admin)"}
-            </span>
-          </div>
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <div className="card">
           <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Win Rate</h3>
           <div className="mt-2">
