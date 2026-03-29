@@ -540,7 +540,7 @@ export default function PlayersPage() {
                         </div>
 
                         {/* Name & info */}
-                        <div className="flex-1 min-w-0 pr-16">
+                        <div className={`flex-1 min-w-0 ${isAdmin ? "pr-16" : ""}`}>
                           <h3 className="font-retro text-[8px] text-white truncate leading-tight">
                             {player.full_name.toUpperCase()}
                           </h3>
