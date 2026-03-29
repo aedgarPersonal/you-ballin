@@ -78,7 +78,7 @@ export default function ResetPasswordPage() {
       <div className="w-full max-w-md relative z-10">
         {/* Header */}
         <div className="flex flex-col items-center mb-8">
-          <Logo size="lg" className="[&_span]:text-white [&_span]:from-court-300 [&_span]:via-court-400 [&_span]:to-court-500" />
+          <Logo size="lg" />
           <p className="text-gray-400 mt-3">Set your new password</p>
         </div>
 
