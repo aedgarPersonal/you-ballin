@@ -32,9 +32,9 @@ export default defineConfig({
       filename: "sw.js",
       includeAssets: ["basketball.svg", "app-icon.svg"],
       manifest: {
-        name: "Double Dribble - Pickup Basketball",
-        short_name: "Double Dribble",
-        description: "Manage your pickup basketball games",
+        name: "Game Runner - Pickup Sports",
+        short_name: "Game Runner",
+        description: "Organize your pickup sports games",
         theme_color: "#f97316",
         background_color: "#0a0a1a",
         display: "standalone",
