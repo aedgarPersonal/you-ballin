@@ -650,6 +650,13 @@ export default function AdminPage() {
           </div>
         )}
         </div>
+
+        {/* Invite Codes */}
+        <div>
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">Invite Codes</h2>
+          <InviteCodesPanel runId={runId} />
+        </div>
+        </div>
       ) : tab === "games" ? (
         /* ===== Games Tab ===== */
         <div className="space-y-4">
@@ -1414,12 +1421,6 @@ export default function AdminPage() {
           )}
         </div>
 
-        {/* Invite Codes Section */}
-        <div>
-          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">Invite Codes</h2>
-          <InviteCodesPanel runId={runId} />
-        </div>
-        </div>
       ) : tab === "settings" ? (
         /* ===== Run Settings Tab ===== */
         <div className="max-w-2xl">
