@@ -73,7 +73,7 @@ export default function AdminPage() {
   const runId = currentRun?.id;
   const isSuperAdmin = user?.role === "super_admin";
 
-  const [tab, setTab] = useState("pending");
+  const [tab, setTab] = useState("registration");
 
   // Run settings state
   const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -513,8 +513,8 @@ export default function AdminPage() {
     cancelled: "bg-red-200 text-red-900 dark:bg-red-900/40 dark:text-red-300 font-bold",
   };
 
-  const tabs = ["pending", "players", "invites", "balancer", "settings"];
-  const tabLabels = { settings: "Run Settings", invites: "Invite Codes" };
+  const tabs = ["registration", "players", "balancer", "settings"];
+  const tabLabels = { registration: "Registration", settings: "Run Settings" };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -541,9 +541,13 @@ export default function AdminPage() {
 
       {loading && tab !== "balancer" ? (
         <p className="text-gray-500 dark:text-gray-400">Loading...</p>
-      ) : tab === "pending" ? (
-        /* ===== Pending Registrations ===== */
-        pending.length === 0 ? (
+      ) : tab === "registration" ? (
+        /* ===== Registration: Pending + Invite Codes ===== */
+        <div className="space-y-8">
+        {/* Pending Registrations */}
+        <div>
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">Pending Approvals</h2>
+        {pending.length === 0 ? (
           <div className="card text-center py-8">
             <p className="text-gray-500 dark:text-gray-400">No pending registrations.</p>
           </div>
@@ -644,7 +648,8 @@ export default function AdminPage() {
               );
             })}
           </div>
-        )
+        )}
+        </div>
       ) : tab === "games" ? (
         /* ===== Games Tab ===== */
         <div className="space-y-4">
@@ -1408,9 +1413,13 @@ export default function AdminPage() {
             </div>
           )}
         </div>
-      ) : tab === "invites" ? (
-        /* ===== Invite Codes Tab ===== */
-        <InviteCodesPanel runId={runId} />
+
+        {/* Invite Codes Section */}
+        <div>
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">Invite Codes</h2>
+          <InviteCodesPanel runId={runId} />
+        </div>
+        </div>
       ) : tab === "settings" ? (
         /* ===== Run Settings Tab ===== */
         <div className="max-w-2xl">
