@@ -208,16 +208,46 @@ async def update_my_profile(
     return user
 
 
-@router.get("/{player_id}", response_model=UserResponse)
+@router.get("/{player_id}")
 async def get_player(
     player_id: int,
     run_id: int | None = None,
     db: AsyncSession = Depends(get_db),
     _user: User = Depends(get_current_user),
 ):
-    """Get a specific player's public profile."""
+    """Get a specific player's public profile. If run_id provided, includes run-scoped rating."""
     result = await db.execute(select(User).where(User.id == player_id))
     player = result.scalar_one_or_none()
     if not player:
         raise HTTPException(status_code=404, detail="Player not found")
-    return player
+
+    d = UserResponse.model_validate(player).model_dump()
+
+    # Compute run-scoped player rating if run_id provided
+    if run_id:
+        from app.models.algorithm_config import AlgorithmWeight, CustomMetric, PlayerCustomMetric
+        from app.services.team_balancer import compute_player_rating_with_metrics, CustomMetricDef
+
+        cm_result = await db.execute(select(CustomMetric).where(CustomMetric.run_id == run_id))
+        custom_metrics_db = cm_result.scalars().all()
+        cm_defs = [CustomMetricDef(name=cm.name, min_value=cm.min_value, max_value=cm.max_value, default_value=cm.default_value) for cm in custom_metrics_db]
+
+        aw_result = await db.execute(select(AlgorithmWeight).where(AlgorithmWeight.run_id == run_id))
+        weights = {aw.metric_name: aw.weight for aw in aw_result.scalars().all()}
+
+        cm_id_to_name = {cm.id: cm.name for cm in custom_metrics_db}
+        pcm_result = await db.execute(
+            select(PlayerCustomMetric)
+            .join(CustomMetric, PlayerCustomMetric.metric_id == CustomMetric.id)
+            .where(PlayerCustomMetric.user_id == player_id, CustomMetric.run_id == run_id)
+        )
+        player_values = {}
+        for pcm in pcm_result.scalars().all():
+            name = cm_id_to_name.get(pcm.metric_id)
+            if name:
+                player_values[name] = pcm.value
+
+        if weights and cm_defs:
+            d["player_rating"] = compute_player_rating_with_metrics(player, weights, cm_defs, player_values)
+
+    return d

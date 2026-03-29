@@ -51,7 +51,7 @@ export default function PlayerProfilePage() {
 
   const fetchPlayer = async () => {
     try {
-      const fetches = [getPlayer(id)];
+      const fetches = [getPlayer(id, runId)];
       if (runId) {
         fetches.push(getPlayerMatchups(runId, id));
         fetches.push(getPlayerGameHistory(runId, id));
