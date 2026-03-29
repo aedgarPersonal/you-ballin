@@ -201,44 +201,46 @@ export default function PlayersPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Roster</h1>
-          {currentRun && <p className="text-sm text-court-600">{currentRun.name}</p>}
-        </div>
-        <div className="flex items-center gap-3">
+      <div className="mb-6 space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Roster</h1>
+            {currentRun && <p className="text-sm text-court-600">{currentRun.name}</p>}
+          </div>
           {isAdmin && (
-            <>
+            <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowAddPlayer(true)}
-                className="bg-green-600 hover:bg-green-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors"
+                className="bg-green-600 hover:bg-green-700 text-white text-sm font-medium py-2 px-3 rounded-lg transition-colors"
               >
-                Add Player
+                + Add
               </button>
               <button
                 onClick={() => { setShowImport(true); setImportResult(null); }}
-                className="bg-court-500 hover:bg-court-600 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors"
+                className="bg-court-500 hover:bg-court-600 text-white text-sm font-medium py-2 px-3 rounded-lg transition-colors"
               >
-                Import Players
+                Import
               </button>
-            </>
+            </div>
           )}
+        </div>
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            placeholder="Search..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="input flex-1 min-w-0"
+          />
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
-            className="text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-lg px-3 py-2"
+            className="text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-lg px-3 py-2 shrink-0"
           >
             {(isAdmin ? ADMIN_SORT_OPTIONS : SORT_OPTIONS).map((opt) => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
           </select>
-          <input
-            type="text"
-            placeholder="Search players..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="input w-48"
-          />
         </div>
       </div>
 
