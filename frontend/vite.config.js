@@ -32,8 +32,8 @@ export default defineConfig({
       filename: "sw.js",
       includeAssets: ["basketball.svg"],
       manifest: {
-        name: "You Ballin - Pickup Basketball",
-        short_name: "You Ballin",
+        name: "Double Dribble - Pickup Basketball",
+        short_name: "Double Dribble",
         description: "Manage your pickup basketball games",
         theme_color: "#f97316",
         background_color: "#f9fafb",

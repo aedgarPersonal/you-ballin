@@ -354,7 +354,7 @@ async def forgot_password(data: ForgotPasswordRequest, db: AsyncSession = Depend
         from app.services.notification_service import _send_email
         await _send_email(
             user.email,
-            "Reset Your Password — Game Runner",
+            "Reset Your Password — Double Dribble",
             f"Hi {user.full_name},\n\n"
             f"Click the link below to reset your password:\n{reset_url}\n\n"
             f"This link expires in 1 hour.\n\n"

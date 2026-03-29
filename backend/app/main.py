@@ -1,6 +1,6 @@
 """
-You Ballin - Application Entry Point
-=====================================
+Double Dribble - Application Entry Point
+=========================================
 Initializes FastAPI, registers routes, and starts the scheduler.
 
 TEACHING NOTE:
@@ -59,7 +59,7 @@ async def lifespan(app: FastAPI):
         Everything after 'yield' runs at shutdown.
     """
     # --- Startup ---
-    logger.info("Starting You Ballin application...")
+    logger.info("Starting Double Dribble application...")
     await init_db()
     setup_scheduler()
     logger.info("Application ready!")
@@ -75,7 +75,7 @@ async def lifespan(app: FastAPI):
 # =============================================================================
 
 app = FastAPI(
-    title="You Ballin",
+    title="Double Dribble",
     description="Pickup basketball game organizer with team balancing, player ratings, and automated scheduling.",
     version="1.0.0",
     lifespan=lifespan,
@@ -133,4 +133,4 @@ async def health_check():
         Health checks are used by load balancers and monitoring systems
         to verify the application is running. Keep it simple and fast.
     """
-    return {"status": "healthy", "app": "You Ballin"}
+    return {"status": "healthy", "app": "Double Dribble"}

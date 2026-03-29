@@ -22,13 +22,13 @@ registerRoute(
 // Web Push notification handler
 self.addEventListener("push", (event) => {
   const data = event.data?.json() ?? {};
-  const title = data.title || "You Ballin";
+  const title = data.title || "Double Dribble";
   const options = {
     body: data.body || "",
     icon: "/pwa-192x192.png",
     badge: "/pwa-192x192.png",
     data: { url: data.url || "/" },
-    tag: data.tag || "youballin-" + Date.now(),
+    tag: data.tag || "doubledribble-" + Date.now(),
     renotify: true,
   };
   event.waitUntil(self.registration.showNotification(title, options));

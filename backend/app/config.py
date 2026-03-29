@@ -45,7 +45,7 @@ class Settings(BaseSettings):
 
     # --- Email (Resend) ---
     resend_api_key: str = ""
-    email_from: str = "You Ballin <noreply@youballin.app>"
+    email_from: str = "Double Dribble <noreply@doubledribble.app>"
 
     # --- Email (Legacy SMTP - kept for backward compat) ---
     smtp_host: str = "smtp.gmail.com"
@@ -61,7 +61,7 @@ class Settings(BaseSettings):
     # --- Web Push (VAPID) ---
     vapid_public_key: str = ""
     vapid_private_key: str = ""
-    vapid_claim_email: str = "mailto:admin@youballin.app"
+    vapid_claim_email: str = "mailto:admin@doubledribble.app"
 
     # --- AI Commentary (Anthropic Claude) ---
     anthropic_api_key: str = ""

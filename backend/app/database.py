@@ -111,7 +111,7 @@ async def _seed_super_admin():
             return
 
         admin = User(
-            email="admin@youballin.app",
+            email="admin@doubledribble.app",
             username="super_admin",
             full_name="Super Admin",
             hashed_password=hash_password("Super123"),

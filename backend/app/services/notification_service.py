@@ -158,7 +158,7 @@ async def _send_email(to_email: str, subject: str, body: str) -> bool:
             resend.Emails.send({
                 "from": settings.email_from,
                 "to": [to_email],
-                "subject": f"[You Ballin] {subject}",
+                "subject": f"[Double Dribble] {subject}",
                 "text": body,
             })
             return True
@@ -178,7 +178,7 @@ async def _send_email(to_email: str, subject: str, body: str) -> bool:
         msg = EmailMessage()
         msg["From"] = settings.email_from
         msg["To"] = to_email
-        msg["Subject"] = f"[You Ballin] {subject}"
+        msg["Subject"] = f"[Double Dribble] {subject}"
         msg.set_content(body)
 
         await aiosmtplib.send(
