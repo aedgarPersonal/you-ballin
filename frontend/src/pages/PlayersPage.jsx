@@ -471,168 +471,149 @@ export default function PlayersPage() {
           {sortedPlayers.map((player, idx) => {
             const pMetrics = playerMetricsMap[player.id] || [];
             const height = formatHeight(player.height_inches);
+            const winPct = ((player.win_rate || 0.5) * 100).toFixed(0);
+            const gamesWon = player.games_won || 0;
+            const gamesLost = (player.games_played || 0) - gamesWon;
 
             return (
-              <div key={player.id} className="card hover:shadow-md transition-shadow relative">
-                {/* Overall Rating Badge — top right */}
-                {player.player_rating && (
-                  <div className="absolute top-3 right-3 w-10 h-10 rounded-full bg-court-500 flex items-center justify-center shadow-lg">
-                    <span className="text-sm font-black text-white">{player.player_rating}</span>
-                  </div>
-                )}
-                <Link to={`/players/${player.id}`} className="flex items-center gap-4 pr-12">
-                  {isRanked && (
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-black shrink-0 ${
-                      idx === 0 ? "bg-yellow-400 text-yellow-900" :
-                      idx === 1 ? "bg-gray-300 text-gray-700" :
-                      idx === 2 ? "bg-orange-300 text-orange-800" :
-                      "bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400"
-                    }`}>
-                      {idx + 1}
-                    </div>
-                  )}
-                  {player.avatar_url ? (
-                    <AvatarBadge avatarId={player.avatar_url} size="md" />
-                  ) : (
-                    <div className="w-12 h-12 rounded-full bg-court-100 flex items-center justify-center text-court-600 font-bold text-lg">
-                      {player.full_name.charAt(0)}
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-gray-900 dark:text-gray-100 truncate">
-                      {player.full_name}
-                      {player.email && (
-                        <span className="text-xs font-normal text-gray-400 dark:text-gray-500 ml-1">
-                          ({player.email})
-                        </span>
+              <div key={player.id} className="rounded-xl bg-gradient-to-b from-amber-300 via-yellow-400 to-amber-500 p-[2px] shadow-lg hover:shadow-xl transition-shadow">
+                <div className="rounded-[10px] bg-gradient-to-b from-gray-950 via-gray-900 to-gray-950 overflow-hidden">
+
+                  {/* Card body — clickable */}
+                  <Link to={`/players/${player.id}`} className="block px-4 pt-3 pb-2">
+                    <div className="flex items-center gap-3">
+                      {/* Rank badge */}
+                      {isRanked && (
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 ${
+                          idx === 0 ? "bg-yellow-400 text-yellow-900" :
+                          idx === 1 ? "bg-gray-300 text-gray-700" :
+                          idx === 2 ? "bg-orange-300 text-orange-800" :
+                          "bg-gray-700 text-gray-400"
+                        }`}>
+                          {idx + 1}
+                        </div>
                       )}
-                    </h3>
-                    <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                      <span className={`badge-${player.player_status}`}>
-                        {player.player_status}
-                      </span>
-                      {height && <span>{height}</span>}
-                      {player.age && <span>Age {player.age}</span>}
+
+                      {/* Avatar with rating overlay */}
+                      <div className="relative shrink-0">
+                        {player.avatar_url ? (
+                          <AvatarBadge avatarId={player.avatar_url} size="md" />
+                        ) : (
+                          <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-court-500 to-arcade-500 flex items-center justify-center text-white font-bold text-lg">
+                            {player.full_name.charAt(0)}
+                          </div>
+                        )}
+                        {player.player_rating && (
+                          <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-gradient-to-br from-court-500 to-court-600 border-2 border-gray-950 flex items-center justify-center">
+                            <span className="font-retro text-[7px] text-white">{player.player_rating}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Name & info */}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-retro text-[8px] text-white truncate leading-tight">
+                          {player.full_name.toUpperCase()}
+                        </h3>
+                        <div className="flex items-center gap-2 mt-1 text-[10px] text-gray-500">
+                          <span className={`badge-${player.player_status}`}>{player.player_status}</span>
+                          {height && <span>{height}</span>}
+                          {player.age && <span>Age {player.age}</span>}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Awards row */}
+                    {(player.mvp_count > 0 || player.xfactor_count > 0 || player.shaqtin_count > 0) && (
+                      <div className="flex items-center gap-3 mt-2 text-[10px]">
+                        {player.mvp_count > 0 && <span className="text-yellow-500 font-bold">{"\uD83C\uDFC6"}{player.mvp_count}</span>}
+                        {player.xfactor_count > 0 && <span className="text-blue-400 font-bold">{"\u26A1"}{player.xfactor_count}</span>}
+                        {player.shaqtin_count > 0 && <span className="text-purple-400 font-bold">{"\uD83E\uDD26"}{player.shaqtin_count}</span>}
+                      </div>
+                    )}
+                  </Link>
+
+                  {/* Stats strip */}
+                  <div className="bg-gray-800/50 border-t border-gray-700/50 px-4 py-2">
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      <div>
+                        <div className="font-retro text-[9px] text-court-400">{winPct}%</div>
+                        <div className="text-[7px] text-gray-500 uppercase tracking-wider">Win</div>
+                      </div>
+                      <div>
+                        <div className="font-retro text-[9px] text-white">{gamesWon}-{gamesLost}</div>
+                        <div className="text-[7px] text-gray-500 uppercase tracking-wider">W-L</div>
+                      </div>
+                      <div>
+                        <div className="font-retro text-[9px] text-white">{player.games_played || 0}</div>
+                        <div className="text-[7px] text-gray-500 uppercase tracking-wider">GP</div>
+                      </div>
                     </div>
                   </div>
-                </Link>
 
-                {/* Admin status toggle — outside the Link */}
-                {isAdmin && (
-                  <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700 flex items-center gap-2">
-                    <span className="text-xs text-gray-400 dark:text-gray-500">Status:</span>
-                    <select
-                      value={player.player_status}
-                      onChange={async (e) => {
-                        const newStatus = e.target.value;
-                        const labels = { regular: "Regular", dropin: "Drop-in", inactive: "Inactive" };
-                        // Optimistic update
-                        setPlayers((prev) => prev.map((p) =>
-                          p.id === player.id ? { ...p, player_status: newStatus } : p
-                        ));
-                        try {
-                          await updatePlayerAdmin(runId, player.id, { player_status: newStatus });
-                          toast.success(`${player.full_name} → ${labels[newStatus]}`);
-                        } catch {
-                          // Revert on failure
+                  {/* Admin controls — below stats strip */}
+                  {isAdmin && (
+                    <div className="border-t border-gray-700/50 px-4 py-2 flex items-center justify-between">
+                      <select
+                        value={player.player_status}
+                        onChange={async (e) => {
+                          const newStatus = e.target.value;
+                          const labels = { regular: "Regular", dropin: "Drop-in", inactive: "Inactive" };
                           setPlayers((prev) => prev.map((p) =>
-                            p.id === player.id ? { ...p, player_status: player.player_status } : p
+                            p.id === player.id ? { ...p, player_status: newStatus } : p
                           ));
-                          toast.error("Update failed");
-                        }
-                      }}
-                      className="text-xs font-semibold border rounded px-1.5 py-0.5 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 cursor-pointer"
-                    >
-                      <option value="regular">Regular</option>
-                      <option value="dropin">Drop-in</option>
-                      <option value="inactive">Inactive</option>
-                    </select>
-                  </div>
-                )}
-
-                {/* Award Trophies */}
-                {(player.mvp_count > 0 || player.xfactor_count > 0 || player.shaqtin_count > 0) && (
-                  <div className="flex gap-3 mt-3 flex-wrap">
-                    {player.mvp_count > 0 && (
-                      <div className="flex items-center gap-1.5 bg-gradient-to-r from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-900/30 border border-yellow-300 dark:border-yellow-700 rounded-lg px-3 py-1.5">
-                        <span className="text-lg">🏆</span>
-                        <div className="leading-tight">
-                          <div className="text-sm font-bold text-yellow-800">{player.mvp_count}</div>
-                          <div className="text-[10px] font-medium text-yellow-600 uppercase tracking-wider">MVP</div>
+                          try {
+                            await updatePlayerAdmin(runId, player.id, { player_status: newStatus });
+                            toast.success(`${player.full_name} → ${labels[newStatus]}`);
+                          } catch {
+                            setPlayers((prev) => prev.map((p) =>
+                              p.id === player.id ? { ...p, player_status: player.player_status } : p
+                            ));
+                            toast.error("Update failed");
+                          }
+                        }}
+                        className="text-[10px] font-semibold border border-gray-700 rounded px-1.5 py-0.5 bg-gray-800 text-gray-300"
+                      >
+                        <option value="regular">Regular</option>
+                        <option value="dropin">Drop-in</option>
+                        <option value="inactive">Inactive</option>
+                      </select>
+                      {pMetrics.length > 0 && (
+                        <div className="flex items-center gap-2">
+                          {pMetrics.map((m) => (
+                            <div key={m.metric_id} className="text-center">
+                              <input
+                                type="number" step="0.5" min={m.min_value || 1} max={m.max_value || 10}
+                                defaultValue={m.value?.toFixed(1)}
+                                onBlur={(e) => {
+                                  const val = parseFloat(e.target.value);
+                                  if (!isNaN(val) && val !== m.value) {
+                                    updatePlayerMetrics(runId, player.id, [{ metric_id: m.metric_id, value: val }])
+                                      .then(() => {
+                                        toast.success("Updated");
+                                        setPlayerMetricsMap((prev) => ({
+                                          ...prev,
+                                          [player.id]: prev[player.id].map((pm) =>
+                                            pm.metric_id === m.metric_id ? { ...pm, value: val } : pm
+                                          ),
+                                        }));
+                                      })
+                                      .catch(() => toast.error("Failed"));
+                                  }
+                                }}
+                                className="w-10 text-[10px] font-bold text-court-400 text-center bg-transparent border border-gray-700 rounded px-1 py-0.5 focus:border-court-500 focus:outline-none"
+                              />
+                              <div className="text-[6px] text-gray-600 truncate max-w-[40px]" title={m.display_name}>
+                                {m.display_name}
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                      </div>
-                    )}
-                    {player.xfactor_count > 0 && (
-                      <div className="flex items-center gap-1.5 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/30 border border-blue-300 dark:border-blue-700 rounded-lg px-3 py-1.5">
-                        <span className="text-lg">⚡</span>
-                        <div className="leading-tight">
-                          <div className="text-sm font-bold text-blue-800">{player.xfactor_count}</div>
-                          <div className="text-[10px] font-medium text-blue-600 uppercase tracking-wider">X Factor</div>
-                        </div>
-                      </div>
-                    )}
-                    {player.shaqtin_count > 0 && (
-                      <div className="flex items-center gap-1.5 bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-900/30 border border-purple-300 dark:border-purple-700 rounded-lg px-3 py-1.5">
-                        <span className="text-lg">🤦</span>
-                        <div className="leading-tight">
-                          <div className="text-sm font-bold text-purple-800">{player.shaqtin_count}</div>
-                          <div className="text-[10px] font-medium text-purple-600 uppercase tracking-wider">Shaqtin'</div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Stats Grid */}
-                <div className="grid gap-2 mt-3 text-center grid-cols-2">
-                  <div>
-                    <div className="text-sm font-bold text-court-600">{((player.win_rate || 0.5) * 100).toFixed(0)}%</div>
-                    <div className="text-xs text-gray-400 dark:text-gray-500">WIN</div>
-                  </div>
-                  <div>
-                    <div className="text-sm font-bold text-court-600">
-                      {player.games_won || 0}-{(player.games_played || 0) - (player.games_won || 0)}
+                      )}
                     </div>
-                    <div className="text-xs text-gray-400 dark:text-gray-500">W-L</div>
-                  </div>
-                </div>
+                  )}
 
-                {/* Dynamic Metrics (admin-editable) */}
-                {isAdmin && pMetrics.length > 0 && (
-                  <div className="grid grid-cols-3 gap-2 mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 text-center">
-                    {pMetrics.map((m) => (
-                      <div key={m.metric_id}>
-                        <input
-                          type="number"
-                          step="0.5"
-                          min={m.min_value || 1}
-                          max={m.max_value || 10}
-                          defaultValue={m.value?.toFixed(1)}
-                          onBlur={(e) => {
-                            const val = parseFloat(e.target.value);
-                            if (!isNaN(val) && val !== m.value) {
-                              updatePlayerMetrics(runId, player.id, [{ metric_id: m.metric_id, value: val }])
-                                .then(() => {
-                                  toast.success("Updated");
-                                  setPlayerMetricsMap((prev) => ({
-                                    ...prev,
-                                    [player.id]: prev[player.id].map((pm) =>
-                                      pm.metric_id === m.metric_id ? { ...pm, value: val } : pm
-                                    ),
-                                  }));
-                                })
-                                .catch(() => toast.error("Failed"));
-                            }
-                          }}
-                          className="w-full text-sm font-bold text-court-600 text-center border border-transparent hover:border-gray-300 dark:hover:border-gray-600 rounded bg-transparent focus:border-court-500 focus:outline-none"
-                        />
-                        <div className="text-xs text-gray-400 dark:text-gray-500 truncate" title={m.display_name}>
-                          {m.display_name}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                </div>
               </div>
             );
           })}
