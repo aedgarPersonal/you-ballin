@@ -202,6 +202,17 @@ async def update_my_profile(
         if existing.scalar_one_or_none():
             raise HTTPException(status_code=409, detail="Email already in use")
 
+    # Validate position if provided
+    if "position" in update_fields and update_fields["position"]:
+        from app.schemas.user import VALID_POSITIONS
+        parts = [p.strip() for p in update_fields["position"].split(",")]
+        if len(parts) > 2:
+            raise HTTPException(status_code=400, detail="Maximum 2 positions allowed")
+        for p in parts:
+            if p not in VALID_POSITIONS:
+                raise HTTPException(status_code=400, detail=f"Invalid position: {p}. Valid: {', '.join(sorted(VALID_POSITIONS))}")
+        update_fields["position"] = ",".join(parts)
+
     for field, value in update_fields.items():
         setattr(user, field, value)
     await db.flush()

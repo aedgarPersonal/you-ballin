@@ -579,6 +579,7 @@ async def quick_add_player(
         win_rate=win_rate,
         height_inches=data.height_inches,
         age=data.age,
+        position=data.position or "Mascot",
     )
     db.add(user)
     await db.flush()

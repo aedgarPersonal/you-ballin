@@ -72,6 +72,9 @@ class TokenResponse(BaseModel):
 # User CRUD Schemas
 # =============================================================================
 
+VALID_POSITIONS = {"PG", "SG", "SF", "PF", "C", "Mascot"}
+
+
 class UserUpdate(BaseModel):
     """Fields a user can update about themselves."""
     full_name: str | None = None
@@ -80,6 +83,7 @@ class UserUpdate(BaseModel):
     avatar_url: str | None = None
     height_inches: int | None = Field(None, ge=48, le=96)
     age: int | None = Field(None, ge=14, le=80)
+    position: str | None = None
 
 
 class AdminUserUpdate(BaseModel):
@@ -104,6 +108,7 @@ class AdminUserUpdate(BaseModel):
     # Physical stats
     height_inches: int | None = None
     age: int | None = None
+    position: str | None = None
     # Game stats (for manual correction)
     games_played: int | None = Field(None, ge=0)
     games_won: int | None = Field(None, ge=0)
@@ -118,6 +123,7 @@ class QuickAddPlayer(BaseModel):
     losses: int = Field(default=0, ge=0)
     height_inches: int | None = Field(default=70, ge=48, le=96)
     age: int | None = Field(default=30, ge=16, le=70)
+    position: str = Field(default="Mascot")
     metrics: dict[str, float] = Field(default_factory=dict, description="Dynamic metric values keyed by metric name")
 
 
@@ -133,6 +139,7 @@ class UserResponse(BaseModel):
     player_status: str
     height_inches: int | None
     age: int | None
+    position: str = "Mascot"
     win_rate: float
     games_played: int
     games_won: int

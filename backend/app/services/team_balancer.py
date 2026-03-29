@@ -234,13 +234,51 @@ def _variance(values: list[float]) -> float:
     return sum((v - mean) ** 2 for v in values) / len(values)
 
 
-def team_balance_cost(teams: list[list[PlayerScore]]) -> float:
-    """Combined cost function: composite score variance + height/age variance.
+BASKETBALL_POSITIONS = {"PG", "SG", "SF", "PF", "C"}
 
-    Balances three dimensions:
+
+def _position_imbalance(teams: list[list[PlayerScore]]) -> float:
+    """Measure how unevenly positions are distributed across teams.
+
+    For each real basketball position (excludes Mascot), compute the
+    variance in count across teams. Sum the variances and normalize
+    so the result stays in a comparable range to score/height/age costs.
+    """
+    if not teams or len(teams) < 2:
+        return 0.0
+
+    # Build per-team position counts
+    team_pos_counts: list[dict[str, int]] = []
+    for team in teams:
+        counts: dict[str, int] = {pos: 0 for pos in BASKETBALL_POSITIONS}
+        for ps in team:
+            player_pos = getattr(ps.user, "position", "Mascot") or "Mascot"
+            # A player can have up to 2 positions separated by comma
+            for p in player_pos.split(","):
+                p = p.strip()
+                if p in BASKETBALL_POSITIONS:
+                    counts[p] += 1
+        team_pos_counts.append(counts)
+
+    # Sum variance across each position
+    total_var = 0.0
+    for pos in BASKETBALL_POSITIONS:
+        vals = [tc[pos] for tc in team_pos_counts]
+        total_var += _variance(vals)
+
+    # Normalize: divide by number of positions and team size to keep scale small
+    max_team_size = max(len(t) for t in teams) if teams else 1
+    return total_var / (len(BASKETBALL_POSITIONS) * max(max_team_size, 1))
+
+
+def team_balance_cost(teams: list[list[PlayerScore]]) -> float:
+    """Combined cost function: composite score variance + height/age/position variance.
+
+    Balances four dimensions:
     - Composite score (skill) — primary (weight 1.0)
     - Average height per team — secondary (weight 0.3)
     - Average age per team — secondary (weight 0.2)
+    - Position distribution — tertiary (weight 0.15)
     """
     # Composite score variance (normalized per-player)
     totals = [team_total(t) / max(len(t), 1) for t in teams]
@@ -254,7 +292,10 @@ def team_balance_cost(teams: list[list[PlayerScore]]) -> float:
     age_avgs = [_avg_attr(t, "age", 30) / 50.0 for t in teams]
     age_var = _variance(age_avgs)
 
-    return score_var + height_var * 0.3 + age_var * 0.2
+    # Position distribution variance
+    pos_var = _position_imbalance(teams)
+
+    return score_var + height_var * 0.3 + age_var * 0.2 + pos_var * 0.15
 
 
 def optimize_teams(

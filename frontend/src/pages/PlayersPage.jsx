@@ -84,7 +84,7 @@ export default function PlayersPage() {
   const [showAddPlayer, setShowAddPlayer] = useState(false);
   const [addForm, setAddForm] = useState({
     full_name: "", email: "", phone: "", wins: 0, losses: 0,
-    height_inches: 70, age: 30,
+    height_inches: 70, age: 30, position: "Mascot",
   });
   const [adding, setAdding] = useState(false);
 
@@ -428,6 +428,19 @@ export default function PlayersPage() {
                 </div>
               </div>
 
+              <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
+                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Position</p>
+                <select value={addForm.position} onChange={(e) => setAddForm({ ...addForm, position: e.target.value })}
+                  className="input w-full">
+                  <option value="Mascot">Mascot</option>
+                  <option value="PG">PG - Point Guard</option>
+                  <option value="SG">SG - Shooting Guard</option>
+                  <option value="SF">SF - Small Forward</option>
+                  <option value="PF">PF - Power Forward</option>
+                  <option value="C">C - Center</option>
+                </select>
+              </div>
+
               {customMetrics.length > 0 && (
                 <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
                   <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Metrics (1-10)</p>
@@ -544,11 +557,14 @@ export default function PlayersPage() {
                       </div>
                     </div>
 
-                    {/* Name */}
+                    {/* Name & position */}
                     <div className="text-center px-3 pb-1">
                       <h3 className="font-retro text-[8px] text-white leading-tight truncate">
                         {player.full_name.toUpperCase()}
                       </h3>
+                      {player.position && player.position !== "Mascot" && (
+                        <p className="text-[9px] font-bold text-arcade-400 mt-0.5">{player.position}</p>
+                      )}
                       <div className="flex items-center justify-center gap-2 mt-1 text-[9px] text-gray-500">
                         {height && <span>{height}</span>}
                         {player.age && <span>Age {player.age}</span>}

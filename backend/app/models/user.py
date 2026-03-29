@@ -70,6 +70,7 @@ class User(Base):
     # --- Player Stats (admin-maintained) ---
     height_inches: Mapped[int | None] = mapped_column(Integer, nullable=True)
     age: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    position: Mapped[str] = mapped_column(String(20), default="Mascot", server_default="Mascot", nullable=False)
 
     # --- System Fields ---
     role: Mapped[UserRole] = mapped_column(

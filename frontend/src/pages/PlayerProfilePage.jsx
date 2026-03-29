@@ -187,6 +187,26 @@ export default function PlayerProfilePage() {
                   </h1>
                   <p className="text-xs text-gray-500 mt-0.5">@{player.username}</p>
 
+                  {/* Position */}
+                  <div className="flex items-center gap-2 mt-1.5">
+                    {(isOwnProfile || isAdmin) ? (
+                      <PositionSelector
+                        value={player.position || "Mascot"}
+                        onChange={async (newPos) => {
+                          const save = isOwnProfile
+                            ? updateMyProfile({ position: newPos }).then(() => updateUser({ position: newPos }))
+                            : updatePlayerAdmin(runId, player.id, { position: newPos });
+                          save.then(() => { setPlayer({ ...player, position: newPos }); toast.success("Position updated"); })
+                            .catch(() => toast.error("Failed"));
+                        }}
+                      />
+                    ) : (
+                      <span className="text-[10px] font-bold text-arcade-400 border border-arcade-600/40 rounded px-1.5 py-0.5">
+                        {player.position || "Mascot"}
+                      </span>
+                    )}
+                  </div>
+
                   {/* Physical stats */}
                   <div className="flex items-center gap-3 mt-2">
                     {canEditPhysical ? (
@@ -565,6 +585,45 @@ function MetricSlider({ label, value, min, max, onChange }) {
       <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500">
         <span>{min}</span><span>{max}</span>
       </div>
+    </div>
+  );
+}
+
+const ALL_POSITIONS = ["PG", "SG", "SF", "PF", "C", "Mascot"];
+
+function PositionSelector({ value, onChange }) {
+  const selected = (value || "Mascot").split(",").map((p) => p.trim()).filter(Boolean);
+
+  const toggle = (pos) => {
+    let next;
+    if (pos === "Mascot") {
+      next = ["Mascot"];
+    } else if (selected.includes(pos)) {
+      next = selected.filter((p) => p !== pos);
+      if (next.length === 0) next = ["Mascot"];
+    } else {
+      next = selected.filter((p) => p !== "Mascot");
+      if (next.length >= 2) next = [next[1], pos];
+      else next = [...next, pos];
+    }
+    onChange(next.join(","));
+  };
+
+  return (
+    <div className="flex items-center gap-1 flex-wrap">
+      {ALL_POSITIONS.map((pos) => {
+        const active = selected.includes(pos);
+        return (
+          <button key={pos} onClick={() => toggle(pos)}
+            className={`text-[9px] font-bold px-1.5 py-0.5 rounded border transition-colors ${
+              active
+                ? "bg-arcade-600/30 border-arcade-500 text-arcade-300"
+                : "bg-transparent border-gray-700 text-gray-600 hover:text-gray-400 hover:border-gray-500"
+            }`}>
+            {pos}
+          </button>
+        );
+      })}
     </div>
   );
 }
