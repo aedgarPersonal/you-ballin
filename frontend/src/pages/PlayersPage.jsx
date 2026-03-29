@@ -467,7 +467,7 @@ export default function PlayersPage() {
       {loading ? (
         <p className="text-gray-500 dark:text-gray-400">Loading players...</p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {sortedPlayers.map((player, idx) => {
             const pMetrics = playerMetricsMap[player.id] || [];
             const height = formatHeight(player.height_inches);
@@ -477,15 +477,26 @@ export default function PlayersPage() {
 
             return (
               <div key={player.id} className="rounded-xl bg-gradient-to-b from-amber-300 via-yellow-400 to-amber-500 p-[2px] shadow-lg hover:shadow-xl transition-shadow">
-                <div className="rounded-[10px] bg-gradient-to-b from-gray-950 via-gray-900 to-gray-950 overflow-hidden">
+                <div className="rounded-[10px] bg-gradient-to-b from-gray-950 via-gray-900 to-gray-950 overflow-hidden flex flex-col">
 
-                  {/* Card body */}
-                  <div className="relative px-4 pt-3 pb-2">
-                    {/* Admin status selector — top right */}
-                    {isAdmin && (
+                  {/* Card header strip */}
+                  <div className="bg-gradient-to-r from-arcade-700 via-arcade-600 to-court-600 px-3 py-1 flex items-center justify-between">
+                    {isRanked ? (
+                      <span className={`font-retro text-[7px] ${
+                        idx === 0 ? "text-yellow-300" :
+                        idx === 1 ? "text-gray-300" :
+                        idx === 2 ? "text-orange-300" :
+                        "text-white/50"
+                      }`}>#{idx + 1}</span>
+                    ) : (
+                      <span className="font-retro text-[6px] text-white/40 tracking-widest">DD</span>
+                    )}
+                    {isAdmin ? (
                       <select
                         value={player.player_status}
+                        onClick={(e) => e.preventDefault()}
                         onChange={async (e) => {
+                          e.preventDefault();
                           const newStatus = e.target.value;
                           const labels = { regular: "Regular", dropin: "Drop-in", inactive: "Inactive" };
                           setPlayers((prev) => prev.map((p) =>
@@ -501,89 +512,80 @@ export default function PlayersPage() {
                             toast.error("Update failed");
                           }
                         }}
-                        className="absolute top-3 right-3 text-[10px] font-semibold border border-gray-700 rounded px-1.5 py-0.5 bg-gray-800 text-gray-300 z-10"
+                        className="text-[8px] font-semibold bg-transparent border-none text-white/70 cursor-pointer focus:outline-none"
                       >
-                        <option value="regular">Regular</option>
-                        <option value="dropin">Drop-in</option>
-                        <option value="inactive">Inactive</option>
+                        <option value="regular" className="bg-gray-800">Regular</option>
+                        <option value="dropin" className="bg-gray-800">Drop-in</option>
+                        <option value="inactive" className="bg-gray-800">Inactive</option>
                       </select>
+                    ) : (
+                      <span className="text-[7px] text-white/50">{player.player_status}</span>
                     )}
-
-                    <Link to={`/players/${player.id}`} className="block">
-                      <div className="flex items-center gap-3">
-                        {/* Rank badge */}
-                        {isRanked && (
-                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 ${
-                            idx === 0 ? "bg-yellow-400 text-yellow-900" :
-                            idx === 1 ? "bg-gray-300 text-gray-700" :
-                            idx === 2 ? "bg-orange-300 text-orange-800" :
-                            "bg-gray-700 text-gray-400"
-                          }`}>
-                            {idx + 1}
-                          </div>
-                        )}
-
-                        {/* Avatar with rating overlay */}
-                        <div className="relative shrink-0">
-                          {player.avatar_url ? (
-                            <AvatarBadge avatarId={player.avatar_url} size="md" />
-                          ) : (
-                            <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-court-500 to-arcade-500 flex items-center justify-center text-white font-bold text-lg">
-                              {player.full_name.charAt(0)}
-                            </div>
-                          )}
-                          {player.player_rating && (
-                            <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-gradient-to-br from-court-500 to-court-600 border-2 border-gray-950 flex items-center justify-center">
-                              <span className="font-retro text-[7px] text-white">{player.player_rating}</span>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Name & info */}
-                        <div className={`flex-1 min-w-0 ${isAdmin ? "pr-16" : ""}`}>
-                          <h3 className="font-retro text-[8px] text-white truncate leading-tight">
-                            {player.full_name.toUpperCase()}
-                          </h3>
-                          <div className="flex items-center gap-2 mt-1 text-[10px] text-gray-500">
-                            {!isAdmin && <span className={`badge-${player.player_status}`}>{player.player_status}</span>}
-                            {height && <span>{height}</span>}
-                            {player.age && <span>Age {player.age}</span>}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Awards row */}
-                      {(player.mvp_count > 0 || player.xfactor_count > 0 || player.shaqtin_count > 0) && (
-                        <div className="flex items-center gap-3 mt-2 text-[10px]">
-                          {player.mvp_count > 0 && <span className="text-yellow-500 font-bold">{"\uD83C\uDFC6"}{player.mvp_count}</span>}
-                          {player.xfactor_count > 0 && <span className="text-blue-400 font-bold">{"\u26A1"}{player.xfactor_count}</span>}
-                          {player.shaqtin_count > 0 && <span className="text-purple-400 font-bold">{"\uD83E\uDD26"}{player.shaqtin_count}</span>}
-                        </div>
-                      )}
-                    </Link>
                   </div>
 
+                  {/* Card body — clickable */}
+                  <Link to={`/players/${player.id}`} className="block flex-1">
+                    {/* Avatar area */}
+                    <div className="flex justify-center pt-4 pb-2 px-3">
+                      <div className="relative">
+                        {player.avatar_url ? (
+                          <AvatarBadge avatarId={player.avatar_url} size="lg" />
+                        ) : (
+                          <div className="w-20 h-20 rounded-lg bg-gradient-to-br from-court-500 to-arcade-500 flex items-center justify-center text-white font-bold text-3xl">
+                            {player.full_name.charAt(0)}
+                          </div>
+                        )}
+                        {/* Rating badge */}
+                        {player.player_rating && (
+                          <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-gradient-to-br from-court-500 to-court-600 border-2 border-gray-950 flex items-center justify-center shadow-lg">
+                            <span className="font-retro text-[8px] text-white">{player.player_rating}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Name */}
+                    <div className="text-center px-3 pb-1">
+                      <h3 className="font-retro text-[8px] text-white leading-tight truncate">
+                        {player.full_name.toUpperCase()}
+                      </h3>
+                      <div className="flex items-center justify-center gap-2 mt-1 text-[9px] text-gray-500">
+                        {height && <span>{height}</span>}
+                        {player.age && <span>Age {player.age}</span>}
+                      </div>
+                    </div>
+
+                    {/* Awards row */}
+                    {(player.mvp_count > 0 || player.xfactor_count > 0 || player.shaqtin_count > 0) && (
+                      <div className="flex items-center justify-center gap-3 pb-2 text-[10px]">
+                        {player.mvp_count > 0 && <span className="text-yellow-500 font-bold">{"\uD83C\uDFC6"}{player.mvp_count}</span>}
+                        {player.xfactor_count > 0 && <span className="text-blue-400 font-bold">{"\u26A1"}{player.xfactor_count}</span>}
+                        {player.shaqtin_count > 0 && <span className="text-purple-400 font-bold">{"\uD83E\uDD26"}{player.shaqtin_count}</span>}
+                      </div>
+                    )}
+                  </Link>
+
                   {/* Stats strip */}
-                  <div className="bg-gray-800/50 border-t border-gray-700/50 px-4 py-2">
-                    <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="bg-gray-800/50 border-t border-gray-700/50 px-3 py-2 mt-auto">
+                    <div className="grid grid-cols-3 gap-1 text-center">
                       <div>
                         <div className="font-retro text-[9px] text-court-400">{winPct}%</div>
-                        <div className="text-[7px] text-gray-500 uppercase tracking-wider">Win</div>
+                        <div className="text-[6px] text-gray-500 uppercase tracking-wider">Win</div>
                       </div>
                       <div>
                         <div className="font-retro text-[9px] text-white">{gamesWon}-{gamesLost}</div>
-                        <div className="text-[7px] text-gray-500 uppercase tracking-wider">W-L</div>
+                        <div className="text-[6px] text-gray-500 uppercase tracking-wider">W-L</div>
                       </div>
                       <div>
                         <div className="font-retro text-[9px] text-white">{player.games_played || 0}</div>
-                        <div className="text-[7px] text-gray-500 uppercase tracking-wider">GP</div>
+                        <div className="text-[6px] text-gray-500 uppercase tracking-wider">GP</div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Admin metrics — below stats strip */}
+                  {/* Admin metrics */}
                   {isAdmin && pMetrics.length > 0 && (
-                    <div className="border-t border-gray-700/50 px-4 py-2 flex items-center justify-center gap-2">
+                    <div className="border-t border-gray-700/50 px-3 py-2 flex items-center justify-center gap-2">
                       {pMetrics.map((m) => (
                             <div key={m.metric_id} className="text-center">
                               <input
