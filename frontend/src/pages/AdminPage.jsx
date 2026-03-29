@@ -1668,11 +1668,11 @@ export default function AdminPage() {
         <div className="space-y-8">
           {/* Weight Sliders */}
           <div className="card">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Algorithm Weights</h2>
               <div className="flex items-center gap-3">
-                <span className="text-sm text-gray-500 dark:text-gray-400">
-                  Total: {totalWeight.toFixed(2)} (auto-normalized)
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  Total: {totalWeight.toFixed(2)}
                 </span>
                 <button
                   onClick={handleSaveWeights}
@@ -1692,7 +1692,7 @@ export default function AdminPage() {
               Weights are relative — the algorithm normalizes them automatically.
             </p>
 
-            <div className="space-y-4">
+            <div className="space-y-5">
               {weights.map((w) => {
                 const label = w.is_builtin
                   ? BUILTIN_LABELS[w.metric_name] || w.metric_name
@@ -1700,12 +1700,20 @@ export default function AdminPage() {
                 const pct = totalWeight > 0 ? ((w.weight / totalWeight) * 100).toFixed(0) : 0;
 
                 return (
-                  <div key={w.metric_name} className="flex items-center gap-4">
-                    <div className="w-40 flex-shrink-0">
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{label}</span>
-                      {!w.is_builtin && (
-                        <span className="ml-1 text-xs text-court-500">custom</span>
-                      )}
+                  <div key={w.metric_name}>
+                    <div className="flex items-center justify-between mb-1">
+                      <div>
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{label}</span>
+                        {!w.is_builtin && (
+                          <span className="ml-1 text-xs text-court-500">custom</span>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <span className="text-sm font-mono text-gray-600 dark:text-gray-400">
+                          {w.weight.toFixed(2)}
+                        </span>
+                        <span className="text-xs text-gray-400 dark:text-gray-500 ml-1">({pct}%)</span>
+                      </div>
                     </div>
                     <input
                       type="range"
@@ -1714,14 +1722,8 @@ export default function AdminPage() {
                       step="0.01"
                       value={w.weight}
                       onChange={(e) => handleWeightChange(w.metric_name, parseFloat(e.target.value))}
-                      className="flex-1 h-2 accent-court-500"
+                      className="w-full h-2 accent-court-500"
                     />
-                    <div className="w-20 text-right">
-                      <span className="text-sm font-mono text-gray-600 dark:text-gray-400">
-                        {w.weight.toFixed(2)}
-                      </span>
-                      <span className="text-xs text-gray-400 dark:text-gray-500 ml-1">({pct}%)</span>
-                    </div>
                   </div>
                 );
               })}
