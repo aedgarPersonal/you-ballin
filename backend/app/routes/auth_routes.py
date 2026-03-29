@@ -175,6 +175,7 @@ async def register(data: UserRegister, db: AsyncSession = Depends(get_db)):
         )
 
     token = create_access_token(user.id)
+    await db.refresh(user)
     return TokenResponse(
         access_token=token,
         user=UserResponse.model_validate(user),
@@ -313,6 +314,7 @@ async def google_auth(google_token: dict, db: AsyncSession = Depends(get_db)):
         db.add(user)
         await db.flush()
 
+    await db.refresh(user)
     access_token = create_access_token(user.id)
     return TokenResponse(
         access_token=access_token,
