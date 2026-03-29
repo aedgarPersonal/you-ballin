@@ -74,7 +74,7 @@ export default function LoginPage() {
         <div className="flex flex-col items-center mb-8">
           <Logo size="lg" />
           <p className="font-retro text-[8px] text-arcade-400 mt-4 animate-pulse tracking-wider">
-            PRESS START
+            INSERT BITCOIN
           </p>
         </div>
 
