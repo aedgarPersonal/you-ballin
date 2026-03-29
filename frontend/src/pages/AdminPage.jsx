@@ -514,7 +514,7 @@ export default function AdminPage() {
   };
 
   const tabs = ["registration", "players", "balancer", "settings"];
-  const tabLabels = { registration: "Registration", settings: "Run Settings" };
+  const tabLabels = { registration: "Registration", players: "Roster", settings: "Run Settings" };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -856,7 +856,7 @@ export default function AdminPage() {
           )}
         </div>
       ) : tab === "players" ? (
-        /* ===== All Players ===== */
+        /* ===== Roster ===== */
         <div className="space-y-4">
           {/* Action Buttons */}
           <div className="flex gap-3">
@@ -870,7 +870,7 @@ export default function AdminPage() {
               onClick={() => { setShowImportModal(true); setImportResult(null); }}
               className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors"
             >
-              Import Players
+              Import Roster
             </button>
           </div>
           {/* Add Player Modal */}
@@ -1008,7 +1008,7 @@ export default function AdminPage() {
             })}
           </div>
 
-          {/* Players Table */}
+          {/* Roster Table */}
           {(() => {
             const filtered = players.filter((p) => adminStatusFilters.has(p.player_status));
             const sorted = [...filtered].sort((a, b) => {
@@ -1339,7 +1339,7 @@ export default function AdminPage() {
             <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
               <div className="bg-white dark:bg-gray-800 rounded-xl max-w-lg w-full shadow-2xl">
                 <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                  <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Import Players</h2>
+                  <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Import Roster</h2>
                   <button onClick={() => setShowImportModal(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-white text-2xl leading-none">&times;</button>
                 </div>
                 <div className="px-6 py-4">
@@ -1388,7 +1388,7 @@ export default function AdminPage() {
                           : "bg-court-500 hover:bg-court-600 text-white"
                       }`}
                     >
-                      {importing ? "Importing..." : "Import Players"}
+                      {importing ? "Importing..." : "Import Roster"}
                     </button>
                   </div>
                   {importResult && (
