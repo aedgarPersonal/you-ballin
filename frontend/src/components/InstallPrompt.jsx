@@ -114,7 +114,7 @@ export function InstallBanner() {
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-bold text-sm">
-              Install You Ballin
+              Install Double Dribble
             </p>
             <p className="text-xs text-white/80 mt-0.5">
               Add to your home screen for the best experience — quick access, offline support, and instant notifications.

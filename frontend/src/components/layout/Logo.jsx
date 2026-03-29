@@ -1,7 +1,7 @@
 /**
  * Logo Component
  * ==============
- * Inline SVG brand mark with basketball icon and "YOU BALLIN" wordmark.
+ * Inline SVG brand mark with basketball icon and "DOUBLE DRIBBLE" wordmark.
  * Supports size variants for navbar vs. auth pages.
  */
 
@@ -89,7 +89,7 @@ export default function Logo({ size = "sm", className = "" }) {
         <span
           className={`${textClass} font-extrabold tracking-tight bg-gradient-to-r from-court-500 via-court-600 to-court-700 bg-clip-text text-transparent`}
         >
-          YOU BALLIN
+          DOUBLE DRIBBLE
         </span>
         {size !== "sm" && (
           <span className="text-xs font-medium tracking-[0.2em] text-gray-400 dark:text-gray-500 mt-0.5 uppercase">
