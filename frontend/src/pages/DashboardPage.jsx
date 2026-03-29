@@ -33,49 +33,45 @@ export default function DashboardPage() {
   const fetchData = async () => {
     if (!runId) { setLoading(false); return; }
     try {
-      const gamesRes = await listGames(runId);
-      const games = gamesRes.data;
+      // Step 1: Fetch games list, membership, and form in parallel
+      const [gamesRes, memberRes, formRes] = await Promise.allSettled([
+        listGames(runId),
+        listPlayers(runId, { search: user?.username }),
+        user?.id ? getPlayerForm(runId, user.id) : Promise.resolve(null),
+      ]);
 
-      // Find next upcoming game (not completed/cancelled/skipped)
-      const upcoming = games.find(
-        (g) => !["completed", "cancelled", "skipped"].includes(g.status)
-      );
-      if (upcoming) {
-        // Fetch full detail to get RSVPs
-        const { data } = await getGame(runId, upcoming.id);
-        setNextGame(data);
-
-        // Check run membership
-        const hasRsvp = data.rsvps?.some((r) => r.user_id === user?.id);
-        if (hasRsvp) {
-          setIsRunMember(true);
-        } else {
-          try {
-            const pRes = await listPlayers(runId, { search: user?.username });
-            setIsRunMember(pRes.data.users?.some((p) => p.id === user?.id) || false);
-          } catch { setIsRunMember(false); }
-        }
+      if (memberRes.status === "fulfilled" && memberRes.value) {
+        setIsRunMember(memberRes.value.data.users?.some((p) => p.id === user?.id) || false);
       }
-
-      // Fetch current form/streak for the logged-in user
-      if (user?.id) {
-        try {
-          const formRes = await getPlayerForm(runId, user.id);
-          setMyForm(formRes.data);
-        } catch { /* no form data */ }
+      if (formRes.status === "fulfilled" && formRes.value) {
+        setMyForm(formRes.value.data);
       }
+      if (gamesRes.status !== "fulfilled") { setLoading(false); return; }
 
-      // Find most recent completed game
+      const games = gamesRes.value.data;
+      const upcoming = games.find((g) => !["completed", "cancelled", "skipped"].includes(g.status));
       const completed = games.find((g) => g.status === "completed");
+
+      // Step 2: Fetch game details in parallel
+      const detailFetches = [];
+      detailFetches.push(upcoming ? getGame(runId, upcoming.id) : Promise.resolve(null));
       if (completed) {
-        const [gameRes, awardsRes, votesRes] = await Promise.allSettled([
-          getGame(runId, completed.id),
-          getGameAwards(runId, completed.id),
-          getMyVotes(runId, completed.id),
-        ]);
-        if (gameRes.status === "fulfilled") setLastCompleted(gameRes.value.data);
-        if (awardsRes.status === "fulfilled") setLastAwards(awardsRes.value.data);
-        if (votesRes.status === "fulfilled") setMyVotes(votesRes.value.data);
+        detailFetches.push(getGame(runId, completed.id));
+        detailFetches.push(getGameAwards(runId, completed.id));
+        detailFetches.push(getMyVotes(runId, completed.id));
+      }
+
+      const results = await Promise.allSettled(detailFetches);
+
+      if (results[0]?.status === "fulfilled" && results[0].value) {
+        const gameData = results[0].value.data;
+        setNextGame(gameData);
+        if (gameData.rsvps?.some((r) => r.user_id === user?.id)) setIsRunMember(true);
+      }
+      if (completed) {
+        if (results[1]?.status === "fulfilled") setLastCompleted(results[1].value.data);
+        if (results[2]?.status === "fulfilled") setLastAwards(results[2].value.data);
+        if (results[3]?.status === "fulfilled") setMyVotes(results[3].value.data);
       }
     } catch {
       // User may be pending
