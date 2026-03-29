@@ -24,6 +24,7 @@ class RunCreate(BaseModel):
     voting_reminder_hours_before: int = Field(default=4, ge=0, le=48)
     invite_hours_before: int | None = Field(default=48, ge=0, le=168)
     auto_regen_teams: bool = False
+    show_player_rating: bool = True
 
 
 class RunUpdate(BaseModel):
@@ -48,6 +49,7 @@ class RunUpdate(BaseModel):
     voting_reminder_hours_before: int | None = Field(None, ge=0, le=48)
     invite_hours_before: int | None = Field(None, ge=0, le=168)
     auto_regen_teams: bool | None = None
+    show_player_rating: bool | None = None
 
 
 class RunResponse(BaseModel):
@@ -73,6 +75,7 @@ class RunResponse(BaseModel):
     voting_reminder_hours_before: int = 4
     invite_hours_before: int | None = 48
     auto_regen_teams: bool = False
+    show_player_rating: bool = True
     created_at: datetime
     is_admin: bool = False
     model_config = {"from_attributes": True}

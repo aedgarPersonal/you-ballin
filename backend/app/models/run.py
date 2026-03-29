@@ -80,6 +80,8 @@ class Run(Base):
     invite_hours_before: Mapped[int | None] = mapped_column(Integer, nullable=True, default=48)
     # Auto-regenerate teams when a new player accepts after teams are set (default: False)
     auto_regen_teams: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    # Show player Overall Rating (1-100 composite) to non-admin users (default: True)
+    show_player_rating: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
 
     # --- Season Dates ---
     start_date: Mapped[datetime | None] = mapped_column(Date, nullable=True)

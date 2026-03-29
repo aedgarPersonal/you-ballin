@@ -34,10 +34,12 @@ async def _is_admin_for_run(user: User, run_id: int, db: AsyncSession) -> bool:
     return result.scalar_one_or_none() is not None
 
 
-def _redact_user(user_response: dict) -> dict:
-    """Remove rating fields from a user response dict."""
+def _redact_user(user_response: dict, hide_rating: bool = False) -> dict:
+    """Remove admin-only fields from a user response dict."""
     for field in REDACTED_FIELDS:
         user_response[field] = None
+    if hide_rating:
+        user_response["player_rating"] = None
     return user_response
 
 
@@ -82,6 +84,13 @@ async def list_run_players(
     rows = result.all()
 
     is_admin = await _is_admin_for_run(current_user, run_id, db)
+
+    # Check run's show_player_rating setting
+    from app.models.run import Run
+    run_result = await db.execute(select(Run).where(Run.id == run_id))
+    run_obj = run_result.scalar_one_or_none()
+    hide_rating = not is_admin and run_obj and not run_obj.show_player_rating
+
     user_dicts = []
     for user_obj, membership in rows:
         d = UserResponse.model_validate(user_obj).model_dump()
@@ -91,7 +100,7 @@ async def list_run_players(
         user_dicts.append(d)
 
     if not is_admin:
-        user_dicts = [_redact_user(d) for d in user_dicts]
+        user_dicts = [_redact_user(d, hide_rating=hide_rating) for d in user_dicts]
 
     return {"users": user_dicts, "total": total}
 
