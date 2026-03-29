@@ -133,7 +133,7 @@ export default function LoginPage() {
                 </Link>
               </div>
               <button type="submit" disabled={loading} className="btn-primary w-full">
-                {loading ? "Loading..." : "INSERT COIN"}
+                {loading ? "Loading..." : "PRESS START"}
               </button>
             </form>
           )}
