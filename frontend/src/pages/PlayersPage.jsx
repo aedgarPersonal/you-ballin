@@ -479,59 +479,89 @@ export default function PlayersPage() {
               <div key={player.id} className="rounded-xl bg-gradient-to-b from-amber-300 via-yellow-400 to-amber-500 p-[2px] shadow-lg hover:shadow-xl transition-shadow">
                 <div className="rounded-[10px] bg-gradient-to-b from-gray-950 via-gray-900 to-gray-950 overflow-hidden">
 
-                  {/* Card body — clickable */}
-                  <Link to={`/players/${player.id}`} className="block px-4 pt-3 pb-2">
-                    <div className="flex items-center gap-3">
-                      {/* Rank badge */}
-                      {isRanked && (
-                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 ${
-                          idx === 0 ? "bg-yellow-400 text-yellow-900" :
-                          idx === 1 ? "bg-gray-300 text-gray-700" :
-                          idx === 2 ? "bg-orange-300 text-orange-800" :
-                          "bg-gray-700 text-gray-400"
-                        }`}>
-                          {idx + 1}
+                  {/* Card body */}
+                  <div className="relative px-4 pt-3 pb-2">
+                    {/* Admin status selector — top right */}
+                    {isAdmin && (
+                      <select
+                        value={player.player_status}
+                        onChange={async (e) => {
+                          const newStatus = e.target.value;
+                          const labels = { regular: "Regular", dropin: "Drop-in", inactive: "Inactive" };
+                          setPlayers((prev) => prev.map((p) =>
+                            p.id === player.id ? { ...p, player_status: newStatus } : p
+                          ));
+                          try {
+                            await updatePlayerAdmin(runId, player.id, { player_status: newStatus });
+                            toast.success(`${player.full_name} → ${labels[newStatus]}`);
+                          } catch {
+                            setPlayers((prev) => prev.map((p) =>
+                              p.id === player.id ? { ...p, player_status: player.player_status } : p
+                            ));
+                            toast.error("Update failed");
+                          }
+                        }}
+                        className="absolute top-3 right-3 text-[10px] font-semibold border border-gray-700 rounded px-1.5 py-0.5 bg-gray-800 text-gray-300 z-10"
+                      >
+                        <option value="regular">Regular</option>
+                        <option value="dropin">Drop-in</option>
+                        <option value="inactive">Inactive</option>
+                      </select>
+                    )}
+
+                    <Link to={`/players/${player.id}`} className="block">
+                      <div className="flex items-center gap-3">
+                        {/* Rank badge */}
+                        {isRanked && (
+                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 ${
+                            idx === 0 ? "bg-yellow-400 text-yellow-900" :
+                            idx === 1 ? "bg-gray-300 text-gray-700" :
+                            idx === 2 ? "bg-orange-300 text-orange-800" :
+                            "bg-gray-700 text-gray-400"
+                          }`}>
+                            {idx + 1}
+                          </div>
+                        )}
+
+                        {/* Avatar with rating overlay */}
+                        <div className="relative shrink-0">
+                          {player.avatar_url ? (
+                            <AvatarBadge avatarId={player.avatar_url} size="md" />
+                          ) : (
+                            <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-court-500 to-arcade-500 flex items-center justify-center text-white font-bold text-lg">
+                              {player.full_name.charAt(0)}
+                            </div>
+                          )}
+                          {player.player_rating && (
+                            <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-gradient-to-br from-court-500 to-court-600 border-2 border-gray-950 flex items-center justify-center">
+                              <span className="font-retro text-[7px] text-white">{player.player_rating}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Name & info */}
+                        <div className="flex-1 min-w-0 pr-16">
+                          <h3 className="font-retro text-[8px] text-white truncate leading-tight">
+                            {player.full_name.toUpperCase()}
+                          </h3>
+                          <div className="flex items-center gap-2 mt-1 text-[10px] text-gray-500">
+                            {!isAdmin && <span className={`badge-${player.player_status}`}>{player.player_status}</span>}
+                            {height && <span>{height}</span>}
+                            {player.age && <span>Age {player.age}</span>}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Awards row */}
+                      {(player.mvp_count > 0 || player.xfactor_count > 0 || player.shaqtin_count > 0) && (
+                        <div className="flex items-center gap-3 mt-2 text-[10px]">
+                          {player.mvp_count > 0 && <span className="text-yellow-500 font-bold">{"\uD83C\uDFC6"}{player.mvp_count}</span>}
+                          {player.xfactor_count > 0 && <span className="text-blue-400 font-bold">{"\u26A1"}{player.xfactor_count}</span>}
+                          {player.shaqtin_count > 0 && <span className="text-purple-400 font-bold">{"\uD83E\uDD26"}{player.shaqtin_count}</span>}
                         </div>
                       )}
-
-                      {/* Avatar with rating overlay */}
-                      <div className="relative shrink-0">
-                        {player.avatar_url ? (
-                          <AvatarBadge avatarId={player.avatar_url} size="md" />
-                        ) : (
-                          <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-court-500 to-arcade-500 flex items-center justify-center text-white font-bold text-lg">
-                            {player.full_name.charAt(0)}
-                          </div>
-                        )}
-                        {player.player_rating && (
-                          <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-gradient-to-br from-court-500 to-court-600 border-2 border-gray-950 flex items-center justify-center">
-                            <span className="font-retro text-[7px] text-white">{player.player_rating}</span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Name & info */}
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-retro text-[8px] text-white truncate leading-tight">
-                          {player.full_name.toUpperCase()}
-                        </h3>
-                        <div className="flex items-center gap-2 mt-1 text-[10px] text-gray-500">
-                          <span className={`badge-${player.player_status}`}>{player.player_status}</span>
-                          {height && <span>{height}</span>}
-                          {player.age && <span>Age {player.age}</span>}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Awards row */}
-                    {(player.mvp_count > 0 || player.xfactor_count > 0 || player.shaqtin_count > 0) && (
-                      <div className="flex items-center gap-3 mt-2 text-[10px]">
-                        {player.mvp_count > 0 && <span className="text-yellow-500 font-bold">{"\uD83C\uDFC6"}{player.mvp_count}</span>}
-                        {player.xfactor_count > 0 && <span className="text-blue-400 font-bold">{"\u26A1"}{player.xfactor_count}</span>}
-                        {player.shaqtin_count > 0 && <span className="text-purple-400 font-bold">{"\uD83E\uDD26"}{player.shaqtin_count}</span>}
-                      </div>
-                    )}
-                  </Link>
+                    </Link>
+                  </div>
 
                   {/* Stats strip */}
                   <div className="bg-gray-800/50 border-t border-gray-700/50 px-4 py-2">
@@ -551,36 +581,10 @@ export default function PlayersPage() {
                     </div>
                   </div>
 
-                  {/* Admin controls — below stats strip */}
-                  {isAdmin && (
-                    <div className="border-t border-gray-700/50 px-4 py-2 flex items-center justify-between">
-                      <select
-                        value={player.player_status}
-                        onChange={async (e) => {
-                          const newStatus = e.target.value;
-                          const labels = { regular: "Regular", dropin: "Drop-in", inactive: "Inactive" };
-                          setPlayers((prev) => prev.map((p) =>
-                            p.id === player.id ? { ...p, player_status: newStatus } : p
-                          ));
-                          try {
-                            await updatePlayerAdmin(runId, player.id, { player_status: newStatus });
-                            toast.success(`${player.full_name} → ${labels[newStatus]}`);
-                          } catch {
-                            setPlayers((prev) => prev.map((p) =>
-                              p.id === player.id ? { ...p, player_status: player.player_status } : p
-                            ));
-                            toast.error("Update failed");
-                          }
-                        }}
-                        className="text-[10px] font-semibold border border-gray-700 rounded px-1.5 py-0.5 bg-gray-800 text-gray-300"
-                      >
-                        <option value="regular">Regular</option>
-                        <option value="dropin">Drop-in</option>
-                        <option value="inactive">Inactive</option>
-                      </select>
-                      {pMetrics.length > 0 && (
-                        <div className="flex items-center gap-2">
-                          {pMetrics.map((m) => (
+                  {/* Admin metrics — below stats strip */}
+                  {isAdmin && pMetrics.length > 0 && (
+                    <div className="border-t border-gray-700/50 px-4 py-2 flex items-center justify-center gap-2">
+                      {pMetrics.map((m) => (
                             <div key={m.metric_id} className="text-center">
                               <input
                                 type="number" step="0.5" min={m.min_value || 1} max={m.max_value || 10}
@@ -608,8 +612,6 @@ export default function PlayersPage() {
                               </div>
                             </div>
                           ))}
-                        </div>
-                      )}
                     </div>
                   )}
 
