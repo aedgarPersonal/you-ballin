@@ -31,6 +31,7 @@ from app.schemas.algorithm import (
     CustomMetricCreate,
     CustomMetricResponse,
     CustomMetricUpdate,
+    BulkPlayerMetricsResponse,
     PlayerMetricUpdate,
     PlayerMetricsResponse,
     PlayerMetricValue,
@@ -326,6 +327,69 @@ async def delete_custom_metric(
 # =============================================================================
 # Player Custom Metric Values
 # =============================================================================
+
+@router.get("/players/metrics/bulk", response_model=BulkPlayerMetricsResponse)
+async def get_all_player_metrics_bulk(
+    run_id: int,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(require_run_admin()),
+):
+    """Get all custom metric values for all players in this run in one call.
+
+    Returns a dict keyed by user_id, each containing the list of metric values.
+    This replaces N individual get_player_metrics calls with a single query.
+    """
+    from app.models.run import RunMembership
+
+    # Get all custom metrics for this run
+    metrics_result = await db.execute(
+        select(CustomMetric)
+        .where(CustomMetric.run_id == run_id)
+        .order_by(CustomMetric.name)
+    )
+    metrics = metrics_result.scalars().all()
+
+    if not metrics:
+        return BulkPlayerMetricsResponse(metrics_by_player={})
+
+    # Get all run members
+    members_result = await db.execute(
+        select(RunMembership.user_id).where(RunMembership.run_id == run_id)
+    )
+    member_ids = [row[0] for row in members_result.all()]
+
+    if not member_ids:
+        return BulkPlayerMetricsResponse(metrics_by_player={})
+
+    # Get all player metric values in one query
+    values_result = await db.execute(
+        select(PlayerCustomMetric).where(
+            PlayerCustomMetric.user_id.in_(member_ids),
+            PlayerCustomMetric.metric_id.in_([m.id for m in metrics]),
+        )
+    )
+    # Build lookup: (user_id, metric_id) -> value
+    values_lookup = {}
+    for v in values_result.scalars().all():
+        values_lookup[(v.user_id, v.metric_id)] = v.value
+
+    # Build response
+    metrics_by_player = {}
+    for uid in member_ids:
+        metrics_by_player[uid] = [
+            PlayerMetricValue(
+                metric_id=m.id,
+                metric_name=m.name,
+                display_name=m.display_name,
+                value=values_lookup.get((uid, m.id), m.default_value),
+                min_value=m.min_value,
+                max_value=m.max_value,
+            )
+            for m in metrics
+        ]
+
+    return BulkPlayerMetricsResponse(metrics_by_player=metrics_by_player)
+
 
 @router.get("/players/{user_id}/metrics", response_model=PlayerMetricsResponse)
 async def get_player_metrics(

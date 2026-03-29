@@ -98,3 +98,8 @@ class PlayerMetricUpdate(BaseModel):
     """Update a player's value for a custom metric."""
     metric_id: int
     value: float
+
+
+class BulkPlayerMetricsResponse(BaseModel):
+    """All custom metric values for all players in a run, keyed by user_id."""
+    metrics_by_player: dict[int, list[PlayerMetricValue]]

@@ -11,8 +11,7 @@ import useRunStore from "../stores/runStore";
 import useAuthStore from "../stores/authStore";
 import { listPlayers } from "../api/players";
 import { updatePlayerAdmin, importPlayers, quickAddPlayer } from "../api/admin";
-import { listCustomMetrics } from "../api/algorithm";
-import { getPlayerMetrics, updatePlayerMetrics } from "../api/algorithm";
+import { listCustomMetrics, getBulkPlayerMetrics, updatePlayerMetrics } from "../api/algorithm";
 import { AvatarBadge } from "../components/AvatarPicker";
 import toast from "react-hot-toast";
 
@@ -105,18 +104,13 @@ export default function PlayersPage() {
       });
       setPlayers(data.users);
 
-      if (isAdmin && customMetrics.length > 0) {
-        const metricsEntries = await Promise.all(
-          data.users.map(async (p) => {
-            try {
-              const { data: pm } = await getPlayerMetrics(runId, p.id);
-              return [p.id, pm.metrics];
-            } catch {
-              return [p.id, []];
-            }
-          })
-        );
-        setPlayerMetricsMap(Object.fromEntries(metricsEntries));
+      if (isAdmin) {
+        try {
+          const { data: bulk } = await getBulkPlayerMetrics(runId);
+          setPlayerMetricsMap(bulk.metrics_by_player || {});
+        } catch {
+          setPlayerMetricsMap({});
+        }
       }
     } catch {
       setPlayers([]);

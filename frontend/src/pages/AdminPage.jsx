@@ -51,7 +51,7 @@ import {
   listCustomMetrics,
   createCustomMetric,
   deleteCustomMetric,
-  getPlayerMetrics,
+  getBulkPlayerMetrics,
   updatePlayerMetrics,
 } from "../api/algorithm";
 
@@ -146,32 +146,18 @@ export default function AdminPage() {
   const fetchPlayers = async () => {
     if (!runId) return;
     try {
-      const { data } = await listAllPlayers(runId);
-      setPlayers(data.users);
-      // Also load player metrics for the players table
-      if (customMetrics.length > 0 || true) {
-        // Fetch metrics defs if not yet loaded
-        let metrics = customMetrics;
-        if (metrics.length === 0) {
-          try {
-            const mRes = await listCustomMetrics(runId);
-            metrics = mRes.data.metrics || mRes.data || [];
-            setCustomMetrics(metrics);
-          } catch { /* empty */ }
-        }
-        if (metrics.length > 0) {
-          const entries = await Promise.all(
-            data.users.map(async (p) => {
-              try {
-                const { data: pm } = await getPlayerMetrics(runId, p.id);
-                return [p.id, pm.metrics || []];
-              } catch {
-                return [p.id, []];
-              }
-            })
-          );
-          setAdminPlayerMetrics(Object.fromEntries(entries));
-        }
+      const [playersRes, metricsRes, bulkRes] = await Promise.allSettled([
+        listAllPlayers(runId),
+        customMetrics.length === 0 ? listCustomMetrics(runId) : Promise.resolve(null),
+        getBulkPlayerMetrics(runId),
+      ]);
+      if (playersRes.status === "fulfilled") setPlayers(playersRes.value.data.users);
+      if (metricsRes.status === "fulfilled" && metricsRes.value) {
+        const m = metricsRes.value.data.metrics || metricsRes.value.data || [];
+        setCustomMetrics(m);
+      }
+      if (bulkRes.status === "fulfilled") {
+        setAdminPlayerMetrics(bulkRes.value.data.metrics_by_player || {});
       }
     } catch { /* empty */ }
   };

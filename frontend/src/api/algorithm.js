@@ -14,5 +14,7 @@ export const deleteCustomMetric = (runId, id) =>
 
 export const getPlayerMetrics = (runId, userId) =>
   api.get(`/runs/${runId}/algorithm/players/${userId}/metrics`);
+export const getBulkPlayerMetrics = (runId) =>
+  api.get(`/runs/${runId}/algorithm/players/metrics/bulk`);
 export const updatePlayerMetrics = (runId, userId, metrics) =>
   api.put(`/runs/${runId}/algorithm/players/${userId}/metrics`, metrics);
