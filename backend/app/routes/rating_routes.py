@@ -74,11 +74,6 @@ async def get_player_rating_summary(
     if stats:
         return PlayerRatingSummary(
             player_id=player_id,
-            avg_scoring=stats.avg_scoring,
-            avg_defense=stats.avg_defense,
-            avg_overall=stats.avg_overall,
-            avg_athleticism=stats.avg_athleticism,
-            avg_fitness=stats.avg_fitness,
             total_ratings=total_ratings,
             win_rate=stats.win_rate,
             games_played=stats.games_played,
@@ -88,11 +83,6 @@ async def get_player_rating_summary(
     # Fall back to user-level stats if no run stats
     return PlayerRatingSummary(
         player_id=player_id,
-        avg_scoring=player.avg_scoring,
-        avg_defense=player.avg_defense,
-        avg_overall=player.avg_overall,
-        avg_athleticism=player.avg_athleticism,
-        avg_fitness=player.avg_fitness,
         total_ratings=total_ratings,
         win_rate=player.win_rate,
         games_played=player.games_played,
@@ -210,50 +200,10 @@ async def rate_player(
 
     await db.flush()
 
-    # Recalculate global cached averages on the target player (across all runs)
-    avg_result = await db.execute(
-        select(
-            func.avg(PlayerRating.scoring),
-            func.avg(PlayerRating.defense),
-            func.avg(PlayerRating.overall),
-            func.avg(PlayerRating.athleticism),
-            func.avg(PlayerRating.fitness),
-        ).where(PlayerRating.player_id == player_id)
-    )
-    avgs = avg_result.one()
-    target.avg_scoring = round(avgs[0] or 3.0, 2)
-    target.avg_defense = round(avgs[1] or 3.0, 2)
-    target.avg_overall = round(avgs[2] or 3.0, 2)
-    target.avg_athleticism = round(avgs[3] or 3.0, 2)
-    target.avg_fitness = round(avgs[4] or 3.0, 2)
-
-    # Update run-specific stats
-    run_stats_result = await db.execute(
-        select(RunPlayerStats).where(
-            RunPlayerStats.run_id == run_id,
-            RunPlayerStats.user_id == player_id,
-        )
-    )
-    run_stats = run_stats_result.scalar_one_or_none()
-    if run_stats:
-        run_avg_result = await db.execute(
-            select(
-                func.avg(PlayerRating.scoring),
-                func.avg(PlayerRating.defense),
-                func.avg(PlayerRating.overall),
-                func.avg(PlayerRating.athleticism),
-                func.avg(PlayerRating.fitness),
-            ).where(
-                PlayerRating.player_id == player_id,
-                PlayerRating.run_id == run_id,
-            )
-        )
-        run_avgs = run_avg_result.one()
-        run_stats.avg_scoring = round(run_avgs[0] or 3.0, 2)
-        run_stats.avg_defense = round(run_avgs[1] or 3.0, 2)
-        run_stats.avg_overall = round(run_avgs[2] or 3.0, 2)
-        run_stats.avg_athleticism = round(run_avgs[3] or 3.0, 2)
-        run_stats.avg_fitness = round(run_avgs[4] or 3.0, 2)
+    # Note: avg_* fields have been removed. Peer ratings still exist in the
+    # PlayerRating table but are no longer cached on User or RunPlayerStats.
+    # Custom metrics (via PlayerCustomMetric) are the authoritative source
+    # for skill-based team balancing factors.
 
     await db.flush()
     return rating

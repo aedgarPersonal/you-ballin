@@ -83,12 +83,7 @@ class User(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     google_id: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True)
 
-    # --- Computed Ratings (cached from PlayerRating averages) ---
-    avg_scoring: Mapped[float] = mapped_column(Float, default=3.0)
-    avg_defense: Mapped[float] = mapped_column(Float, default=3.0)
-    avg_overall: Mapped[float] = mapped_column(Float, default=3.0)
-    avg_athleticism: Mapped[float] = mapped_column(Float, default=3.0)
-    avg_fitness: Mapped[float] = mapped_column(Float, default=3.0)
+    # --- Game Stats ---
     win_rate: Mapped[float] = mapped_column(Float, default=0.5)  # Win Rate 0.0 - 1.0
     games_played: Mapped[int] = mapped_column(Integer, default=0)
     games_won: Mapped[int] = mapped_column(Integer, default=0)
@@ -98,7 +93,11 @@ class User(Base):
 
     @property
     def player_rating(self) -> int:
-        """Computed 1-100 rating based on the team balancing composite score."""
+        """Computed 1-100 rating from universal factors (win_rate, height, age).
+
+        Custom metrics are dynamic per-run, so the global player_rating only
+        uses factors available on the User model itself.
+        """
         from app.services.team_balancer import compute_player_rating
         return compute_player_rating(self)
 

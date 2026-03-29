@@ -63,8 +63,8 @@ async def test_import_with_extended_fields(client):
         json={"players": [{
             "name": "BigMan", "email": "big@test.com",
             "wins": 10, "losses": 5,
-            "height_inches": 78, "age": 25, "mobility": 4.0,
-            "avg_offense": 4.5, "avg_defense": 3.5, "avg_overall": 4.0,
+            "height_inches": 78, "age": 25,
+            "metrics": {"offense": 8.0, "defense": 6.0},
         }]},
         headers=auth_header(token),
     )

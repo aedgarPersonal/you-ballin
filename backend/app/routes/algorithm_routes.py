@@ -20,7 +20,7 @@ TEACHING NOTE:
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func as sqlfunc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user, require_run_admin
@@ -41,28 +41,24 @@ from app.schemas.algorithm import (
 
 router = APIRouter(prefix="/api/runs/{run_id}/algorithm", tags=["Algorithm Config"])
 
-# Default weights used when no database entries exist
+# Default universal weights used when no database entries exist.
+# Custom metric weights (offense, defense, etc.) come from AlgorithmWeight entries
+# created when the run is seeded with default CustomMetrics.
 DEFAULT_WEIGHTS = {
-    "overall": 0.35,
     "win_rate": 0.20,
-    "scoring": 0.15,
-    "defense": 0.15,
-    "athleticism": 0.05,
-    "fitness": 0.05,
-    "height": 0.03,
-    "age": 0.02,
+    "height": 0.05,
+    "age": 0.05,
 }
 
 BUILTIN_METRIC_LABELS = {
-    "overall": "Overall Rating",
     "win_rate": "Win Rate",
-    "scoring": "Scoring",
-    "defense": "Defense",
-    "athleticism": "Athleticism",
-    "fitness": "Fitness",
     "height": "Height",
     "age": "Age",
 }
+
+# Constraints on how many custom metrics a run can have
+MIN_CUSTOM_METRICS = 3
+MAX_CUSTOM_METRICS = 10
 
 
 # =============================================================================
@@ -92,9 +88,36 @@ async def get_weights(
 
     # Seed defaults if empty for this run
     if not weights:
+        # Seed universal built-in weights
         for name, weight in DEFAULT_WEIGHTS.items():
             entry = AlgorithmWeight(run_id=run_id, metric_name=name, weight=weight, is_builtin=True)
             db.add(entry)
+
+        # Auto-seed default custom metrics if none exist for this run
+        existing_metrics = await db.execute(
+            select(CustomMetric).where(CustomMetric.run_id == run_id)
+        )
+        if not existing_metrics.scalars().first():
+            default_custom_metrics = [
+                {"name": "offense", "display_name": "Offense", "weight": 0.30},
+                {"name": "defense", "display_name": "Defense", "weight": 0.30},
+                {"name": "athleticism", "display_name": "Athleticism", "weight": 0.10},
+            ]
+            for mcfg in default_custom_metrics:
+                cm = CustomMetric(
+                    run_id=run_id,
+                    name=mcfg["name"],
+                    display_name=mcfg["display_name"],
+                    min_value=1.0,
+                    max_value=10.0,
+                    default_value=5.0,
+                )
+                db.add(cm)
+                db.add(AlgorithmWeight(
+                    run_id=run_id, metric_name=mcfg["name"],
+                    weight=mcfg["weight"], is_builtin=False,
+                ))
+
         await db.flush()
         result = await db.execute(
             select(AlgorithmWeight)
@@ -187,6 +210,17 @@ async def create_custom_metric(
         balancing until the admin explicitly sets a weight for it via
         the sliders.
     """
+    # Enforce max custom metrics per run
+    count_result = await db.execute(
+        select(sqlfunc.count(CustomMetric.id)).where(CustomMetric.run_id == run_id)
+    )
+    current_count = count_result.scalar() or 0
+    if current_count >= MAX_CUSTOM_METRICS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Maximum of {MAX_CUSTOM_METRICS} custom metrics per run reached",
+        )
+
     # Check for duplicate name within this run
     existing = await db.execute(
         select(CustomMetric).where(
@@ -253,6 +287,17 @@ async def delete_custom_metric(
         metric (configured via cascade="all, delete-orphan" on the
         relationship). The AlgorithmWeight entry is deleted manually.
     """
+    # Enforce min custom metrics per run
+    count_result = await db.execute(
+        select(sqlfunc.count(CustomMetric.id)).where(CustomMetric.run_id == run_id)
+    )
+    current_count = count_result.scalar() or 0
+    if current_count <= MIN_CUSTOM_METRICS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Minimum of {MIN_CUSTOM_METRICS} custom metrics per run required",
+        )
+
     result = await db.execute(
         select(CustomMetric).where(
             CustomMetric.id == metric_id,

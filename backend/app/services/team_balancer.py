@@ -15,16 +15,14 @@ TEACHING NOTE:
     4. OPTIMIZATION: After the draft, we do swap-based refinement to
        minimize the score variance between teams
 
-    Default Weight Configuration:
-    - Overall rating (peer-rated):  35% - highest weight as requested
+    Universal Weight Configuration (defaults when no custom metrics exist):
     - Win Rate (win history):       20% - rewards consistent winners
-    - Offense rating:               15%
-    - Defense rating:               15%
     - Height (normalized):           5%
     - Age (normalized, inverse):     5% - younger slightly favored
-    - Mobility:                      5%
 
-    Admins can override these weights and add custom metrics via the UI.
+    Custom metrics (offense, defense, athleticism, etc.) are defined per-run
+    via the CustomMetric system. Admins can adjust weights and add/remove
+    metrics via the UI.
     Weights are loaded from the database at runtime. If no database config
     exists, the defaults above are used. Weights are automatically
     normalized so they don't need to sum to 1.0 — admins can think in
@@ -44,14 +42,9 @@ from app.models.user import User
 # =============================================================================
 
 DEFAULT_WEIGHTS = {
-    "overall": 0.35,         # Peer-rated overall skill (highest weight)
-    "win_rate": 0.20,   # Historical win percentage (Win Rate)
-    "scoring": 0.15,         # Peer-rated scoring ability
-    "defense": 0.15,         # Peer-rated defensive skill
-    "athleticism": 0.05,     # Peer-rated athleticism
-    "fitness": 0.05,         # Peer-rated fitness level
-    "height": 0.03,          # Physical height (normalized)
-    "age": 0.02,             # Age factor (younger = slightly higher)
+    "win_rate": 0.20,        # Historical win percentage
+    "height": 0.05,          # Physical height (normalized)
+    "age": 0.05,             # Age factor (younger = slightly higher)
 }
 
 
@@ -134,19 +127,14 @@ def compute_player_score(
         total_weight = 1.0
     normalized_weights = {k: v / total_weight for k, v in weights.items()}
 
-    # Calculate built-in factors (normalized to 0.0-1.0)
+    # Calculate universal factors (normalized to 0.0-1.0)
     factors = {
-        "overall": normalize(player.avg_overall or 3.0, 1.0, 5.0),
         "win_rate": player.win_rate if player.win_rate is not None else 0.5,
-        "scoring": normalize(player.avg_scoring or 3.0, 1.0, 5.0),
-        "defense": normalize(player.avg_defense or 3.0, 1.0, 5.0),
-        "athleticism": normalize(player.avg_athleticism or 3.0, 1.0, 5.0),
-        "fitness": normalize(player.avg_fitness or 3.0, 1.0, 5.0),
         "height": normalize(player.height_inches or 70, 60, 84),
         "age": 1.0 - normalize(player.age or 30, 18, 65),  # Inverse: younger = higher
     }
 
-    # Add custom metric factors
+    # Add custom metric factors (these are the primary source for all skill metrics)
     for cm in custom_metrics:
         value = player_custom_values.get(cm.name, cm.default_value)
         factors[cm.name] = normalize(value, cm.min_value, cm.max_value)
@@ -162,9 +150,10 @@ def compute_player_score(
 
 
 def compute_player_rating(player: User) -> int:
-    """Calculate a 1-100 player rating from the same composite used for team balancing.
+    """Calculate a 1-100 player rating from universal factors only.
 
-    Uses DEFAULT_WEIGHTS (no custom metrics) for consistency across views.
+    Uses DEFAULT_WEIGHTS (win_rate, height, age) since custom metrics are
+    dynamic per-run and not available on the User model alone.
     The raw composite (0.0-1.0) is scaled to 40-99 range to feel like
     a realistic basketball rating (no one gets 100, no one gets below 40).
     """

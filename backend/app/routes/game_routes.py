@@ -150,15 +150,10 @@ async def _recalculate_odds(game: Game, db: AsyncSession):
         return
 
     def _composite(u):
-        scr = (u.avg_scoring or 3) / 5
-        dfe = (u.avg_defense or 3) / 5
-        ovr = (u.avg_overall or 3) / 5
-        ath = (u.avg_athleticism or 3) / 5
-        fit = (u.avg_fitness or 3) / 5
         jf = u.win_rate or 0.5
         ht = min((u.height_inches or 70) / 84, 1)
         ag = 1 - min(max(((u.age or 30) - 18), 0) / 32, 1)
-        return ovr * 0.35 + jf * 0.20 + scr * 0.15 + dfe * 0.15 + ath * 0.05 + fit * 0.05 + ht * 0.03 + ag * 0.02
+        return jf * 0.70 + ht * 0.15 + ag * 0.15
 
     team_names = [team_name_map[t] for t in teams_list]
     balanced_teams = [team_groups[t] for t in teams_list]

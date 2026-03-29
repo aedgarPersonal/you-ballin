@@ -21,6 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.dependencies import get_current_super_admin, get_current_user, require_run_admin
 from app.auth.password import hash_password
 from app.database import get_db
+from app.models.algorithm_config import CustomMetric, PlayerCustomMetric
 from app.models.notification import Notification, NotificationType
 from app.models.run import Run, RunMembership, RunPlayerStats
 from app.models.user import PlayerStatus, User, UserRole
@@ -169,10 +170,6 @@ async def approve_membership(
         user.height_inches = 70  # 5'10"
     if user.age is None:
         user.age = 30
-    if user.avg_athleticism is None:
-        user.avg_athleticism = 3.0
-    if user.avg_fitness is None:
-        user.avg_fitness = 3.0
 
     # Send approval notification
     notification = Notification(
@@ -342,27 +339,6 @@ async def update_run_player(
         if field in update_data:
             setattr(user, field, update_data.pop(field))
 
-    # Update rating fields on User and RunPlayerStats
-    rating_fields = ("avg_scoring", "avg_defense", "avg_overall", "avg_athleticism", "avg_fitness")
-    ratings_changed = any(f in update_data for f in rating_fields)
-    for field in rating_fields:
-        if field in update_data:
-            setattr(user, field, update_data.pop(field))
-    if ratings_changed:
-        rps_result = await db.execute(
-            select(RunPlayerStats).where(
-                RunPlayerStats.run_id == run_id,
-                RunPlayerStats.user_id == user_id,
-            )
-        )
-        rps = rps_result.scalar_one_or_none()
-        if rps:
-            rps.avg_scoring = user.avg_scoring
-            rps.avg_defense = user.avg_defense
-            rps.avg_overall = user.avg_overall
-            rps.avg_athleticism = user.avg_athleticism
-            rps.avg_fitness = user.avg_fitness
-
     # Update game stats on User and RunPlayerStats
     stats_changed = False
     if "games_played" in update_data or "games_won" in update_data:
@@ -456,6 +432,12 @@ async def import_players(
     created = []
     skipped = []
 
+    # Pre-load the run's custom metrics for mapping metric names to IDs
+    metrics_result = await db.execute(
+        select(CustomMetric).where(CustomMetric.run_id == run_id)
+    )
+    run_metrics = {m.name: m for m in metrics_result.scalars().all()}
+
     for entry in data.players:
         name = entry.name.strip()
         email = entry.email.strip().lower()
@@ -501,11 +483,6 @@ async def import_players(
             win_rate=win_rate,
             height_inches=entry.height_inches,
             age=entry.age,
-            avg_scoring=entry.avg_scoring,
-            avg_defense=entry.avg_defense,
-            avg_overall=entry.avg_overall,
-            avg_athleticism=entry.avg_athleticism,
-            avg_fitness=entry.avg_fitness,
         )
         db.add(user)
         await db.flush()  # Get user.id for membership/stats creation
@@ -525,6 +502,16 @@ async def import_players(
             games_won=entry.wins,
             win_rate=win_rate,
         ))
+
+        # Create PlayerCustomMetric entries for any provided metrics
+        for metric_name, metric_value in entry.metrics.items():
+            cm = run_metrics.get(metric_name)
+            if cm:
+                db.add(PlayerCustomMetric(
+                    user_id=user.id,
+                    metric_id=cm.id,
+                    value=metric_value,
+                ))
 
         created.append(name)
 
@@ -592,11 +579,6 @@ async def quick_add_player(
         win_rate=win_rate,
         height_inches=data.height_inches,
         age=data.age,
-        avg_scoring=data.avg_scoring,
-        avg_defense=data.avg_defense,
-        avg_overall=data.avg_overall,
-        avg_athleticism=data.avg_athleticism,
-        avg_fitness=data.avg_fitness,
     )
     db.add(user)
     await db.flush()
@@ -613,6 +595,21 @@ async def quick_add_player(
         games_won=data.wins,
         win_rate=win_rate,
     ))
+
+    # Create PlayerCustomMetric entries for any provided metrics
+    if data.metrics:
+        metrics_result = await db.execute(
+            select(CustomMetric).where(CustomMetric.run_id == run_id)
+        )
+        run_metrics = {m.name: m for m in metrics_result.scalars().all()}
+        for metric_name, metric_value in data.metrics.items():
+            cm = run_metrics.get(metric_name)
+            if cm:
+                db.add(PlayerCustomMetric(
+                    user_id=user.id,
+                    metric_id=cm.id,
+                    value=metric_value,
+                ))
 
     await db.flush()
     return user
@@ -755,11 +752,6 @@ async def reset_season(
             games_played=stats.games_played,
             games_won=stats.games_won,
             win_rate=stats.win_rate,
-            avg_scoring=stats.avg_scoring,
-            avg_defense=stats.avg_defense,
-            avg_overall=stats.avg_overall,
-            avg_athleticism=stats.avg_athleticism,
-            avg_fitness=stats.avg_fitness,
             mvp_count=stats.mvp_count,
             shaqtin_count=stats.shaqtin_count,
             xfactor_count=stats.xfactor_count,

@@ -79,8 +79,8 @@ class CustomMetric(Base):
     display_name: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     min_value: Mapped[float] = mapped_column(Float, default=1.0)
-    max_value: Mapped[float] = mapped_column(Float, default=5.0)
-    default_value: Mapped[float] = mapped_column(Float, default=3.0)
+    max_value: Mapped[float] = mapped_column(Float, default=10.0)
+    default_value: Mapped[float] = mapped_column(Float, default=5.0)
 
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 

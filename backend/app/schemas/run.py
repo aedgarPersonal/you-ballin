@@ -118,11 +118,6 @@ class RunPlayerStatsResponse(BaseModel):
     games_played: int
     games_won: int
     win_rate: float
-    avg_scoring: float
-    avg_defense: float
-    avg_overall: float
-    avg_athleticism: float
-    avg_fitness: float
     mvp_count: int
     shaqtin_count: int
     xfactor_count: int

@@ -21,7 +21,7 @@ from app.schemas.user import UserListResponse, UserResponse, UserUpdate
 router = APIRouter(prefix="/api/players", tags=["Players"])
 run_players_router = APIRouter(prefix="/api/runs/{run_id}/players", tags=["Run Players"])
 
-REDACTED_FIELDS = ("avg_scoring", "avg_defense", "avg_overall", "avg_athleticism", "avg_fitness", "dropin_priority")
+REDACTED_FIELDS = ("dropin_priority",)
 
 
 async def _is_admin_for_run(user: User, run_id: int, db: AsyncSession) -> bool:
@@ -118,11 +118,6 @@ async def get_player_rating_summary(
     stats = result.scalar_one_or_none()
     if not stats:
         return {
-            "avg_scoring": None,
-            "avg_defense": None,
-            "avg_overall": None,
-            "avg_athleticism": None,
-            "avg_fitness": None,
             "win_rate": 0.5,
             "games_played": 0,
             "games_won": 0,
@@ -130,11 +125,6 @@ async def get_player_rating_summary(
         }
 
     return {
-        "avg_scoring": round(stats.avg_scoring, 1),
-        "avg_defense": round(stats.avg_defense, 1),
-        "avg_overall": round(stats.avg_overall, 1),
-        "avg_athleticism": round(stats.avg_athleticism, 1),
-        "avg_fitness": round(stats.avg_fitness, 1),
         "win_rate": round(stats.win_rate, 3),
         "games_played": stats.games_played,
         "games_won": stats.games_won,

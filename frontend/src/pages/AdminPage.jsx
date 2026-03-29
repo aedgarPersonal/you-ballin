@@ -51,6 +51,8 @@ import {
   listCustomMetrics,
   createCustomMetric,
   deleteCustomMetric,
+  getPlayerMetrics,
+  updatePlayerMetrics,
 } from "../api/algorithm";
 
 // Human-friendly labels for built-in metrics
@@ -126,9 +128,12 @@ export default function AdminPage() {
   const [showAddPlayer, setShowAddPlayer] = useState(false);
   const [addForm, setAddForm] = useState({
     full_name: "", email: "", phone: "", wins: 0, losses: 0,
-    height_inches: 70, age: 30, avg_scoring: 3.0, avg_defense: 3.0, avg_overall: 3.0, avg_athleticism: 3.0, avg_fitness: 3.0,
+    height_inches: 70, age: 30,
   });
   const [adding, setAdding] = useState(false);
+
+  // Player metrics map for the players table (metric_id -> value per player)
+  const [adminPlayerMetrics, setAdminPlayerMetrics] = useState({});
 
   const fetchPending = async () => {
     if (!runId) return;
@@ -143,6 +148,31 @@ export default function AdminPage() {
     try {
       const { data } = await listAllPlayers(runId);
       setPlayers(data.users);
+      // Also load player metrics for the players table
+      if (customMetrics.length > 0 || true) {
+        // Fetch metrics defs if not yet loaded
+        let metrics = customMetrics;
+        if (metrics.length === 0) {
+          try {
+            const mRes = await listCustomMetrics(runId);
+            metrics = mRes.data.metrics || mRes.data || [];
+            setCustomMetrics(metrics);
+          } catch { /* empty */ }
+        }
+        if (metrics.length > 0) {
+          const entries = await Promise.all(
+            data.users.map(async (p) => {
+              try {
+                const { data: pm } = await getPlayerMetrics(runId, p.id);
+                return [p.id, pm.metrics || []];
+              } catch {
+                return [p.id, []];
+              }
+            })
+          );
+          setAdminPlayerMetrics(Object.fromEntries(entries));
+        }
+      }
     } catch { /* empty */ }
   };
 
@@ -183,6 +213,9 @@ export default function AdminPage() {
   useEffect(() => {
     if (tab === "games" && runId) {
       fetchAdminGames();
+    }
+    if (tab === "players" && runId) {
+      fetchCustomMetrics();
     }
     if (tab === "balancer") {
       fetchWeights();
@@ -253,19 +286,25 @@ export default function AdminPage() {
   const handleApprove = async (userId, status) => {
     try {
       await approveRegistration(runId, userId, status);
-      // If metrics were set, update them
+      // If physical metrics were set, update them via admin API
       const metrics = approvalMetrics[userId];
       if (metrics) {
         const updates = {};
-        if (metrics.avg_scoring) updates.avg_scoring = parseFloat(metrics.avg_scoring);
-        if (metrics.avg_defense) updates.avg_defense = parseFloat(metrics.avg_defense);
-        if (metrics.avg_overall) updates.avg_overall = parseFloat(metrics.avg_overall);
-        if (metrics.avg_athleticism) updates.avg_athleticism = parseFloat(metrics.avg_athleticism);
-        if (metrics.avg_fitness) updates.avg_fitness = parseFloat(metrics.avg_fitness);
         if (metrics.height_inches) updates.height_inches = parseInt(metrics.height_inches);
         if (metrics.age) updates.age = parseInt(metrics.age);
         if (Object.keys(updates).length > 0) {
           await updatePlayerAdmin(runId, userId, updates);
+        }
+        // If custom metric values were set, update them via algorithm API
+        const metricUpdates = [];
+        for (const [key, val] of Object.entries(metrics)) {
+          if (key.startsWith("metric_") && val) {
+            const metricId = parseInt(key.replace("metric_", ""));
+            metricUpdates.push({ metric_id: metricId, value: parseFloat(val) });
+          }
+        }
+        if (metricUpdates.length > 0) {
+          await updatePlayerMetrics(runId, userId, metricUpdates);
         }
       }
       toast.success(`Player approved as ${status}`);
@@ -436,7 +475,7 @@ export default function AdminPage() {
       toast.success(`Player "${addForm.full_name}" added!`);
       setAddForm({
         full_name: "", email: "", phone: "", wins: 0, losses: 0,
-        height_inches: 70, age: 30, avg_scoring: 3.0, avg_defense: 3.0, avg_overall: 3.0, avg_athleticism: 3.0, avg_fitness: 3.0,
+        height_inches: 70, age: 30,
       });
       setShowAddPlayer(false);
       fetchPlayers();
@@ -554,7 +593,7 @@ export default function AdminPage() {
                 </div>
                 {isExpanded && (
                   <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Optional — set player metrics before approving (defaults: 3.0)</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Optional — set player metrics before approving (defaults: 5.0, scale 1-10)</p>
                     <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                       <div>
                         <label className="block text-[10px] text-gray-400 mb-0.5">Height (ft)</label>
@@ -587,36 +626,16 @@ export default function AdminPage() {
                           value={m.age || ""} onChange={(e) => setM("age", e.target.value)}
                           className="w-full text-xs text-center border rounded px-1 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600" />
                       </div>
-                      <div>
-                        <label className="block text-[10px] text-gray-400 mb-0.5">Scoring</label>
-                        <input type="number" min="1" max="5" step="0.5" placeholder="3.0"
-                          value={m.avg_scoring || ""} onChange={(e) => setM("avg_scoring", e.target.value)}
-                          className="w-full text-xs text-center border rounded px-1 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600" />
-                      </div>
-                      <div>
-                        <label className="block text-[10px] text-gray-400 mb-0.5">Defense</label>
-                        <input type="number" min="1" max="5" step="0.5" placeholder="3.0"
-                          value={m.avg_defense || ""} onChange={(e) => setM("avg_defense", e.target.value)}
-                          className="w-full text-xs text-center border rounded px-1 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600" />
-                      </div>
-                      <div>
-                        <label className="block text-[10px] text-gray-400 mb-0.5">Overall</label>
-                        <input type="number" min="1" max="5" step="0.5" placeholder="3.0"
-                          value={m.avg_overall || ""} onChange={(e) => setM("avg_overall", e.target.value)}
-                          className="w-full text-xs text-center border rounded px-1 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600" />
-                      </div>
-                      <div>
-                        <label className="block text-[10px] text-gray-400 mb-0.5">Athleticism</label>
-                        <input type="number" min="1" max="5" step="0.5" placeholder="3.0"
-                          value={m.avg_athleticism || ""} onChange={(e) => setM("avg_athleticism", e.target.value)}
-                          className="w-full text-xs text-center border rounded px-1 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600" />
-                      </div>
-                      <div>
-                        <label className="block text-[10px] text-gray-400 mb-0.5">Fitness</label>
-                        <input type="number" min="1" max="5" step="0.5" placeholder="3.0"
-                          value={m.avg_fitness || ""} onChange={(e) => setM("avg_fitness", e.target.value)}
-                          className="w-full text-xs text-center border rounded px-1 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600" />
-                      </div>
+                      {customMetrics.map((metric) => (
+                        <div key={metric.id}>
+                          <label className="block text-[10px] text-gray-400 mb-0.5">{metric.display_name}</label>
+                          <input type="number" min={metric.min_value || 1} max={metric.max_value || 10} step="0.5"
+                            placeholder={String(metric.default_value || 5)}
+                            value={m[`metric_${metric.id}`] || ""}
+                            onChange={(e) => setM(`metric_${metric.id}`, e.target.value)}
+                            className="w-full text-xs text-center border rounded px-1 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600" />
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
@@ -916,41 +935,22 @@ export default function AdminPage() {
                       </div>
                     </div>
                   </div>
-                  <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
-                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Ratings</p>
-                    <div className="grid grid-cols-3 gap-3">
-                      <div>
-                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Scoring</label>
-                        <input type="number" min="1" max="5" step="0.5" value={addForm.avg_scoring || 3.0}
-                          onChange={(e) => setAddForm({ ...addForm, avg_scoring: parseFloat(e.target.value) || 3.0 })}
-                          className="input w-full" />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Defense</label>
-                        <input type="number" min="1" max="5" step="0.5" value={addForm.avg_defense || 3.0}
-                          onChange={(e) => setAddForm({ ...addForm, avg_defense: parseFloat(e.target.value) || 3.0 })}
-                          className="input w-full" />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Overall</label>
-                        <input type="number" min="1" max="5" step="0.5" value={addForm.avg_overall || 3.0}
-                          onChange={(e) => setAddForm({ ...addForm, avg_overall: parseFloat(e.target.value) || 3.0 })}
-                          className="input w-full" />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Athleticism</label>
-                        <input type="number" min="1" max="5" step="0.5" value={addForm.avg_athleticism || 3.0}
-                          onChange={(e) => setAddForm({ ...addForm, avg_athleticism: parseFloat(e.target.value) || 3.0 })}
-                          className="input w-full" />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Fitness</label>
-                        <input type="number" min="1" max="5" step="0.5" value={addForm.avg_fitness || 3.0}
-                          onChange={(e) => setAddForm({ ...addForm, avg_fitness: parseFloat(e.target.value) || 3.0 })}
-                          className="input w-full" />
+                  {customMetrics.length > 0 && (
+                    <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
+                      <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Metrics (1-10)</p>
+                      <div className="grid grid-cols-3 gap-3">
+                        {customMetrics.map((metric) => (
+                          <div key={metric.id}>
+                            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{metric.display_name}</label>
+                            <input type="number" min={metric.min_value || 1} max={metric.max_value || 10} step="0.5"
+                              value={addForm[`metric_${metric.id}`] || metric.default_value || 5}
+                              onChange={(e) => setAddForm({ ...addForm, [`metric_${metric.id}`]: parseFloat(e.target.value) || 5 })}
+                              className="input w-full" />
+                          </div>
+                        ))}
                       </div>
                     </div>
-                  </div>
+                  )}
                   <p className="text-xs text-gray-400 dark:text-gray-500">
                     Default password: <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">Password123</code>
                   </p>
@@ -1025,11 +1025,11 @@ export default function AdminPage() {
                       {currentRun?.dropin_priority_mode === "admin" && <SortTh field="dropin_priority">Wait List Priority</SortTh>}
                       <SortTh field="height_inches">Ht</SortTh>
                       <SortTh field="age">Age</SortTh>
-                      <SortTh field="avg_scoring">SCR</SortTh>
-                      <SortTh field="avg_defense">DEF</SortTh>
-                      <SortTh field="avg_overall">OVR</SortTh>
-                      <SortTh field="avg_athleticism">ATH</SortTh>
-                      <SortTh field="avg_fitness">FIT</SortTh>
+                      {customMetrics.map((metric) => (
+                        <th key={metric.id} className="py-3 px-2 text-xs font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap" title={metric.display_name}>
+                          {metric.display_name.substring(0, 4).toUpperCase()}
+                        </th>
+                      ))}
                       <SortTh field="games_played">GP</SortTh>
                       <SortTh field="games_won">W</SortTh>
                       {isSuperAdmin && <SortTh field="role">Role</SortTh>}
@@ -1104,31 +1104,33 @@ export default function AdminPage() {
                             onBlur={(e) => e.target.value && handleUpdatePlayer(player.id, "age", parseInt(e.target.value))}
                             className={inputCls} />
                         </td>
-                        <td className="py-2 px-2">
-                          <input type="number" min="1" max="5" step="0.5" defaultValue={player.avg_scoring?.toFixed(1) || ""} placeholder="1-5"
-                            onBlur={(e) => { const v = parseFloat(e.target.value); if (!isNaN(v)) handleUpdatePlayer(player.id, "avg_scoring", v); }}
-                            className={inputCls} />
-                        </td>
-                        <td className="py-2 px-2">
-                          <input type="number" min="1" max="5" step="0.5" defaultValue={player.avg_defense?.toFixed(1) || ""} placeholder="1-5"
-                            onBlur={(e) => { const v = parseFloat(e.target.value); if (!isNaN(v)) handleUpdatePlayer(player.id, "avg_defense", v); }}
-                            className={inputCls} />
-                        </td>
-                        <td className="py-2 px-2">
-                          <input type="number" min="1" max="5" step="0.5" defaultValue={player.avg_overall?.toFixed(1) || ""} placeholder="1-5"
-                            onBlur={(e) => { const v = parseFloat(e.target.value); if (!isNaN(v)) handleUpdatePlayer(player.id, "avg_overall", v); }}
-                            className={inputCls} />
-                        </td>
-                        <td className="py-2 px-2">
-                          <input type="number" min="1" max="5" step="0.5" defaultValue={player.avg_athleticism?.toFixed(1) || ""} placeholder="1-5"
-                            onBlur={(e) => { const v = parseFloat(e.target.value); if (!isNaN(v)) handleUpdatePlayer(player.id, "avg_athleticism", v); }}
-                            className={inputCls} />
-                        </td>
-                        <td className="py-2 px-2">
-                          <input type="number" min="1" max="5" step="0.5" defaultValue={player.avg_fitness?.toFixed(1) || ""} placeholder="1-5"
-                            onBlur={(e) => { const v = parseFloat(e.target.value); if (!isNaN(v)) handleUpdatePlayer(player.id, "avg_fitness", v); }}
-                            className={inputCls} />
-                        </td>
+                        {customMetrics.map((metric) => {
+                          const pMetrics = adminPlayerMetrics[player.id] || [];
+                          const pm = pMetrics.find((m) => m.metric_id === metric.id);
+                          return (
+                            <td key={metric.id} className="py-2 px-2">
+                              <input type="number" min={metric.min_value || 1} max={metric.max_value || 10} step="0.5"
+                                defaultValue={pm?.value?.toFixed(1) || ""} placeholder={`1-${metric.max_value || 10}`}
+                                onBlur={(e) => {
+                                  const v = parseFloat(e.target.value);
+                                  if (!isNaN(v)) {
+                                    updatePlayerMetrics(runId, player.id, [{ metric_id: metric.id, value: v }])
+                                      .then(() => {
+                                        toast.success("Updated");
+                                        setAdminPlayerMetrics((prev) => ({
+                                          ...prev,
+                                          [player.id]: (prev[player.id] || []).some((m) => m.metric_id === metric.id)
+                                            ? (prev[player.id] || []).map((m) => m.metric_id === metric.id ? { ...m, value: v } : m)
+                                            : [...(prev[player.id] || []), { metric_id: metric.id, value: v, display_name: metric.display_name }],
+                                        }));
+                                      })
+                                      .catch(() => toast.error("Failed"));
+                                  }
+                                }}
+                                className={inputCls} />
+                            </td>
+                          );
+                        })}
                         <td className="py-2 px-2">
                           <input type="number" min="0" defaultValue={player.games_played ?? ""}
                             onBlur={(e) => { const v = parseInt(e.target.value); if (!isNaN(v)) handleUpdatePlayer(player.id, "games_played", v); }}

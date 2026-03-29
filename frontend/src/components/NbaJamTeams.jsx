@@ -20,18 +20,20 @@ import { getPlayerById } from "../data/legacyPlayers";
 import PixelAvatar from "./PixelAvatar";
 
 /**
- * Calculate a player's composite score using the same weights as team_balancer.py
+ * Calculate a player's composite score.
+ * Uses player_rating (backend-computed from dynamic metrics) if available,
+ * otherwise falls back to win_rate and physical attributes.
  */
 function playerComposite(user) {
-  const scr = (user.avg_scoring || 3) / 5;
-  const def = (user.avg_defense || 3) / 5;
-  const ovr = (user.avg_overall || 3) / 5;
-  const ath = (user.avg_athleticism || 3) / 5;
-  const fit = (user.avg_fitness || 3) / 5;
+  // If backend provides a computed rating, normalize to 0-1
+  if (user.player_rating) {
+    return user.player_rating / 100;
+  }
+  // Fallback: use win_rate and physical attributes
   const jf = user.win_rate || 0.5;
   const height = Math.min((user.height_inches || 70) / 84, 1);
   const age = 1 - Math.min(Math.max((user.age || 30) - 18, 0) / 32, 1);
-  return ovr * 0.35 + jf * 0.20 + scr * 0.15 + def * 0.15 + ath * 0.05 + fit * 0.05 + height * 0.03 + age * 0.02;
+  return jf * 0.70 + height * 0.15 + age * 0.15;
 }
 
 /**
@@ -155,11 +157,8 @@ function JamPlayerCard({ player, isAdmin }) {
           {/* Admin-only stat bars */}
           {isAdmin && (
             <div className="space-y-1 mt-1 pt-1 border-t border-gray-700">
-              <StatBar label="SCR" value={player.avg_scoring || 3} max={5} color="#4ade80" />
-              <StatBar label="DEF" value={player.avg_defense || 3} max={5} color="#60a5fa" />
-              <StatBar label="OVR" value={player.avg_overall || 3} max={5} color="#facc15" />
-              <StatBar label="ATH" value={player.avg_athleticism || 3} max={5} color="#a78bfa" />
-              <StatBar label="FIT" value={player.avg_fitness || 3} max={5} color="#f472b6" />
+              <StatBar label="WIN" value={(player.win_rate || 0.5) * 10} max={10} color="#4ade80" />
+              <StatBar label="RTG" value={(player.player_rating || 50) / 10} max={10} color="#facc15" />
             </div>
           )}
         </div>

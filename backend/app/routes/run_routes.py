@@ -30,6 +30,7 @@ from app.auth.dependencies import (
     require_run_member,
 )
 from app.database import get_db
+from app.models.algorithm_config import AlgorithmWeight, CustomMetric
 from app.models.run import Run, RunAdmin, RunMembership, RunPlayerStats, PlayerSuggestion, SuggestionStatus
 from app.models.user import PlayerStatus, User, UserRole
 from app.schemas.run import (
@@ -69,6 +70,41 @@ async def create_run(
     db.add(run)
     await db.flush()
     await db.refresh(run)
+
+    # Auto-seed default CustomMetrics and AlgorithmWeights for the new run
+    default_custom_metrics = [
+        {"name": "offense", "display_name": "Offense", "weight": 0.30},
+        {"name": "defense", "display_name": "Defense", "weight": 0.30},
+        {"name": "athleticism", "display_name": "Athleticism", "weight": 0.10},
+    ]
+    for mcfg in default_custom_metrics:
+        cm = CustomMetric(
+            run_id=run.id,
+            name=mcfg["name"],
+            display_name=mcfg["display_name"],
+            min_value=1.0,
+            max_value=10.0,
+            default_value=5.0,
+        )
+        db.add(cm)
+        db.add(AlgorithmWeight(
+            run_id=run.id, metric_name=mcfg["name"],
+            weight=mcfg["weight"], is_builtin=False,
+        ))
+
+    # Seed universal factor weights
+    universal_weights = {
+        "win_rate": 0.20,
+        "height": 0.05,
+        "age": 0.05,
+    }
+    for name, weight in universal_weights.items():
+        db.add(AlgorithmWeight(
+            run_id=run.id, metric_name=name,
+            weight=weight, is_builtin=True,
+        ))
+
+    await db.flush()
     return run
 
 

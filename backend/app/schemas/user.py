@@ -104,12 +104,6 @@ class AdminUserUpdate(BaseModel):
     # Physical stats
     height_inches: int | None = None
     age: int | None = None
-    # Rating overrides
-    avg_scoring: float | None = Field(None, ge=1.0, le=5.0)
-    avg_defense: float | None = Field(None, ge=1.0, le=5.0)
-    avg_overall: float | None = Field(None, ge=1.0, le=5.0)
-    avg_athleticism: float | None = Field(None, ge=1.0, le=5.0)
-    avg_fitness: float | None = Field(None, ge=1.0, le=5.0)
     # Game stats (for manual correction)
     games_played: int | None = Field(None, ge=0)
     games_won: int | None = Field(None, ge=0)
@@ -124,11 +118,7 @@ class QuickAddPlayer(BaseModel):
     losses: int = Field(default=0, ge=0)
     height_inches: int | None = Field(default=70, ge=48, le=96)
     age: int | None = Field(default=30, ge=16, le=70)
-    avg_scoring: float = Field(default=3.0, ge=1.0, le=5.0)
-    avg_defense: float = Field(default=3.0, ge=1.0, le=5.0)
-    avg_overall: float = Field(default=3.0, ge=1.0, le=5.0)
-    avg_athleticism: float = Field(default=3.0, ge=1.0, le=5.0)
-    avg_fitness: float = Field(default=3.0, ge=1.0, le=5.0)
+    metrics: dict[str, float] = Field(default_factory=dict, description="Dynamic metric values keyed by metric name")
 
 
 class UserResponse(BaseModel):
@@ -143,11 +133,6 @@ class UserResponse(BaseModel):
     player_status: str
     height_inches: int | None
     age: int | None
-    avg_scoring: float
-    avg_defense: float
-    avg_overall: float
-    avg_athleticism: float
-    avg_fitness: float
     win_rate: float
     games_played: int
     games_won: int
@@ -179,11 +164,7 @@ class ImportPlayerEntry(BaseModel):
     losses: int = Field(default=0, ge=0)
     height_inches: int | None = Field(default=70, ge=48, le=96)
     age: int | None = Field(default=30, ge=16, le=70)
-    avg_scoring: float | None = Field(default=3.0, ge=1.0, le=5.0)
-    avg_defense: float | None = Field(default=3.0, ge=1.0, le=5.0)
-    avg_overall: float | None = Field(default=3.0, ge=1.0, le=5.0)
-    avg_athleticism: float | None = Field(default=3.0, ge=1.0, le=5.0)
-    avg_fitness: float | None = Field(default=3.0, ge=1.0, le=5.0)
+    metrics: dict[str, float] = Field(default_factory=dict, description="Dynamic metric values keyed by metric name")
 
 
 class ImportPlayersRequest(BaseModel):

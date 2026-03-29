@@ -47,8 +47,8 @@ class CustomMetricCreate(BaseModel):
     display_name: str = Field(min_length=1, max_length=200)
     description: str | None = None
     min_value: float = Field(default=1.0)
-    max_value: float = Field(default=5.0)
-    default_value: float = Field(default=3.0)
+    max_value: float = Field(default=10.0)
+    default_value: float = Field(default=5.0)
 
 
 class CustomMetricUpdate(BaseModel):

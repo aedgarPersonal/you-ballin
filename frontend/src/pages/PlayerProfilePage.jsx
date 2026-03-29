@@ -1,14 +1,8 @@
 /**
  * Player Profile Page
  * ===================
- * Displays a player's stats, ratings, and the anonymous rating form.
- *
- * TEACHING NOTE:
- *   This page combines public profile data with the anonymous rating
- *   system. The rating form checks:
- *   - Can't rate yourself
- *   - Shows existing rating if already rated
- *   - Enforces the 30-day cooldown between updates
+ * Displays a player's stats and dynamic metrics from the run's CustomMetric definitions.
+ * Admins can view and edit metric values on the Ratings tab.
  */
 
 import { useState, useEffect } from "react";
@@ -18,7 +12,7 @@ import useAuthStore from "../stores/authStore";
 import useRunStore from "../stores/runStore";
 import { getPlayer, updateMyProfile } from "../api/players";
 import { updatePlayerAdmin } from "../api/admin";
-import { getPlayerRatingSummary, getMyRatingForPlayer, ratePlayer } from "../api/ratings";
+import { listCustomMetrics, getPlayerMetrics, updatePlayerMetrics } from "../api/algorithm";
 import { getPlayerMatchups, getPlayerGameHistory, getPlayerForm } from "../api/stats";
 import AvatarPicker, { AvatarBadge } from "../components/AvatarPicker";
 import { getPlayerById } from "../data/legacyPlayers";
@@ -29,11 +23,7 @@ export default function PlayerProfilePage() {
   const { currentRun } = useRunStore();
   const runId = currentRun?.id;
   const [player, setPlayer] = useState(null);
-  const [summary, setSummary] = useState(null);
-  const [myRating, setMyRating] = useState(null);
-  const [ratingForm, setRatingForm] = useState({ scoring: 3, defense: 3, overall: 3, athleticism: 3, fitness: 3 });
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [matchups, setMatchups] = useState(null);
   const [gameHistory, setGameHistory] = useState(null);
@@ -42,6 +32,10 @@ export default function PlayerProfilePage() {
   const [showAllOpponents, setShowAllOpponents] = useState(false);
   const updateUser = useAuthStore((s) => s.updateUser);
   const [activeTab, setActiveTab] = useState("overview");
+
+  // Dynamic metrics state
+  const [customMetrics, setCustomMetrics] = useState([]);
+  const [playerMetrics, setPlayerMetrics] = useState([]);
 
   const isOwnProfile = currentUser?.id === parseInt(id);
   const { isRunAdmin } = useRunStore();
@@ -57,10 +51,7 @@ export default function PlayerProfilePage() {
 
   const fetchPlayer = async () => {
     try {
-      const fetches = [
-        getPlayer(id),
-        getPlayerRatingSummary(runId, id),
-      ];
+      const fetches = [getPlayer(id)];
       if (runId) {
         fetches.push(getPlayerMatchups(runId, id));
         fetches.push(getPlayerGameHistory(runId, id));
@@ -69,22 +60,21 @@ export default function PlayerProfilePage() {
 
       const results = await Promise.allSettled(fetches);
       if (results[0].status === "fulfilled") setPlayer(results[0].value.data);
-      if (results[1].status === "fulfilled") setSummary(results[1].value.data);
-      if (results[2]?.status === "fulfilled") setMatchups(results[2].value.data);
-      if (results[3]?.status === "fulfilled") setGameHistory(results[3].value.data);
-      if (results[4]?.status === "fulfilled") setForm(results[4].value.data);
+      if (results[1]?.status === "fulfilled") setMatchups(results[1].value.data);
+      if (results[2]?.status === "fulfilled") setGameHistory(results[2].value.data);
+      if (results[3]?.status === "fulfilled") setForm(results[3].value.data);
 
-      if (!isOwnProfile) {
-        const myRatingRes = await getMyRatingForPlayer(runId, id);
-        setMyRating(myRatingRes.data);
-        if (myRatingRes.data.rating) {
-          setRatingForm({
-            scoring: myRatingRes.data.rating.scoring,
-            defense: myRatingRes.data.rating.defense,
-            overall: myRatingRes.data.rating.overall,
-            athleticism: myRatingRes.data.rating.athleticism,
-            fitness: myRatingRes.data.rating.fitness,
-          });
+      // Load dynamic metrics for admin ratings tab
+      if (runId) {
+        try {
+          const [metricsRes, playerMetricsRes] = await Promise.all([
+            listCustomMetrics(runId),
+            getPlayerMetrics(runId, id),
+          ]);
+          setCustomMetrics(metricsRes.data.metrics || metricsRes.data || []);
+          setPlayerMetrics(playerMetricsRes.data.metrics || []);
+        } catch {
+          // Metrics not available
         }
       }
     } catch {
@@ -95,26 +85,6 @@ export default function PlayerProfilePage() {
   };
 
   useEffect(() => { fetchPlayer(); }, [id, isOwnProfile]);
-
-  const handleRate = async (e) => {
-    e.preventDefault();
-    setSubmitting(true);
-    try {
-      await ratePlayer(runId, id, ratingForm);
-      toast.success("Rating submitted!");
-      // Refresh data
-      const [summaryRes, myRatingRes] = await Promise.all([
-        getPlayerRatingSummary(runId, id),
-        getMyRatingForPlayer(runId, id),
-      ]);
-      setSummary(summaryRes.data);
-      setMyRating(myRatingRes.data);
-    } catch (err) {
-      toast.error(err.response?.data?.detail || "Rating failed");
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
   const handleAvatarChange = async (avatarId) => {
     try {
@@ -131,6 +101,12 @@ export default function PlayerProfilePage() {
   if (!player) return <div className="max-w-4xl mx-auto px-4 py-8">Player not found</div>;
 
   const legacy = getPlayerById(player.avatar_url);
+
+  // Build a lookup of metric values by metric_id
+  const metricValueMap = {};
+  for (const pm of playerMetrics) {
+    metricValueMap[pm.metric_id] = pm.value;
+  }
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -254,13 +230,13 @@ export default function PlayerProfilePage() {
       {/* Stats Summary Row (always visible above tabs) */}
       <div className="grid gap-3 mb-6 grid-cols-3 md:grid-cols-6">
         <StatCard label="Rating" value={player?.player_rating || 50} highlight />
-        <StatCard label="Win Rate" value={`${((summary?.win_rate || 0.5) * 100).toFixed(0)}%`} subtitle={`${summary?.games_won || 0}W-${(summary?.games_played || 0) - (summary?.games_won || 0)}L`} />
-        <StatCard label="Games" value={summary?.games_played || 0} subtitle={`${summary?.games_won || 0} wins`} />
+        <StatCard label="Win Rate" value={`${((player?.win_rate || 0.5) * 100).toFixed(0)}%`} subtitle={`${player?.games_won || 0}W-${(player?.games_played || 0) - (player?.games_won || 0)}L`} />
+        <StatCard label="Games" value={player?.games_played || 0} subtitle={`${player?.games_won || 0} wins`} />
         {(player?.mvp_count > 0 || player?.xfactor_count > 0 || player?.shaqtin_count > 0) && (
           <>
-            {player.mvp_count > 0 && <StatCard label="MVP" value={`🏆 ${player.mvp_count}`} />}
-            {player.xfactor_count > 0 && <StatCard label="X Factor" value={`⚡ ${player.xfactor_count}`} />}
-            {player.shaqtin_count > 0 && <StatCard label="Shaqtin'" value={`🤦 ${player.shaqtin_count}`} />}
+            {player.mvp_count > 0 && <StatCard label="MVP" value={`${player.mvp_count}`} />}
+            {player.xfactor_count > 0 && <StatCard label="X Factor" value={`${player.xfactor_count}`} />}
+            {player.shaqtin_count > 0 && <StatCard label="Shaqtin'" value={`${player.shaqtin_count}`} />}
           </>
         )}
       </div>
@@ -589,67 +565,66 @@ export default function PlayerProfilePage() {
         </>
       )}
 
-      {/* Tab 4: Ratings (admin-only) */}
+      {/* Tab 4: Ratings (admin-only) — Dynamic metrics from CustomMetric definitions */}
       {activeTab === "ratings" && isAdmin && (
         <>
-          {/* Admin-only rating metrics */}
-          <div className="grid gap-4 mb-6 grid-cols-2 md:grid-cols-5">
-            <StatCard label="Scoring" value={summary?.avg_scoring?.toFixed(1)} max="5.0" />
-            <StatCard label="Defense" value={summary?.avg_defense?.toFixed(1)} max="5.0" />
-            <StatCard label="Overall" value={summary?.avg_overall?.toFixed(1)} max="5.0" highlight />
-            <StatCard label="Athleticism" value={summary?.avg_athleticism?.toFixed(1)} max="5.0" />
-            <StatCard label="Fitness" value={summary?.avg_fitness?.toFixed(1)} max="5.0" />
-          </div>
+          {customMetrics.length > 0 ? (
+            <div className="grid gap-4 mb-6 grid-cols-2 md:grid-cols-4">
+              {customMetrics.map((metric) => {
+                const val = metricValueMap[metric.id];
+                return (
+                  <StatCard
+                    key={metric.id}
+                    label={metric.display_name}
+                    value={val != null ? val.toFixed(1) : "N/A"}
+                    max={`${metric.max_value || 10}.0`}
+                  />
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-400 mb-6">
+              No custom metrics defined for this run. Add metrics in Admin &rarr; Balancer.
+            </p>
+          )}
 
-          {/* Rating Form */}
-          {!isOwnProfile && (
+          {/* Admin metric editor */}
+          {customMetrics.length > 0 && (
             <div className="card">
-              <h2 className="text-lg font-semibold mb-1">Rate This Player</h2>
+              <h2 className="text-lg font-semibold mb-1">Edit Metrics</h2>
               <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                Ratings are anonymous. {summary?.total_ratings} total ratings.
-                {myRating?.has_rated && !myRating?.can_update && (
-                  <span className="text-yellow-600 ml-2">
-                    Next update available: {new Date(myRating.next_update_available).toLocaleDateString()}
-                  </span>
-                )}
+                Adjust this player's metric values (1-10 scale).
               </p>
-
-              {(!myRating?.has_rated || myRating?.can_update) ? (
-                <form onSubmit={handleRate} className="space-y-4">
-                  <RatingSlider
-                    label="Scoring"
-                    value={ratingForm.scoring}
-                    onChange={(v) => setRatingForm({ ...ratingForm, scoring: v })}
-                  />
-                  <RatingSlider
-                    label="Defense"
-                    value={ratingForm.defense}
-                    onChange={(v) => setRatingForm({ ...ratingForm, defense: v })}
-                  />
-                  <RatingSlider
-                    label="Overall"
-                    value={ratingForm.overall}
-                    onChange={(v) => setRatingForm({ ...ratingForm, overall: v })}
-                  />
-                  <RatingSlider
-                    label="Athleticism"
-                    value={ratingForm.athleticism}
-                    onChange={(v) => setRatingForm({ ...ratingForm, athleticism: v })}
-                  />
-                  <RatingSlider
-                    label="Fitness"
-                    value={ratingForm.fitness}
-                    onChange={(v) => setRatingForm({ ...ratingForm, fitness: v })}
-                  />
-                  <button type="submit" disabled={submitting} className="btn-primary">
-                    {submitting ? "Submitting..." : myRating?.has_rated ? "Update Rating" : "Submit Rating"}
-                  </button>
-                </form>
-              ) : (
-                <p className="text-gray-500 dark:text-gray-400">
-                  You've already rated this player. You can update your rating once per month.
-                </p>
-              )}
+              <div className="space-y-4">
+                {customMetrics.map((metric) => {
+                  const pm = playerMetrics.find((m) => m.metric_id === metric.id);
+                  const currentVal = pm?.value ?? metric.default_value ?? 5;
+                  return (
+                    <MetricSlider
+                      key={metric.id}
+                      label={metric.display_name}
+                      value={currentVal}
+                      min={metric.min_value || 1}
+                      max={metric.max_value || 10}
+                      onChange={async (newVal) => {
+                        try {
+                          await updatePlayerMetrics(runId, id, [{ metric_id: metric.id, value: newVal }]);
+                          setPlayerMetrics((prev) => {
+                            const existing = prev.find((m) => m.metric_id === metric.id);
+                            if (existing) {
+                              return prev.map((m) => m.metric_id === metric.id ? { ...m, value: newVal } : m);
+                            }
+                            return [...prev, { metric_id: metric.id, value: newVal, display_name: metric.display_name }];
+                          });
+                          toast.success("Updated");
+                        } catch {
+                          toast.error("Failed to update metric");
+                        }
+                      }}
+                    />
+                  );
+                })}
+              </div>
             </div>
           )}
         </>
@@ -671,28 +646,31 @@ function StatCard({ label, value, max, highlight, subtitle }) {
   );
 }
 
-function RatingSlider({ label, value, onChange }) {
+function MetricSlider({ label, value, min, max, onChange }) {
+  const [localVal, setLocalVal] = useState(value);
+
+  useEffect(() => { setLocalVal(value); }, [value]);
+
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
         <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{label}</label>
-        <span className="text-sm font-bold text-court-600">{value.toFixed(1)}</span>
+        <span className="text-sm font-bold text-court-600">{localVal.toFixed(1)}</span>
       </div>
       <input
         type="range"
-        min="1"
-        max="5"
+        min={min}
+        max={max}
         step="0.5"
-        value={value}
-        onChange={(e) => onChange(parseFloat(e.target.value))}
+        value={localVal}
+        onChange={(e) => setLocalVal(parseFloat(e.target.value))}
+        onMouseUp={() => onChange(localVal)}
+        onTouchEnd={() => onChange(localVal)}
         className="w-full h-2 bg-gray-200 dark:bg-gray-600 rounded-lg appearance-none cursor-pointer accent-court-500"
       />
       <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500">
-        <span>1</span>
-        <span>2</span>
-        <span>3</span>
-        <span>4</span>
-        <span>5</span>
+        <span>{min}</span>
+        <span>{max}</span>
       </div>
     </div>
   );

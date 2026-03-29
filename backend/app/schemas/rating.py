@@ -36,11 +36,6 @@ class RatingResponse(BaseModel):
 class PlayerRatingSummary(BaseModel):
     """Aggregated ratings for a player's profile page."""
     player_id: int
-    avg_scoring: float
-    avg_defense: float
-    avg_overall: float
-    avg_athleticism: float
-    avg_fitness: float
     total_ratings: int
     win_rate: float
     games_played: int
