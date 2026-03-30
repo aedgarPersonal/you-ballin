@@ -1,9 +1,7 @@
 /*
- * Global Styles
- * =============
- * TEACHING NOTE:
- *   The @tailwind directives inject Tailwind's base, component, and utility
- *   classes. Everything else in this file is custom global styles.
+ * Global Styles — Retro Dark Theme
+ * ==================================
+ * All components use the dark arcade aesthetic by default.
  */
 
 @tailwind base;
@@ -12,7 +10,7 @@
 
 @layer base {
   body {
-    @apply antialiased;
+    @apply antialiased bg-gray-950 text-gray-100;
   }
 }
 
@@ -23,21 +21,21 @@
   }
 
   .btn-secondary {
-    @apply bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200 font-semibold py-2 px-4 rounded-lg transition-colors duration-200;
+    @apply bg-gray-700 hover:bg-gray-600 text-gray-200 font-semibold py-2 px-4 rounded-lg transition-colors duration-200;
   }
 
   .btn-danger {
     @apply bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200;
   }
 
-  /* Card component */
+  /* Card component — dark retro style */
   .card {
-    @apply bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6;
+    @apply bg-gray-900 rounded-xl shadow-sm border border-gray-700/50 p-6;
   }
 
-  /* Form inputs */
+  /* Form inputs — dark */
   .input {
-    @apply w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-400 rounded-lg focus:ring-2 focus:ring-court-500 focus:border-transparent outline-none transition-all;
+    @apply w-full px-4 py-2 border border-gray-600 bg-gray-800 text-gray-100 placeholder-gray-500 rounded-lg focus:ring-2 focus:ring-court-500 focus:border-transparent outline-none transition-all;
   }
 
   /* Badge styles */
@@ -45,12 +43,12 @@
     @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
   }
   .badge-regular {
-    @apply badge bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400;
+    @apply badge bg-green-900/30 text-green-400;
   }
   .badge-dropin {
-    @apply badge bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400;
+    @apply badge bg-yellow-900/30 text-yellow-400;
   }
   .badge-pending {
-    @apply badge bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300;
+    @apply badge bg-gray-700 text-gray-300;
   }
 }

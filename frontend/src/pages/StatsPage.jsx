@@ -108,8 +108,8 @@ export default function StatsPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-3">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-          {currentRun.name} — Stats
+        <h1 className="font-retro text-sm text-gray-100">
+          {currentRun.name?.toUpperCase()} — STATS
         </h1>
         {isAdmin && allPlayers.length > 0 && (
           <div className="flex items-center gap-2">

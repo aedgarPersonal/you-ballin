@@ -86,19 +86,19 @@ export default function RegisterPage() {
     }
   };
 
-  // No code provided — show invite-only message
+  const retroBg = "min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-950 via-arcade-900 to-gray-900 px-4";
+
+  // No code provided
   if (codeStatus === "none") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-court-50 to-orange-100 dark:from-gray-900 dark:to-gray-800 px-4">
+      <div className={retroBg}>
         <div className="w-full max-w-md text-center">
           <div className="flex justify-center"><Logo size="lg" /></div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-6">Invite Only</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-3">
+          <h1 className="font-retro text-sm text-white mt-6">INVITE ONLY</h1>
+          <p className="text-gray-400 mt-3 text-sm">
             Registration is by invite only. If you've received an invite link, please use it to sign up.
           </p>
-          <Link to="/login" className="btn-primary inline-block mt-6">
-            Sign In
-          </Link>
+          <Link to="/login" className="btn-primary inline-block mt-6">Sign In</Link>
         </div>
       </div>
     );
@@ -107,49 +107,46 @@ export default function RegisterPage() {
   // Invalid or expired code
   if (codeStatus === "invalid") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-court-50 to-orange-100 dark:from-gray-900 dark:to-gray-800 px-4">
+      <div className={retroBg}>
         <div className="w-full max-w-md text-center">
           <div className="flex justify-center"><Logo size="lg" /></div>
-          <h1 className="text-2xl font-bold text-red-600 mt-6">Invalid Invite</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-3">
-            {codeMessage || "This invite link is invalid or has expired."}
-          </p>
-          <Link to="/login" className="btn-primary inline-block mt-6">
-            Sign In
-          </Link>
+          <h1 className="font-retro text-sm text-red-400 mt-6">INVALID INVITE</h1>
+          <p className="text-gray-400 mt-3 text-sm">{codeMessage || "This invite link is invalid or has expired."}</p>
+          <Link to="/login" className="btn-primary inline-block mt-6">Sign In</Link>
         </div>
       </div>
     );
   }
 
-  // Still loading validation
+  // Still loading
   if (codeStatus === "loading") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-court-50 to-orange-100 dark:from-gray-900 dark:to-gray-800 px-4">
-        <p className="text-gray-500 dark:text-gray-400">Validating invite code...</p>
+      <div className={retroBg}>
+        <p className="text-gray-500">Validating invite code...</p>
       </div>
     );
   }
 
-  // Valid code — show registration form
+  // Valid code — registration form
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-court-50 to-orange-100 dark:from-gray-900 dark:to-gray-800 px-4 py-8">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-950 via-arcade-900 to-gray-900 px-4 py-8">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="flex justify-center"><Logo size="lg" /></div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mt-4">Join the Game</h1>
+          <h1 className="font-retro text-sm text-white mt-4">JOIN THE GAME</h1>
           {runName && (
-            <div className="mt-3 inline-block bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 text-sm font-medium px-4 py-1.5 rounded-full">
+            <div className="mt-3 inline-block bg-green-900/30 text-green-300 text-sm font-medium px-4 py-1.5 rounded-full border border-green-700">
               Joining: {runName}
             </div>
           )}
         </div>
 
-        <div className="card">
+        <div className="rounded-xl bg-gradient-to-b from-amber-300 via-yellow-400 to-amber-500 p-[2px]">
+          <div className="rounded-[10px] bg-gray-900/95 p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Avatar Picker */}
             <div className="text-center">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Choose Your Legend</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Choose Your Legend</label>
               <button
                 type="button"
                 onClick={() => setShowAvatarPicker(true)}
@@ -170,42 +167,43 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Full Name</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Full Name</label>
               <input name="full_name" value={form.full_name} onChange={handleChange} className="input" required />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Username</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Username</label>
               <input name="username" value={form.username} onChange={handleChange} className="input" required minLength={3} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Email</label>
               <input name="email" type="email" value={form.email} onChange={handleChange} className="input" required />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone (optional)</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Phone (optional)</label>
               <input name="phone" type="tel" value={form.phone} onChange={handleChange} className="input" placeholder="For SMS notifications" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Password</label>
               <input name="password" type="password" value={form.password} onChange={handleChange} className="input" required minLength={8} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Confirm Password</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Confirm Password</label>
               <input name="confirmPassword" type="password" value={form.confirmPassword} onChange={handleChange} className="input" required />
             </div>
             <button type="submit" disabled={loading} className="btn-primary w-full">
-              {loading ? "Registering..." : "Register"}
+              {loading ? "Registering..." : "JOIN THE GAME"}
             </button>
           </form>
 
-          <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-4">
-            Your registration will be reviewed by an admin before you can join games.
+          <p className="text-xs text-gray-500 text-center mt-4">
+            Your registration will be reviewed by an admin.
           </p>
 
-          <p className="text-center text-sm text-gray-600 dark:text-gray-400 mt-4">
+          <p className="text-center text-sm text-gray-500 mt-4">
             Already have an account?{" "}
-            <Link to="/login" className="text-court-600 hover:text-court-700 font-medium">Sign In</Link>
+            <Link to="/login" className="text-court-400 hover:text-court-300 font-medium">Sign In</Link>
           </p>
+          </div>
         </div>
 
         {showAvatarPicker && (

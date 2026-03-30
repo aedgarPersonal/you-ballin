@@ -29,64 +29,53 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 relative bg-gradient-to-br from-gray-900 via-gray-800 to-court-900">
-      {/* Decorative background elements */}
+    <div className="min-h-screen flex items-center justify-center px-4 relative bg-gradient-to-br from-gray-950 via-arcade-900 to-gray-900">
+      <div className="absolute inset-0 pointer-events-none opacity-[0.03]"
+        style={{ backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.3) 2px, rgba(0,0,0,0.3) 4px)" }} />
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-96 h-96 bg-court-500/10 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-court-600/10 rounded-full blur-3xl" />
+        <div className="absolute -top-40 -right-40 w-96 h-96 bg-court-500/8 rounded-full blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-arcade-500/8 rounded-full blur-3xl" />
       </div>
 
       <div className="w-full max-w-md relative z-10">
-        {/* Header */}
         <div className="flex flex-col items-center mb-8">
           <Logo size="lg" />
-          <p className="text-gray-400 mt-3">Reset your password</p>
         </div>
 
-        {/* Card */}
-        <div className="card bg-white/95 dark:bg-gray-800/95 backdrop-blur-md">
-          {sent ? (
-            <div className="text-center space-y-4">
-              <div className="text-green-500 text-4xl mb-2">&#10003;</div>
-              <p className="text-gray-700 dark:text-gray-300">
-                If that email is registered, you'll receive a reset link shortly.
-              </p>
-              <Link
-                to="/login"
-                className="inline-block text-court-600 hover:text-court-700 font-medium text-sm"
-              >
-                Back to Login
-              </Link>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                Enter your email address and we'll send you a link to reset your password.
-              </p>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="input"
-                  placeholder="you@example.com"
-                  required
-                />
-              </div>
-              <button type="submit" disabled={loading} className="btn-primary w-full">
-                {loading ? "Sending..." : "Send Reset Link"}
-              </button>
-              <p className="text-center text-sm text-gray-600 dark:text-gray-400 mt-4">
-                <Link to="/login" className="text-court-600 hover:text-court-700 font-medium">
+        <div className="rounded-xl bg-gradient-to-b from-court-400 to-court-600 p-[2px]">
+          <div className="rounded-[10px] bg-gray-900/95 backdrop-blur-md p-6">
+            {sent ? (
+              <div className="text-center space-y-4">
+                <div className="text-green-400 text-4xl mb-2">&#10003;</div>
+                <p className="text-gray-300 text-sm">
+                  If that email is registered, you'll receive a reset link shortly.
+                </p>
+                <Link to="/login" className="inline-block text-court-400 hover:text-court-300 font-medium text-sm">
                   Back to Login
                 </Link>
-              </p>
-            </form>
-          )}
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <p className="text-sm text-gray-400 mb-2">
+                  Enter your email and we'll send you a reset link.
+                </p>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Email</label>
+                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                    className="input bg-gray-800 border-gray-600 text-gray-100 placeholder-gray-500"
+                    placeholder="you@example.com" required />
+                </div>
+                <button type="submit" disabled={loading} className="btn-primary w-full">
+                  {loading ? "Sending..." : "SEND RESET LINK"}
+                </button>
+                <p className="text-center text-sm text-gray-500 mt-4">
+                  <Link to="/login" className="text-court-400 hover:text-court-300 font-medium">Back to Login</Link>
+                </p>
+              </form>
+            )}
+          </div>
         </div>
+        <p className="text-center font-retro text-[6px] text-gray-600 mt-6 tracking-wider">&copy; 1987 DOUBLE DRIBBLE</p>
       </div>
     </div>
   );
