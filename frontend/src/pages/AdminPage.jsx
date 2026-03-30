@@ -1872,8 +1872,9 @@ function InviteCodesPanel({ runId }) {
   const [qrCode, setQrCode] = useState(null);
   const [showExpired, setShowExpired] = useState(false);
 
-  const fetchCodes = async () => {
+  const fetchCodes = async (showLoading = false) => {
     if (!runId) return;
+    if (showLoading) setLoading(true);
     try {
       const { data } = await listInviteCodes(runId);
       setCodes(data);
@@ -1884,7 +1885,7 @@ function InviteCodesPanel({ runId }) {
     }
   };
 
-  useEffect(() => { fetchCodes(); }, [runId]);
+  useEffect(() => { fetchCodes(true); }, [runId]);
 
   const handleGenerate = async (mode = "copy") => {
     setGenerating(true);
@@ -1895,8 +1896,12 @@ function InviteCodesPanel({ runId }) {
         max_uses: maxUses,
         expires_at: expires.toISOString(),
       };
-      const { data } = await createInviteCode(runId, payload);
-      const codeStr = typeof data === "string" ? data : (data.code || "");
+      const resp = await createInviteCode(runId, payload);
+      const codeStr = resp.data?.code || resp.data?.toString() || "";
+      setExpireDays(1);
+      setMaxUses(1);
+      // Refresh list without loading spinner (no screen shift)
+      fetchCodes();
       if (mode === "qr") {
         setQrCode(codeStr);
         toast.success("Invite code generated!");
@@ -1905,9 +1910,6 @@ function InviteCodesPanel({ runId }) {
         await navigator.clipboard.writeText(url);
         toast.success("Invite link copied to clipboard!");
       }
-      setExpireDays(1);
-      setMaxUses(1);
-      fetchCodes();
     } catch (err) {
       toast.error(err.response?.data?.detail || "Failed to generate code");
     } finally {
