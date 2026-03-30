@@ -102,7 +102,7 @@ async def seed():
         for entry in PLAYERS:
             name = entry["name"]
             username = name.lower().replace(" ", "").replace("'", "")
-            email = f"{username}@youballin.app"
+            email = f"{username}@doubledribble.com"
 
             # Check if user already exists
             existing = await session.execute(

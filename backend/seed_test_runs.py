@@ -68,7 +68,7 @@ async def seed():
 
         for name, wins, losses in test_players_data:
             username = name.lower()
-            email = f"{username}@youballin.app"
+            email = f"{username}@doubledribble.com"
 
             # Check if exists
             existing = await db.execute(select(User).where(User.email == email))
