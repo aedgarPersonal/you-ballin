@@ -49,7 +49,10 @@ export default function DashboardPage() {
       if (gamesRes.status !== "fulfilled") { setLoading(false); return; }
 
       const games = gamesRes.value.data;
-      const upcoming = games.find((g) => !["completed", "cancelled", "skipped"].includes(g.status));
+      const activeGames = games
+        .filter((g) => !["completed", "cancelled", "skipped"].includes(g.status))
+        .sort((a, b) => new Date(a.game_date) - new Date(b.game_date));
+      const upcoming = activeGames[0] || null;
       const completed = games.find((g) => g.status === "completed");
 
       // Step 2: Fetch game details in parallel
