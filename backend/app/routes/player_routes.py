@@ -125,6 +125,7 @@ async def list_run_players(
         # Override with run-scoped membership fields
         d["player_status"] = membership.player_status.value if hasattr(membership.player_status, 'value') else membership.player_status
         d["dropin_priority"] = membership.dropin_priority
+        d["dues_paid"] = membership.dues_paid
 
         # Compute run-scoped player rating using full metrics
         if weights and cm_defs:

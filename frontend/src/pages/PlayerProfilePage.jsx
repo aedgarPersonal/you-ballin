@@ -301,6 +301,28 @@ export default function PlayerProfilePage() {
                       <span className={`badge-${player.player_status}`}>{player.player_status}</span>
                     )}
                     {isOwnProfile && <span className="text-[10px] font-bold text-court-400 border border-court-500/40 rounded px-1.5 py-0.5">YOU</span>}
+                    {isAdmin && (
+                      <button
+                        onClick={async () => {
+                          const newVal = !player.dues_paid;
+                          setPlayer((prev) => ({ ...prev, dues_paid: newVal }));
+                          try {
+                            await updatePlayerAdmin(runId, player.id, { dues_paid: newVal });
+                            toast.success(newVal ? "Dues marked paid" : "Dues marked unpaid");
+                          } catch {
+                            setPlayer((prev) => ({ ...prev, dues_paid: !newVal }));
+                            toast.error("Failed");
+                          }
+                        }}
+                        className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                          player.dues_paid
+                            ? "bg-green-500/30 text-green-300 border border-green-500/40"
+                            : "bg-red-500/30 text-red-300 border border-red-500/40"
+                        }`}
+                      >
+                        {player.dues_paid ? "DUES PAID" : "DUES UNPAID"}
+                      </button>
+                    )}
                   </div>
 
                   {/* Editable contact for own profile */}

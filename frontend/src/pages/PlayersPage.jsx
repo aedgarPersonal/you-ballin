@@ -488,16 +488,45 @@ export default function PlayersPage() {
 
                   {/* Card header strip */}
                   <div className="bg-gradient-to-r from-arcade-700 via-arcade-600 to-court-600 px-3 py-1 flex items-center justify-between">
-                    {isRanked ? (
-                      <span className={`font-retro text-[7px] ${
-                        idx === 0 ? "text-yellow-300" :
-                        idx === 1 ? "text-gray-300" :
-                        idx === 2 ? "text-orange-300" :
-                        "text-white/50"
-                      }`}>#{idx + 1}</span>
-                    ) : (
-                      <span className="font-retro text-[6px] text-white/40 tracking-widest">DD</span>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {isRanked ? (
+                        <span className={`font-retro text-[7px] ${
+                          idx === 0 ? "text-yellow-300" :
+                          idx === 1 ? "text-gray-300" :
+                          idx === 2 ? "text-orange-300" :
+                          "text-white/50"
+                        }`}>#{idx + 1}</span>
+                      ) : (
+                        <span className="font-retro text-[6px] text-white/40 tracking-widest">DD</span>
+                      )}
+                      {isAdmin && (
+                        <button
+                          onClick={async () => {
+                            const newVal = !player.dues_paid;
+                            setPlayers((prev) => prev.map((p) =>
+                              p.id === player.id ? { ...p, dues_paid: newVal } : p
+                            ));
+                            try {
+                              await updatePlayerAdmin(runId, player.id, { dues_paid: newVal });
+                              toast.success(newVal ? "Dues marked paid" : "Dues marked unpaid");
+                            } catch {
+                              setPlayers((prev) => prev.map((p) =>
+                                p.id === player.id ? { ...p, dues_paid: !newVal } : p
+                              ));
+                              toast.error("Failed");
+                            }
+                          }}
+                          className={`text-[8px] font-bold px-1.5 py-0.5 rounded ${
+                            player.dues_paid
+                              ? "bg-green-500/30 text-green-300"
+                              : "bg-red-500/30 text-red-300"
+                          }`}
+                          title={player.dues_paid ? "Dues Paid — click to mark unpaid" : "Dues Unpaid — click to mark paid"}
+                        >
+                          {player.dues_paid ? "PAID" : "UNPAID"}
+                        </button>
+                      )}
+                    </div>
                     {isAdmin ? (
                       <select
                         value={player.player_status}
