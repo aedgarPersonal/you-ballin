@@ -737,11 +737,11 @@ function RsvpSection({ game, runId, isAdmin, onUpdate }) {
   };
 
   const statusBadge = (status) => {
-    if (!status) return "bg-gray-100 text-gray-500 bg-gray-700 text-gray-400";
-    if (status === "accepted") return "bg-green-100 text-green-800 bg-green-900/30 text-green-400";
-    if (status === "declined") return "bg-red-100 text-red-800 bg-red-900/30 text-red-400";
-    if (status === "waitlist") return "bg-yellow-100 text-yellow-800 bg-yellow-900/30 text-yellow-400";
-    return "bg-gray-100 text-gray-800 bg-gray-700 text-gray-300";
+    if (!status) return "bg-gray-700 text-gray-400";
+    if (status === "accepted") return "bg-green-900/30 text-green-400";
+    if (status === "declined") return "bg-red-900/30 text-red-400";
+    if (status === "waitlist") return "bg-yellow-900/30 text-yellow-400";
+    return "bg-gray-700 text-gray-300";
   };
 
   return (
@@ -789,16 +789,16 @@ function RsvpSection({ game, runId, isAdmin, onUpdate }) {
       {rows.length > 0 ? (
         <div className="space-y-1">
           {rows.map((row) => (
-            <div key={row.userId} className="flex items-center justify-between py-2 px-2 rounded-lg hover:bg-gray-50 hover:bg-gray-800 border-b border-gray-100 border-gray-700 last:border-0">
+            <div key={row.userId} className="flex items-center justify-between py-2 px-2 rounded-lg hover:bg-gray-800 border-b border-gray-700 last:border-0">
               <div className="flex items-center gap-2">
-                <span className="font-medium text-sm">{row.name}</span>
+                <span className="font-retro text-[8px] text-gray-100">{row.name?.toUpperCase()}</span>
                 {row.playerStatus === "dropin" && (
                   <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-cyan-900/30 text-cyan-400">
                     Drop-in
                   </span>
                 )}
                 {row.rsvpStatus === "waitlist" && row.waitlistPosition && (
-                  <span className="text-[10px] font-bold text-yellow-600 text-yellow-400">
+                  <span className="text-[10px] font-bold text-yellow-400">
                     #{row.waitlistPosition}
                   </span>
                 )}
@@ -911,8 +911,8 @@ function AdminRsvpSection({ runId, gameId, onUpdate }) {
         <div className="max-h-32 overflow-y-auto space-y-1">
           {filtered.slice(0, 8).map((p) => (
             <button key={p.id} onClick={() => handleRsvp(p.id, p.full_name)}
-              className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-gray-200 hover:bg-gray-700 transition-colors text-left text-sm">
-              <span className="font-medium text-gray-800 text-gray-200">{p.full_name}</span>
+              className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-gray-700 transition-colors text-left">
+              <span className="font-retro text-[8px] text-gray-200">{p.full_name?.toUpperCase()}</span>
               <span className="text-xs text-gray-400 ml-auto">{p.player_status}</span>
             </button>
           ))}
