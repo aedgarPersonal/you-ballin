@@ -34,6 +34,7 @@ import {
   createInviteCode,
   listInviteCodes,
   updateInviteCode,
+  deleteInviteCode,
 } from "../api/admin";
 import { adminResetPassword } from "../api/auth";
 import { createGame, generateSeasonGames, listGames, updateGame, cancelGame } from "../api/games";
@@ -1909,13 +1910,13 @@ function InviteCodesPanel({ runId }) {
     }
   };
 
-  const handleToggle = async (codeId, currentlyActive) => {
+  const handleDelete = async (codeId) => {
     try {
-      await updateInviteCode(runId, codeId, { is_active: !currentlyActive });
-      setCodes((prev) => prev.map((c) => c.id === codeId ? { ...c, is_active: !currentlyActive } : c));
-      toast.success(currentlyActive ? "Code deactivated" : "Code reactivated");
+      await deleteInviteCode(runId, codeId);
+      setCodes((prev) => prev.filter((c) => c.id !== codeId));
+      toast.success("Invite code deleted");
     } catch {
-      toast.error("Failed to update code");
+      toast.error("Failed to delete code");
     }
   };
 
@@ -1926,6 +1927,19 @@ function InviteCodesPanel({ runId }) {
   };
 
   const baseUrl = window.location.origin;
+
+  // Split codes into active vs expired/maxed
+  const activeCodes = codes.filter((c) => {
+    const isExpired = c.expires_at && new Date(c.expires_at) < new Date();
+    const isMaxed = c.max_uses && c.use_count >= c.max_uses;
+    return c.is_active && !isExpired && !isMaxed;
+  });
+  const expiredCodes = codes.filter((c) => {
+    const isExpired = c.expires_at && new Date(c.expires_at) < new Date();
+    const isMaxed = c.max_uses && c.use_count >= c.max_uses;
+    return !c.is_active || isExpired || isMaxed;
+  });
+  const [showExpired, setShowExpired] = useState(false);
 
   return (
     <div className="card">
@@ -1958,79 +1972,84 @@ function InviteCodesPanel({ runId }) {
 
       {loading ? (
         <p className="text-gray-500 dark:text-gray-400">Loading...</p>
-      ) : codes.length === 0 ? (
+      ) : activeCodes.length === 0 && expiredCodes.length === 0 ? (
         <p className="text-gray-500 dark:text-gray-400">No invite codes yet. Generate one to share with new players.</p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700">
-                <th className="py-2 pr-3">Code</th>
-                <th className="py-2 pr-3">Status</th>
-                <th className="py-2 pr-3">Uses</th>
-                <th className="py-2 pr-3">Expires</th>
-                <th className="py-2">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-              {codes.map((c) => {
-                const isExpired = c.expires_at && new Date(c.expires_at) < new Date();
-                const isMaxed = c.max_uses && c.use_count >= c.max_uses;
-                return (
-                  <tr key={c.id}>
-                    <td className="py-3 pr-3">
-                      <code className="text-sm font-mono font-bold text-court-600 bg-court-50 dark:bg-court-900/20 px-2 py-0.5 rounded">
-                        {c.code}
-                      </code>
-                    </td>
-                    <td className="py-3 pr-3">
-                      <span className={`text-xs font-bold px-2 py-0.5 rounded ${
-                        !c.is_active ? "bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400" :
-                        isExpired ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" :
-                        isMaxed ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400" :
-                        "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                      }`}>
-                        {!c.is_active ? "Inactive" : isExpired ? "Expired" : isMaxed ? "Maxed" : "Active"}
-                      </span>
-                    </td>
-                    <td className="py-3 pr-3 text-gray-600 dark:text-gray-400">
-                      {c.use_count}{c.max_uses ? `/${c.max_uses}` : ""}
-                    </td>
-                    <td className="py-3 pr-3 text-gray-500 dark:text-gray-400 text-xs">
-                      {c.expires_at ? new Date(c.expires_at).toLocaleDateString() : "Never"}
-                    </td>
-                    <td className="py-3">
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => copyLink(c.code)}
-                          className="text-xs bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 px-2 py-1 rounded hover:bg-cyan-200 dark:hover:bg-cyan-900/50"
-                        >
-                          Copy Link
-                        </button>
-                        <button
-                          onClick={() => setQrCode(c.code)}
-                          className="text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-2 py-1 rounded hover:bg-purple-200 dark:hover:bg-purple-900/50"
-                        >
-                          QR
-                        </button>
-                        <button
-                          onClick={() => handleToggle(c.id, c.is_active)}
-                          className={`text-xs px-2 py-1 rounded ${
-                            c.is_active
-                              ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 hover:bg-red-200"
-                              : "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-200"
-                          }`}
-                        >
-                          {c.is_active ? "Deactivate" : "Reactivate"}
+        <>
+          {/* Active codes */}
+          {activeCodes.length > 0 ? (
+            <div className="space-y-2">
+              {activeCodes.map((c) => (
+                <div key={c.id} className="flex items-center justify-between gap-2 p-3 bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800 rounded-lg">
+                  <div className="min-w-0">
+                    <code className="text-sm font-mono font-bold text-court-600">{c.code}</code>
+                    <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">
+                      {c.use_count}{c.max_uses ? `/${c.max_uses} used` : " used"} · Expires {c.expires_at ? new Date(c.expires_at).toLocaleDateString() : "Never"}
+                    </div>
+                  </div>
+                  <div className="flex gap-1.5 shrink-0">
+                    <button onClick={() => copyLink(c.code)}
+                      className="text-[10px] bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 px-2 py-1 rounded hover:bg-cyan-200">
+                      Copy
+                    </button>
+                    <button onClick={() => setQrCode(c.code)}
+                      className="text-[10px] bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-2 py-1 rounded hover:bg-purple-200">
+                      QR
+                    </button>
+                    <button onClick={() => handleDelete(c.id)}
+                      className="text-[10px] bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 px-2 py-1 rounded hover:bg-red-200">
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-400 dark:text-gray-500">No active invite codes.</p>
+          )}
+
+          {/* Expired / maxed codes — collapsible */}
+          {expiredCodes.length > 0 && (
+            <div className="mt-4">
+              <button onClick={() => setShowExpired(!showExpired)}
+                className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 font-medium">
+                {showExpired ? "Hide" : "Show"} expired/maxed ({expiredCodes.length})
+              </button>
+              {showExpired && (
+                <div className="space-y-2 mt-2">
+                  {expiredCodes.map((c) => {
+                    const isExpired = c.expires_at && new Date(c.expires_at) < new Date();
+                    const isMaxed = c.max_uses && c.use_count >= c.max_uses;
+                    return (
+                      <div key={c.id} className="flex items-center justify-between gap-2 p-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg opacity-70">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <code className="text-sm font-mono text-gray-500">{c.code}</code>
+                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                              isExpired ? "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
+                                : isMaxed ? "bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400"
+                                : "bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400"
+                            }`}>
+                              {isExpired ? "Expired" : isMaxed ? "Maxed" : "Inactive"}
+                            </span>
+                          </div>
+                          <div className="text-[10px] text-gray-400 mt-0.5">
+                            {c.use_count}{c.max_uses ? `/${c.max_uses} used` : " used"}
+                          </div>
+                        </div>
+                        <button onClick={() => handleDelete(c.id)}
+                          className="text-[10px] bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 px-2 py-1 rounded hover:bg-red-200 shrink-0">
+                          Delete
                         </button>
                       </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+        </>
+      )}
       )}
 
       {/* QR Code Modal */}
