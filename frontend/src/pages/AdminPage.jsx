@@ -643,7 +643,6 @@ export default function AdminPage() {
 
         {/* Invite Codes */}
         <div>
-          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">Invite Codes</h2>
           <InviteCodesPanel runId={runId} />
         </div>
         </div>
@@ -2049,7 +2048,6 @@ function InviteCodesPanel({ runId }) {
             </div>
           )}
         </>
-      )}
       )}
 
       {/* QR Code Modal */}
