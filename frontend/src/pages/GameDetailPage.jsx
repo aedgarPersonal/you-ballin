@@ -218,7 +218,7 @@ export default function GameDetailPage() {
   if (!currentRun) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-8 text-center">
-        <p className="text-gray-500 dark:text-gray-400">Please select a Run from the dropdown above.</p>
+        <p className="text-gray-400">Please select a Run from the dropdown above.</p>
       </div>
     );
   }
@@ -262,12 +262,12 @@ export default function GameDetailPage() {
             minute: "2-digit",
           })}
         </p>
-        <p className="text-gray-500 dark:text-gray-400">{game.location}</p>
+        <p className="text-gray-400">{game.location}</p>
         <div className="flex items-center gap-4 mt-4">
           <span className="text-sm font-medium">
             {game.accepted_count}/{game.roster_size} players
           </span>
-          <span className="text-sm text-gray-500 dark:text-gray-400">
+          <span className="text-sm text-gray-400">
             {game.num_teams} teams
           </span>
           {(user?.role === "super_admin" || user?.role === "admin") ? (
@@ -289,7 +289,7 @@ export default function GameDetailPage() {
                   toast.error(err.response?.data?.detail || "Failed to change status");
                 }
               }}
-              className="text-sm font-semibold border rounded-lg px-2 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 cursor-pointer"
+              className="text-sm font-semibold border rounded-lg px-2 py-1 bg-gray-700 text-gray-200 border-gray-600 cursor-pointer"
             >
               {["scheduled", "invites_sent", "dropin_open", "teams_set", "completed", "cancelled", "skipped"].map((s) => (
                 <option key={s} value={s}>{s.replace("_", " ")}</option>
@@ -297,18 +297,18 @@ export default function GameDetailPage() {
             </select>
           ) : (
             <span className={`badge ${
-              game.status === "cancelled" ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400" : "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
+              game.status === "cancelled" ? "bg-red-100 text-red-800 bg-red-900/30 text-red-400" : "bg-blue-900/30 text-blue-400"
             }`}>
               {game.status.replace("_", " ")}
             </span>
           )}
         </div>
-        {game.notes && <p className="text-gray-600 dark:text-gray-400 mt-4 italic">{game.notes}</p>}
+        {game.notes && <p className="text-gray-400 mt-4 italic">{game.notes}</p>}
 
         {/* Admin inline actions */}
         {isAdminUser && game.status !== "completed" && game.status !== "cancelled" && game.status !== "skipped" && (
-          <div className="flex flex-wrap gap-2 mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
-            <button onClick={handleStartEdit} className="text-sm bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-medium py-1.5 px-3 rounded-lg">
+          <div className="flex flex-wrap gap-2 mt-4 pt-3 border-t border-gray-200 border-gray-700">
+            <button onClick={handleStartEdit} className="text-sm bg-gray-700 hover:bg-gray-600 text-gray-300 font-medium py-1.5 px-3 rounded-lg">
               Edit Game
             </button>
             {game.status === "teams_set" && (
@@ -327,22 +327,22 @@ export default function GameDetailPage() {
 
         {/* Edit Game Form (inline in header) */}
         {editing && isAdminUser && (
-          <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700 space-y-3">
+          <div className="mt-4 pt-3 border-t border-gray-200 border-gray-700 space-y-3">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Title</label>
+                <label className="block text-xs font-medium text-gray-400 mb-1">Title</label>
                 <input type="text" value={editForm.title} onChange={(e) => setEditForm({ ...editForm, title: e.target.value })} className="input text-sm" />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Date & Time</label>
+                <label className="block text-xs font-medium text-gray-400 mb-1">Date & Time</label>
                 <input type="datetime-local" value={editForm.game_date} onChange={(e) => setEditForm({ ...editForm, game_date: e.target.value })} className="input text-sm" />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Location</label>
+                <label className="block text-xs font-medium text-gray-400 mb-1">Location</label>
                 <input type="text" value={editForm.location} onChange={(e) => setEditForm({ ...editForm, location: e.target.value })} className="input text-sm" />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Notes</label>
+                <label className="block text-xs font-medium text-gray-400 mb-1">Notes</label>
                 <input type="text" value={editForm.notes} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} className="input text-sm" placeholder="Optional notes" />
               </div>
             </div>
@@ -355,8 +355,8 @@ export default function GameDetailPage() {
 
         {/* Complete Game Form (inline in header) */}
         {completing && isAdminUser && game.status === "teams_set" && uniqueTeams.length > 0 && (
-          <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700 space-y-3">
-            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Record Results</h3>
+          <div className="mt-4 pt-3 border-t border-gray-200 border-gray-700 space-y-3">
+            <h3 className="font-retro text-[8px] text-gray-300 tracking-wider">RECORD RESULTS</h3>
             <div className="flex flex-wrap items-end gap-3">
               {uniqueTeams.map((team, idx) => (
                 <div key={team.id} className="flex flex-col items-center">
@@ -368,7 +368,7 @@ export default function GameDetailPage() {
                     value={scores[team.id] || ""}
                     onChange={(e) => setScores({ ...scores, [team.id]: e.target.value })}
                     placeholder="0"
-                    className="w-16 text-center text-lg font-bold border-2 border-gray-300 dark:border-gray-600 rounded-lg py-1 focus:border-court-500 focus:outline-none dark:bg-gray-900 dark:text-gray-100"
+                    className="w-16 text-center text-lg font-bold border-2 border-gray-300 border-gray-600 rounded-lg py-1 focus:border-court-500 focus:outline-none bg-gray-900 text-gray-100"
                   />
                 </div>
               ))}
@@ -378,7 +378,7 @@ export default function GameDetailPage() {
               onChange={(e) => setGameCommentary(e.target.value)}
               placeholder="Game commentary (optional)"
               rows={2}
-              className="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 dark:bg-gray-900 dark:text-gray-100"
+              className="w-full text-sm border border-gray-300 border-gray-600 rounded-lg px-3 py-2 bg-gray-900 text-gray-100"
             />
             <div className="flex gap-2">
               <button onClick={handleRecordResult} className="btn-primary text-sm py-1.5 px-4">Submit & Complete</button>
@@ -390,15 +390,15 @@ export default function GameDetailPage() {
 
       {/* Final Score Banner */}
       {game.status === "completed" && game.result?.team_scores?.length > 0 && (
-        <div className="card mb-6 border-2 border-court-300 dark:border-court-700 bg-court-50 dark:bg-court-900/20">
-          <h3 className="text-sm font-semibold text-court-600 uppercase tracking-wide text-center mb-2">Final Score</h3>
+        <div className="card mb-6 border-2 border-court-700 bg-court-900/20">
+          <h3 className="font-retro text-[8px] text-court-400 tracking-widest text-center mb-2">Final Score</h3>
           <div className="flex items-center justify-center gap-4 flex-wrap">
             {[...game.result.team_scores]
               .sort((a, b) => b.wins - a.wins)
               .map((ts, idx) => (
                 <div key={ts.team} className="flex items-center gap-2">
-                  {idx > 0 && <span className="text-gray-400 dark:text-gray-500 font-bold">-</span>}
-                  <span className="font-bold text-gray-800 dark:text-gray-200">{ts.team_name}</span>
+                  {idx > 0 && <span className="text-gray-400 text-gray-500 font-bold">-</span>}
+                  <span className="font-bold text-gray-200">{ts.team_name}</span>
                   <span className="text-2xl font-black text-court-600">{ts.wins}</span>
                 </div>
               ))}
@@ -408,10 +408,10 @@ export default function GameDetailPage() {
 
       {/* Game Commentary */}
       {game.commentary && (
-        <div className="card mb-6 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700">
+        <div className="card mb-6 bg-gray-50 bg-gray-800/50 border border-gray-200 border-gray-700">
           <div className="space-y-2">
             {game.commentary.split("\n").map((line, i) => (
-              <p key={i} className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+              <p key={i} className="text-sm text-gray-700 text-gray-300 leading-relaxed">
                 {line}
               </p>
             ))}
@@ -470,7 +470,7 @@ export default function GameDetailPage() {
 
       {/* Cancelled Banner */}
       {game.status === "cancelled" && (
-        <div className="card mb-6 border-2 border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20">
+        <div className="card mb-6 border-2 border-red-700 bg-red-900/20">
           <p className="text-red-700 font-semibold text-center">
             This game has been cancelled.
           </p>
@@ -479,7 +479,7 @@ export default function GameDetailPage() {
 
       {/* Skipped Banner */}
       {game.status === "skipped" && (
-        <div className="card mb-6 border-2 border-yellow-300 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-900/20">
+        <div className="card mb-6 border-2 border-yellow-700 bg-yellow-900/20">
           <p className="text-yellow-700 font-semibold text-center">
             This game has been skipped.
           </p>
@@ -492,26 +492,26 @@ export default function GameDetailPage() {
         <div className="flex flex-wrap items-center gap-2 mb-6">
           {awards.mvp && (
             <Link to={`/players/${awards.mvp.player.id}`}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-yellow-300 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-900/20 hover:bg-yellow-100 dark:hover:bg-yellow-900/40 transition-colors">
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-yellow-700 bg-yellow-900/20 hover:bg-yellow-900/40 transition-colors">
               <span>🏆</span>
-              <span className="text-sm font-bold text-yellow-800 dark:text-yellow-300">{awards.mvp.player.full_name}</span>
-              <span className="text-xs text-yellow-600 dark:text-yellow-500">{awards.mvp.vote_count}v</span>
+              <span className="text-sm font-bold text-yellow-300">{awards.mvp.player.full_name}</span>
+              <span className="text-xs text-yellow-500">{awards.mvp.vote_count}v</span>
             </Link>
           )}
           {awards.xfactor && (
             <Link to={`/players/${awards.xfactor.player.id}`}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors">
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-blue-700 bg-blue-900/20 hover:bg-blue-900/40 transition-colors">
               <span>⚡</span>
-              <span className="text-sm font-bold text-blue-800 dark:text-blue-300">{awards.xfactor.player.full_name}</span>
-              <span className="text-xs text-blue-600 dark:text-blue-500">{awards.xfactor.vote_count}v</span>
+              <span className="text-sm font-bold text-blue-300">{awards.xfactor.player.full_name}</span>
+              <span className="text-xs text-blue-500">{awards.xfactor.vote_count}v</span>
             </Link>
           )}
           {awards.shaqtin && (
             <Link to={`/players/${awards.shaqtin.player.id}`}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-purple-300 dark:border-purple-700 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-colors">
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-purple-700 bg-purple-900/20 hover:bg-purple-900/40 transition-colors">
               <span>🤦</span>
-              <span className="text-sm font-bold text-purple-800 dark:text-purple-300">{awards.shaqtin.player.full_name}</span>
-              <span className="text-xs text-purple-600 dark:text-purple-500">{awards.shaqtin.vote_count}v</span>
+              <span className="text-sm font-bold text-purple-300">{awards.shaqtin.player.full_name}</span>
+              <span className="text-xs text-purple-500">{awards.shaqtin.vote_count}v</span>
             </Link>
           )}
         </div>
@@ -521,8 +521,8 @@ export default function GameDetailPage() {
       {game.status === "completed" && awards?.voting_open && isParticipant && (
         <div className="card mb-6">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold">Player Award Voting</h2>
-            <span className="text-xs text-gray-500 dark:text-gray-400">
+            <h2 className="font-retro text-[9px] text-gray-100 tracking-wider">PLAYER AWARD VOTING</h2>
+            <span className="text-xs text-gray-400">
               {awards.votes_cast}/{awards.total_voters} voted &middot; Closes {new Date(awards.voting_deadline).toLocaleString("en-US", {
                 month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
               })}
@@ -548,7 +548,7 @@ export default function GameDetailPage() {
 
       {/* Award voting closed message */}
       {game.status === "completed" && awards && !awards.voting_open && isParticipant && (
-        <div className="text-center text-sm text-gray-500 dark:text-gray-400 mb-6">
+        <div className="text-center text-sm text-gray-400 mb-6">
           Player award voting has closed. {awards.votes_cast} of {awards.total_voters} participants voted.
         </div>
       )}
@@ -556,14 +556,14 @@ export default function GameDetailPage() {
       {/* RSVP Section — hidden for non-active games and non-members */}
       {game.status !== "completed" && game.status !== "cancelled" && game.status !== "skipped" && isRunMember && (
         <div className="card mb-6">
-          <h2 className="text-lg font-semibold mb-3">Your RSVP</h2>
+          <h2 className="font-retro text-[9px] text-gray-100 tracking-wider mb-3">YOUR RSVP</h2>
           {myRsvp ? (
             <div className="flex items-center gap-4">
               <span className={`badge ${
-                myRsvp.status === "accepted" ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" :
-                myRsvp.status === "declined" ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" :
-                myRsvp.status === "waitlist" ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400" :
-                "bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400"
+                myRsvp.status === "accepted" ? "bg-green-900/30 text-green-400 bg-green-900/30 text-green-400" :
+                myRsvp.status === "declined" ? "bg-red-900/30 text-red-400 bg-red-900/30 text-red-400" :
+                myRsvp.status === "waitlist" ? "bg-yellow-900/30 text-yellow-400 bg-yellow-900/30 text-yellow-400" :
+                "bg-gray-100 text-gray-500 bg-gray-700 text-gray-400"
               }`}>
                 {myRsvp.status}
               </span>
@@ -595,7 +595,7 @@ export default function GameDetailPage() {
       {!game.teams?.length && (user?.role === "super_admin" || user?.role === "admin") &&
         game.status !== "completed" && game.status !== "cancelled" && game.status !== "skipped" && (
         <div className="card mb-6 text-center">
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">No teams generated yet</p>
+          <p className="text-sm text-gray-400 mb-3">No teams generated yet</p>
           <button onClick={handleGenerateTeams} className="btn-primary">
             Generate Teams
           </button>
@@ -737,19 +737,19 @@ function RsvpSection({ game, runId, isAdmin, onUpdate }) {
   };
 
   const statusBadge = (status) => {
-    if (!status) return "bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400";
-    if (status === "accepted") return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
-    if (status === "declined") return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400";
-    if (status === "waitlist") return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400";
-    return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300";
+    if (!status) return "bg-gray-100 text-gray-500 bg-gray-700 text-gray-400";
+    if (status === "accepted") return "bg-green-100 text-green-800 bg-green-900/30 text-green-400";
+    if (status === "declined") return "bg-red-100 text-red-800 bg-red-900/30 text-red-400";
+    if (status === "waitlist") return "bg-yellow-100 text-yellow-800 bg-yellow-900/30 text-yellow-400";
+    return "bg-gray-100 text-gray-800 bg-gray-700 text-gray-300";
   };
 
   return (
     <div className="card mb-6">
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-lg font-semibold">
+        <h2 className="font-retro text-[9px] text-gray-100 tracking-wider">
           RSVPs
-          <span className="text-sm font-normal text-gray-500 dark:text-gray-400 ml-2">
+          <span className="text-sm font-normal text-gray-400 ml-2">
             {acceptedCount} in{waitlistCount > 0 ? ` · ${waitlistCount} waitlist` : ""}{declinedCount > 0 ? ` · ${declinedCount} out` : ""}{pendingCount > 0 ? ` · ${pendingCount} pending` : ""}
           </span>
         </h2>
@@ -789,16 +789,16 @@ function RsvpSection({ game, runId, isAdmin, onUpdate }) {
       {rows.length > 0 ? (
         <div className="space-y-1">
           {rows.map((row) => (
-            <div key={row.userId} className="flex items-center justify-between py-2 px-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 border-b border-gray-100 dark:border-gray-700 last:border-0">
+            <div key={row.userId} className="flex items-center justify-between py-2 px-2 rounded-lg hover:bg-gray-50 hover:bg-gray-800 border-b border-gray-100 border-gray-700 last:border-0">
               <div className="flex items-center gap-2">
                 <span className="font-medium text-sm">{row.name}</span>
                 {row.playerStatus === "dropin" && (
-                  <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400">
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-cyan-900/30 text-cyan-400">
                     Drop-in
                   </span>
                 )}
                 {row.rsvpStatus === "waitlist" && row.waitlistPosition && (
-                  <span className="text-[10px] font-bold text-yellow-600 dark:text-yellow-400">
+                  <span className="text-[10px] font-bold text-yellow-600 text-yellow-400">
                     #{row.waitlistPosition}
                   </span>
                 )}
@@ -825,10 +825,10 @@ function RsvpSection({ game, runId, isAdmin, onUpdate }) {
                     value={row.rsvpStatus || ""}
                     onChange={(e) => handleAdminRsvp(row.userId, row.name, e.target.value)}
                     className={`text-xs font-semibold border rounded px-2 py-1 cursor-pointer ${
-                      !row.rsvpStatus ? "dark:bg-gray-700 dark:text-gray-400 dark:border-gray-600 text-gray-400" :
-                      row.rsvpStatus === "accepted" ? "bg-green-50 text-green-700 border-green-300 dark:bg-green-900/20 dark:text-green-400 dark:border-green-700" :
-                      row.rsvpStatus === "declined" ? "bg-red-50 text-red-700 border-red-300 dark:bg-red-900/20 dark:text-red-400 dark:border-red-700" :
-                      "bg-yellow-50 text-yellow-700 border-yellow-300 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-700"
+                      !row.rsvpStatus ? "bg-gray-700 text-gray-400 border-gray-600 text-gray-400" :
+                      row.rsvpStatus === "accepted" ? "bg-green-900/20 text-green-400 border-green-700" :
+                      row.rsvpStatus === "declined" ? "bg-red-900/20 text-red-400 border-red-700" :
+                      "bg-yellow-900/20 text-yellow-400 border-yellow-700"
                     }`}
                   >
                     <option value="" disabled>No response</option>
@@ -846,7 +846,7 @@ function RsvpSection({ game, runId, isAdmin, onUpdate }) {
           ))}
         </div>
       ) : (
-        <p className="text-gray-500 dark:text-gray-400">No players in this run yet.</p>
+        <p className="text-gray-400">No players in this run yet.</p>
       )}
     </div>
   );
@@ -892,16 +892,16 @@ function AdminRsvpSection({ runId, gameId, onUpdate }) {
   }
 
   return (
-    <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
+    <div className="p-3 bg-gray-50 bg-gray-900 rounded-lg">
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Admin RSVP</h3>
+        <h3 className="font-retro text-[7px] text-gray-400 tracking-widest">Admin RSVP</h3>
         <button onClick={() => setShowRsvp(false)} className="text-gray-400 hover:text-white text-lg leading-none">&times;</button>
       </div>
       <div className="flex items-center gap-2 mb-2">
         <input type="text" placeholder="Search player..." value={search} onChange={(e) => setSearch(e.target.value)}
-          className="flex-1 text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 dark:bg-gray-800 dark:text-gray-100" />
+          className="flex-1 text-sm border border-gray-300 border-gray-600 rounded-lg px-3 py-1.5 bg-gray-800 text-gray-100" />
         <select value={rsvpStatus} onChange={(e) => setRsvpStatus(e.target.value)}
-          className="text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 dark:bg-gray-800 dark:text-gray-200">
+          className="text-sm border border-gray-300 border-gray-600 rounded-lg px-2 py-1.5 bg-gray-800 text-gray-200">
           <option value="accepted">Accept</option>
           <option value="declined">Decline</option>
           <option value="waitlist">Waitlist</option>
@@ -911,8 +911,8 @@ function AdminRsvpSection({ runId, gameId, onUpdate }) {
         <div className="max-h-32 overflow-y-auto space-y-1">
           {filtered.slice(0, 8).map((p) => (
             <button key={p.id} onClick={() => handleRsvp(p.id, p.full_name)}
-              className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-left text-sm">
-              <span className="font-medium text-gray-800 dark:text-gray-200">{p.full_name}</span>
+              className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-gray-200 hover:bg-gray-700 transition-colors text-left text-sm">
+              <span className="font-medium text-gray-800 text-gray-200">{p.full_name}</span>
               <span className="text-xs text-gray-400 ml-auto">{p.player_status}</span>
             </button>
           ))}
@@ -929,13 +929,13 @@ function AdminRsvpSection({ runId, gameId, onUpdate }) {
 function VoteDropdown({ label, emoji, players, currentVoteId, onVote }) {
   return (
     <div>
-      <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 mb-1">
+      <label className="block font-retro text-[7px] text-gray-400 mb-1">
         {emoji} {label}
       </label>
       <select
         value={currentVoteId || ""}
         onChange={(e) => onVote(parseInt(e.target.value))}
-        className="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 dark:bg-gray-800 dark:text-gray-100 focus:border-court-500 focus:outline-none"
+        className="w-full text-sm border border-gray-300 border-gray-600 rounded-lg px-3 py-2 bg-gray-800 text-gray-100 focus:border-court-500 focus:outline-none"
       >
         <option value="">Select player...</option>
         {players.map((p) => (

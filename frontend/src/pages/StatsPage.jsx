@@ -123,7 +123,7 @@ export default function StatsPage() {
                 setSelectedPlayerName(p ? p.full_name : null);
                 setLoading(true);
               }}
-              className="text-sm border border-gray-300 dark:border-gray-600 bg-gray-700 dark:text-gray-200 rounded-lg px-3 py-1.5"
+              className="text-sm border border-gray-300 bg-gray-700 rounded-lg px-3 py-1.5"
             >
               <option value="">Myself</option>
               {allPlayers.map((p) => (
@@ -192,8 +192,8 @@ export default function StatsPage() {
       {/* Your Matchups */}
       {/* Selected Player Banner */}
       {selectedPlayerId && selectedPlayerName && (
-        <div className="card mb-6 border-2 border-cyan-300 dark:border-cyan-700">
-          <h2 className="text-sm font-semibold text-cyan-600 uppercase tracking-wide mb-1">
+        <div className="card mb-6 border-2 border-cyan-700">
+          <h2 className="font-retro text-[8px] text-cyan-400 tracking-widest mb-1">
             Viewing: {selectedPlayerName}
           </h2>
         </div>
@@ -202,7 +202,7 @@ export default function StatsPage() {
       {matchups && (matchups.best_teammates.length > 0 || matchups.toughest_opponents.length > 0) && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <div className="card">
-            <h3 className="text-sm font-semibold text-green-600 dark:text-green-400 uppercase tracking-wide mb-3">
+            <h3 className="font-retro text-[8px] text-green-400 tracking-widest mb-3">
               Best Teammates
             </h3>
             {matchups.best_teammates.length === 0 ? (
@@ -240,7 +240,7 @@ export default function StatsPage() {
             )}
           </div>
           <div className="card">
-            <h3 className="text-sm font-semibold text-red-600 dark:text-red-400 uppercase tracking-wide mb-3">
+            <h3 className="font-retro text-[8px] text-red-400 tracking-widest mb-3">
               Toughest Opponents
             </h3>
             {matchups.toughest_opponents.length === 0 ? (
@@ -283,13 +283,13 @@ export default function StatsPage() {
       {/* Selected Player: Form & History */}
       {selectedPlayerId && playerForm && playerForm.current_streak && (
         <div className="card mb-6">
-          <h3 className="text-sm font-semibold text-court-600 uppercase tracking-wide mb-3">Current Form</h3>
+          <h3 className="font-retro text-[8px] text-court-400 tracking-widest mb-3">Current Form</h3>
           <div className="flex flex-wrap items-center gap-4">
             {playerForm.current_streak.count > 0 && (
               <div className={`px-3 py-1 rounded-full text-sm font-bold ${
                 playerForm.current_streak.type === "win"
-                  ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                  : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                  ? "bg-green-900/30 text-green-400 bg-green-900/30 text-green-400"
+                  : "bg-red-900/30 text-red-400 text-red-400"
               }`}>
                 {playerForm.current_streak.type === "win" ? "🔥" : "❄️"} {playerForm.current_streak.count}{playerForm.current_streak.type === "win" ? "W" : "L"}
               </div>
@@ -341,7 +341,7 @@ export default function StatsPage() {
 
       {selectedPlayerId && playerHistory && playerHistory.length > 0 && (
         <div className="card mb-6">
-          <h3 className="text-sm font-semibold text-court-600 uppercase tracking-wide mb-3">Game History</h3>
+          <h3 className="font-retro text-[8px] text-court-400 tracking-widest mb-3">Game History</h3>
           <div className="max-h-64 overflow-y-auto space-y-1">
             {playerHistory.slice(0, 10).map((g) => {
               const date = new Date(g.game_date);
@@ -350,12 +350,12 @@ export default function StatsPage() {
                 <Link key={g.game_id} to={`/games/${g.game_id}`}
                   className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-800 transition-colors">
                   <span className="text-xs text-gray-400 w-14 shrink-0">{shortDate}</span>
-                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate flex-1">{g.team_name}</span>
+                  <span className="text-xs font-medium text-gray-700 truncate flex-1">{g.team_name}</span>
                   <span className="text-xs text-gray-400 shrink-0">vs</span>
                   <span className="text-xs text-gray-400 truncate flex-1">{g.opponent_team}</span>
                   <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${
-                    g.won ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                      : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                    g.won ? "bg-green-900/30 text-green-400 bg-green-900/30 text-green-400"
+                      : "bg-red-900/30 text-red-400 text-red-400"
                   }`}>{g.won ? "W" : "L"}</span>
                   {g.score && <span className="text-xs text-gray-400 shrink-0">{g.score}</span>}
                   {g.awards?.length > 0 && (

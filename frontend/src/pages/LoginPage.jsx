@@ -79,7 +79,7 @@ export default function LoginPage() {
         </div>
 
         {/* Card */}
-        <div className="card bg-gray-900/90 dark:bg-gray-900/90 backdrop-blur-md border-arcade-800/50">
+        <div className="card bg-gray-900/90 backdrop-blur-md border-arcade-800/50">
           {/* Tabs */}
           <div className="flex border-b border-gray-700 mb-6">
             <button

@@ -168,7 +168,7 @@ export default function PlayersPage() {
   if (!currentRun) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-8 text-center">
-        <p className="text-gray-500 dark:text-gray-400">Please select a Run from the dropdown above.</p>
+        <p className="text-gray-400">Please select a Run from the dropdown above.</p>
       </div>
     );
   }
@@ -229,7 +229,7 @@ export default function PlayersPage() {
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
-            className="text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-lg px-3 py-2 shrink-0"
+            className="text-sm border border-gray-600 bg-gray-700 text-gray-200 rounded-lg px-3 py-2 shrink-0"
           >
             {(isAdmin ? ADMIN_SORT_OPTIONS : SORT_OPTIONS).map((opt) => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -249,14 +249,14 @@ export default function PlayersPage() {
           const count = statusCounts[key] || 0;
           const colors = {
             green: active
-              ? "bg-green-100 text-green-800 border-green-400 dark:bg-green-900/30 dark:text-green-400 dark:border-green-600"
-              : "bg-gray-100 text-gray-400 border-gray-300 dark:bg-gray-800 dark:text-gray-500 dark:border-gray-600",
+              ? "bg-green-900/30 text-green-400 border-green-600"
+              : "bg-gray-800 text-gray-500 border-gray-600",
             yellow: active
-              ? "bg-yellow-100 text-yellow-800 border-yellow-400 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-600"
-              : "bg-gray-100 text-gray-400 border-gray-300 dark:bg-gray-800 dark:text-gray-500 dark:border-gray-600",
+              ? "bg-yellow-900/30 text-yellow-400 border-yellow-600"
+              : "bg-gray-800 text-gray-500 border-gray-600",
             gray: active
-              ? "bg-gray-200 text-gray-700 border-gray-400 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500"
-              : "bg-gray-100 text-gray-400 border-gray-300 dark:bg-gray-800 dark:text-gray-500 dark:border-gray-600",
+              ? "bg-gray-700 text-gray-300 border-gray-500"
+              : "bg-gray-800 text-gray-500 border-gray-600",
           };
           return (
             <button
@@ -275,30 +275,30 @@ export default function PlayersPage() {
       {/* Import Modal */}
       {showImport && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl max-w-lg w-full shadow-2xl">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Import Players</h2>
-              <button onClick={() => setShowImport(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-white text-2xl leading-none">&times;</button>
+          <div className="bg-gray-800 rounded-xl max-w-lg w-full shadow-2xl">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-700">
+              <h2 className="text-lg font-bold text-gray-100">Import Players</h2>
+              <button onClick={() => setShowImport(false)} className="text-gray-400 hover:text-white text-2xl leading-none">&times;</button>
             </div>
             <div className="px-6 py-4">
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+              <p className="text-sm text-gray-400 mb-2">
                 Paste CSV data below (one player per line). Only <strong>Name</strong> and <strong>Email</strong> are required:
               </p>
-              <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-2 mb-2 text-xs font-mono text-gray-600 dark:text-gray-400 space-y-0.5">
-                <p className="font-semibold text-gray-500 dark:text-gray-300">Name, Email, Wins, Losses, Height(in), Age</p>
+              <div className="bg-gray-900 rounded-lg p-2 mb-2 text-xs font-mono text-gray-400 space-y-0.5">
+                <p className="font-semibold text-gray-300">Name, Email, Wins, Losses, Height(in), Age</p>
               </div>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">
-                Email must be unique. Missing fields use defaults: 0W/0L, 5'10", age 30. Players get a random avatar, password <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">Password123</code>, and Regular status.
+              <p className="text-xs text-gray-500 mb-3">
+                Email must be unique. Missing fields use defaults: 0W/0L, 5'10", age 30. Players get a random avatar, password <code className="bg-gray-700 px-1 rounded">Password123</code>, and Regular status.
               </p>
               <textarea
                 rows={10}
                 value={importText}
                 onChange={(e) => setImportText(e.target.value)}
-                className="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 font-mono focus:ring-2 focus:ring-court-500 focus:border-court-500 dark:bg-gray-700 dark:text-gray-200"
+                className="w-full text-sm border border-gray-600 rounded-lg px-3 py-2 font-mono focus:ring-2 focus:ring-court-500 focus:border-court-500 bg-gray-700 text-gray-200"
                 placeholder={`Bryan, bryan@email.com, 26, 14, 74, 28\nJulien, julien@email.com, 23, 12\nDenis, denis@email.com`}
               />
               <div className="flex items-center justify-between mt-4">
-                <span className="text-sm text-gray-500 dark:text-gray-400">
+                <span className="text-sm text-gray-400">
                   {parseImportText(importText).length} player(s) detected
                 </span>
                 <button
@@ -306,7 +306,7 @@ export default function PlayersPage() {
                   disabled={importing || !importText.trim()}
                   className={`font-medium py-2 px-6 rounded-lg transition-colors ${
                     importing || !importText.trim()
-                      ? "bg-gray-200 dark:bg-gray-600 text-gray-400 cursor-not-allowed"
+                      ? "bg-gray-600 text-gray-400 cursor-not-allowed"
                       : "bg-court-500 hover:bg-court-600 text-white"
                   }`}
                 >
@@ -316,25 +316,25 @@ export default function PlayersPage() {
 
               {/* Import Results */}
               {importResult && (
-                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <div className="mt-4 pt-4 border-t border-gray-700">
                   <div className="grid grid-cols-2 gap-3 mb-3">
-                    <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-2 text-center">
-                      <div className="text-xl font-bold text-green-700 dark:text-green-400">{importResult.created_count}</div>
-                      <div className="text-xs text-green-600 dark:text-green-500">Created</div>
+                    <div className="bg-green-900/20 border border-green-700 rounded-lg p-2 text-center">
+                      <div className="text-xl font-bold text-green-400">{importResult.created_count}</div>
+                      <div className="text-xs text-green-500">Created</div>
                     </div>
-                    <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg p-2 text-center">
-                      <div className="text-xl font-bold text-yellow-700 dark:text-yellow-400">{importResult.skipped_count}</div>
-                      <div className="text-xs text-yellow-600 dark:text-yellow-500">Skipped</div>
+                    <div className="bg-yellow-900/20 border border-yellow-700 rounded-lg p-2 text-center">
+                      <div className="text-xl font-bold text-yellow-400">{importResult.skipped_count}</div>
+                      <div className="text-xs text-yellow-500">Skipped</div>
                     </div>
                   </div>
                   {importResult.created_players.length > 0 && (
-                    <p className="text-xs text-gray-600 dark:text-gray-400">
-                      <span className="font-medium text-green-700 dark:text-green-400">Created:</span> {importResult.created_players.join(", ")}
+                    <p className="text-xs text-gray-400">
+                      <span className="font-medium text-green-400">Created:</span> {importResult.created_players.join(", ")}
                     </p>
                   )}
                   {importResult.skipped_players.length > 0 && (
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                      <span className="font-medium text-yellow-700 dark:text-yellow-400">Skipped:</span> {importResult.skipped_players.join(", ")}
+                    <p className="text-xs text-gray-400 mt-1">
+                      <span className="font-medium text-yellow-400">Skipped:</span> {importResult.skipped_players.join(", ")}
                     </p>
                   )}
                 </div>
@@ -347,51 +347,51 @@ export default function PlayersPage() {
       {/* Add Player Modal */}
       {showAddPlayer && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 z-10">
-              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Add Player</h2>
-              <button onClick={() => setShowAddPlayer(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-white text-2xl leading-none">&times;</button>
+          <div className="bg-gray-800 rounded-xl max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-700 sticky top-0 bg-gray-800 z-10">
+              <h2 className="text-lg font-bold text-gray-100">Add Player</h2>
+              <button onClick={() => setShowAddPlayer(false)} className="text-gray-400 hover:text-white text-2xl leading-none">&times;</button>
             </div>
             <div className="px-6 py-4 space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2">
-                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Full Name *</label>
+                  <label className="block text-xs font-medium text-gray-400 mb-1">Full Name *</label>
                   <input type="text" value={addForm.full_name} onChange={(e) => setAddForm({ ...addForm, full_name: e.target.value })}
                     className="input w-full" placeholder="John Doe" />
                 </div>
                 <div className="col-span-2">
-                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Email *</label>
+                  <label className="block text-xs font-medium text-gray-400 mb-1">Email *</label>
                   <input type="email" value={addForm.email} onChange={(e) => setAddForm({ ...addForm, email: e.target.value })}
                     className="input w-full" placeholder="john@example.com" />
                 </div>
                 <div className="col-span-2">
-                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Phone</label>
+                  <label className="block text-xs font-medium text-gray-400 mb-1">Phone</label>
                   <input type="tel" value={addForm.phone} onChange={(e) => setAddForm({ ...addForm, phone: e.target.value })}
                     className="input w-full" placeholder="Optional" />
                 </div>
               </div>
 
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
-                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Record</p>
+              <div className="border-t border-gray-700 pt-3">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Record</p>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Wins</label>
+                    <label className="block text-xs font-medium text-gray-400 mb-1">Wins</label>
                     <input type="number" min="0" value={addForm.wins} onChange={(e) => setAddForm({ ...addForm, wins: parseInt(e.target.value) || 0 })}
                       className="input w-full" />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Losses</label>
+                    <label className="block text-xs font-medium text-gray-400 mb-1">Losses</label>
                     <input type="number" min="0" value={addForm.losses} onChange={(e) => setAddForm({ ...addForm, losses: parseInt(e.target.value) || 0 })}
                       className="input w-full" />
                   </div>
                 </div>
               </div>
 
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
-                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Physical</p>
+              <div className="border-t border-gray-700 pt-3">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Physical</p>
                 <div className="grid grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Height</label>
+                    <label className="block text-xs font-medium text-gray-400 mb-1">Height</label>
                     <div className="flex items-center gap-1">
                       <input type="number" min="4" max="7"
                         value={Math.floor(addForm.height_inches / 12)}
@@ -414,7 +414,7 @@ export default function PlayersPage() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Age</label>
+                    <label className="block text-xs font-medium text-gray-400 mb-1">Age</label>
                     <input type="number" min="16" max="70" value={addForm.age}
                       onChange={(e) => setAddForm({ ...addForm, age: parseInt(e.target.value) || 30 })}
                       className="input w-full" />
@@ -422,8 +422,8 @@ export default function PlayersPage() {
                 </div>
               </div>
 
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
-                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Position</p>
+              <div className="border-t border-gray-700 pt-3">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Position</p>
                 <select value={addForm.position} onChange={(e) => setAddForm({ ...addForm, position: e.target.value })}
                   className="input w-full">
                   <option value="Mascot">Mascot</option>
@@ -436,12 +436,12 @@ export default function PlayersPage() {
               </div>
 
               {customMetrics.length > 0 && (
-                <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
-                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Metrics (1-10)</p>
+                <div className="border-t border-gray-700 pt-3">
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Metrics (1-10)</p>
                   <div className="grid grid-cols-3 gap-3">
                     {customMetrics.map((metric) => (
                       <div key={metric.id}>
-                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{metric.display_name}</label>
+                        <label className="block text-xs font-medium text-gray-400 mb-1">{metric.display_name}</label>
                         <input type="number" min={metric.min_value || 1} max={metric.max_value || 10} step="0.5"
                           value={addForm[`metric_${metric.id}`] || metric.default_value || 5}
                           onChange={(e) => setAddForm({ ...addForm, [`metric_${metric.id}`]: parseFloat(e.target.value) || 5 })}
@@ -452,15 +452,15 @@ export default function PlayersPage() {
                 </div>
               )}
 
-              <p className="text-xs text-gray-400 dark:text-gray-500">
-                Default password: <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">Password123</code>
+              <p className="text-xs text-gray-500">
+                Default password: <code className="bg-gray-700 px-1 rounded">Password123</code>
               </p>
               <div className="flex justify-end gap-2 pt-2">
                 <button onClick={() => setShowAddPlayer(false)} className="btn-secondary text-sm py-2 px-4">Cancel</button>
                 <button onClick={handleAddPlayer} disabled={adding || !addForm.full_name.trim() || !addForm.email.trim()}
                   className={`font-medium py-2 px-6 rounded-lg text-sm transition-colors ${
                     adding || !addForm.full_name.trim() || !addForm.email.trim()
-                      ? "bg-gray-200 dark:bg-gray-600 text-gray-400 cursor-not-allowed"
+                      ? "bg-gray-600 text-gray-400 cursor-not-allowed"
                       : "bg-green-600 hover:bg-green-700 text-white"
                   }`}>
                   {adding ? "Adding..." : "Add Player"}
@@ -472,7 +472,7 @@ export default function PlayersPage() {
       )}
 
       {loading ? (
-        <p className="text-gray-500 dark:text-gray-400">Loading players...</p>
+        <p className="text-gray-400">Loading players...</p>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {sortedPlayers.map((player, idx) => {

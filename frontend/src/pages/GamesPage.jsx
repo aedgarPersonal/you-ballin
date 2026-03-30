@@ -21,12 +21,12 @@ const STATUS_LABELS = {
 };
 
 const STATUS_COLORS = {
-  scheduled: "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300",
-  invites_sent: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
-  dropin_open: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
-  teams_set: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-  completed: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400",
-  cancelled: "bg-red-200 text-red-900 dark:bg-red-900/40 dark:text-red-300 font-bold",
+  scheduled: "bg-gray-700 text-gray-300",
+  invites_sent: "bg-blue-900/30 text-blue-400",
+  dropin_open: "bg-yellow-900/30 text-yellow-400",
+  teams_set: "bg-green-900/30 text-green-400",
+  completed: "bg-purple-900/30 text-purple-400",
+  cancelled: "bg-red-900/40 text-red-300 font-bold",
 };
 
 export default function GamesPage() {
@@ -40,10 +40,10 @@ export default function GamesPage() {
     return (
       <div className="max-w-7xl mx-auto px-4 py-8 text-center">
         <div className="text-5xl mb-4">⏳</div>
-        <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+        <h2 className="font-retro text-base text-gray-100 mb-2">
           {currentUser.player_status === "pending" ? "Registration Pending" : "Account Inactive"}
         </h2>
-        <p className="text-gray-600 dark:text-gray-400">
+        <p className="text-gray-400">
           {currentUser.player_status === "pending"
             ? "Your registration is being reviewed. You'll see games once approved!"
             : "Your account is inactive. Contact an admin for help."}
@@ -96,7 +96,7 @@ export default function GamesPage() {
   if (!currentRun) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-8 text-center">
-        <p className="text-gray-500 dark:text-gray-400">Please select a Run from the dropdown above.</p>
+        <p className="text-gray-400">Please select a Run from the dropdown above.</p>
       </div>
     );
   }
@@ -129,31 +129,31 @@ export default function GamesPage() {
 
       {/* Create Game Form (admin only) */}
       {showCreate && (
-        <div className="card mb-6 border-2 border-court-300 dark:border-court-700">
-          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Create One-Off Game</h3>
+        <div className="card mb-6 border-2 border-court-700">
+          <h3 className="font-retro text-[8px] text-gray-300 tracking-wider mb-3">CREATE GAME</h3>
           <form onSubmit={handleCreateGame} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Title *</label>
+              <label className="block text-xs font-medium text-gray-400 mb-1">Title *</label>
               <input type="text" required value={newGame.title} onChange={(e) => setNewGame({ ...newGame, title: e.target.value })}
                 placeholder="e.g. Special Pickup" className="input text-sm w-full" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Date *</label>
+              <label className="block text-xs font-medium text-gray-400 mb-1">Date *</label>
               <input type="date" required value={newGame.game_date} onChange={(e) => setNewGame({ ...newGame, game_date: e.target.value })}
                 className="input text-sm w-full" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Time</label>
+              <label className="block text-xs font-medium text-gray-400 mb-1">Time</label>
               <input type="time" value={newGame.game_time} onChange={(e) => setNewGame({ ...newGame, game_time: e.target.value })}
                 className="input text-sm w-full" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Location</label>
+              <label className="block text-xs font-medium text-gray-400 mb-1">Location</label>
               <input type="text" value={newGame.location} onChange={(e) => setNewGame({ ...newGame, location: e.target.value })}
                 placeholder={currentRun?.default_location || "TBD"} className="input text-sm w-full" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Teams</label>
+              <label className="block text-xs font-medium text-gray-400 mb-1">Teams</label>
               <select value={newGame.num_teams} onChange={(e) => setNewGame({ ...newGame, num_teams: Number(e.target.value) })}
                 className="input text-sm w-full">
                 {[2, 3, 4].map((n) => <option key={n} value={n}>{n}</option>)}
@@ -167,10 +167,10 @@ export default function GamesPage() {
       )}
 
       {loading ? (
-        <p className="text-gray-500 dark:text-gray-400">Loading games...</p>
+        <p className="text-gray-400">Loading games...</p>
       ) : games.length === 0 ? (
         <div className="card text-center py-12">
-          <p className="text-gray-500 dark:text-gray-400">No games found.</p>
+          <p className="text-gray-400">No games found.</p>
         </div>
       ) : (
         <GamesList games={games} />
@@ -202,7 +202,7 @@ function GamesList({ games }) {
       {/* Priority game — large, highlighted */}
       {priorityGame && (
         <div>
-          <h2 className="text-xs font-bold text-court-500 uppercase tracking-wider mb-2">Next Up</h2>
+          <h2 className="font-retro text-[8px] text-court-400 tracking-widest mb-2">Next Up</h2>
           <GameCard game={priorityGame} priority />
         </div>
       )}
@@ -210,7 +210,7 @@ function GamesList({ games }) {
       {/* Other active games */}
       {otherActive.length > 0 && (
         <div>
-          <h2 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Upcoming</h2>
+          <h2 className="font-retro text-[7px] text-gray-400 tracking-widest mb-2">Upcoming</h2>
           <div className="space-y-3">
             {otherActive.map((g) => <GameCard key={g.id} game={g} />)}
           </div>
@@ -221,7 +221,7 @@ function GamesList({ games }) {
       {pastGames.length > 0 && (
         <div>
           <button onClick={() => setShowPast(!showPast)}
-            className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:text-gray-700 dark:hover:text-gray-300">
+            className="font-retro text-[7px] text-gray-400 tracking-widest hover:text-gray-300">
             {showPast ? "Hide" : "Show"} Past Games ({pastGames.length})
           </button>
           {showPast && (
@@ -234,7 +234,7 @@ function GamesList({ games }) {
 
       {/* No active games message */}
       {!priorityGame && pastGames.length > 0 && (
-        <p className="text-sm text-gray-500 dark:text-gray-400">No upcoming games scheduled.</p>
+        <p className="text-sm text-gray-400">No upcoming games scheduled.</p>
       )}
     </div>
   );

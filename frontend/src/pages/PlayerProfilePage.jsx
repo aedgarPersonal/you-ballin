@@ -413,13 +413,13 @@ export default function PlayerProfilePage() {
       )}
 
       {/* ==================== TABS ==================== */}
-      <div className="flex border-b border-gray-200 dark:border-gray-700 mb-6">
+      <div className="flex border-b border-gray-200 mb-6">
         {TABS.map((t) => (
           <button key={t.id} onClick={() => setActiveTab(t.id)}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
               activeTab === t.id
                 ? "border-court-500 text-court-600"
-                : "border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                : "border-transparent text-gray-500 hover:text-gray-700"
             }`}>
             {t.label}
           </button>
@@ -438,14 +438,14 @@ export default function PlayerProfilePage() {
                 const shortDate = new Date(g.game_date).toLocaleDateString("en-US", { month: "short", day: "numeric" });
                 return (
                   <Link key={g.game_id} to={`/games/${g.game_id}`}
-                    className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                    className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-50 transition-colors">
                     <span className="text-xs text-gray-400 w-14 shrink-0">{shortDate}</span>
-                    <span className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate flex-1">{g.team_name}</span>
+                    <span className="text-xs font-medium text-gray-700 truncate flex-1">{g.team_name}</span>
                     <span className="text-xs text-gray-400 shrink-0">vs</span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400 truncate flex-1">{g.opponent_team}</span>
+                    <span className="text-xs text-gray-500 truncate flex-1">{g.opponent_team}</span>
                     <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${
-                      g.won ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                        : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                      g.won ? "bg-green-100 text-green-700"
+                        : "bg-red-100 text-red-700"
                     }`}>{g.won ? "W" : "L"}</span>
                     {g.score && <span className="text-xs text-gray-400 shrink-0">{g.score}</span>}
                     {g.awards?.length > 0 && (
@@ -471,13 +471,13 @@ export default function PlayerProfilePage() {
           <div className="card">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {matchups.best_teammates?.length > 0 && (
-                <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
+                <div className="bg-gray-50 rounded-lg p-3">
                   <h3 className="text-xs font-bold text-green-500 uppercase tracking-wider mb-2">Best Teammates</h3>
                   <div className="space-y-2">
                     {(showAllTeammates ? matchups.best_teammates : matchups.best_teammates.slice(0, 5)).map((m) => (
                       <div key={m.player_id} className="flex items-center gap-2">
                         {m.avatar_url && <AvatarBadge avatarId={m.avatar_url} size="xs" />}
-                        <span className="text-sm font-medium text-gray-800 dark:text-gray-200 flex-1">{m.full_name}</span>
+                        <span className="text-sm font-medium text-gray-800 flex-1">{m.full_name}</span>
                         <span className="text-sm font-bold text-green-500">{(m.win_rate * 100).toFixed(0)}%</span>
                         <span className="text-xs text-gray-400">{m.wins}W-{m.games - m.wins}L</span>
                       </div>
@@ -492,13 +492,13 @@ export default function PlayerProfilePage() {
                 </div>
               )}
               {matchups.toughest_opponents?.length > 0 && (
-                <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
+                <div className="bg-gray-50 rounded-lg p-3">
                   <h3 className="text-xs font-bold text-red-500 uppercase tracking-wider mb-2">Toughest Opponents</h3>
                   <div className="space-y-2">
                     {(showAllOpponents ? matchups.toughest_opponents : matchups.toughest_opponents.slice(0, 5)).map((m) => (
                       <div key={m.player_id} className="flex items-center gap-2">
                         {m.avatar_url && <AvatarBadge avatarId={m.avatar_url} size="xs" />}
-                        <span className="text-sm font-medium text-gray-800 dark:text-gray-200 flex-1">{m.full_name}</span>
+                        <span className="text-sm font-medium text-gray-800 flex-1">{m.full_name}</span>
                         <span className="text-sm font-bold text-red-500">{(m.win_rate * 100).toFixed(0)}%</span>
                         <span className="text-xs text-gray-400">{m.wins}W-{m.games - m.wins}L</span>
                       </div>
@@ -543,7 +543,7 @@ export default function PlayerProfilePage() {
             {customMetrics.length > 0 && (
               <div className="card">
                 <h2 className="text-lg font-semibold mb-1">Edit Metrics</h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                <p className="text-sm text-gray-500 mb-4">
                   Adjust this player's metric values (1-10 scale).
                 </p>
                 <div className="space-y-4">
@@ -582,9 +582,9 @@ export default function PlayerProfilePage() {
 function StatCard({ label, value, max, highlight }) {
   return (
     <div className={`card text-center ${highlight ? "border-2 border-court-300" : ""}`}>
-      <p className="text-sm text-gray-500 dark:text-gray-400">{label}</p>
-      <p className={`text-2xl font-bold ${highlight ? "text-court-600" : "text-gray-900 dark:text-gray-100"}`}>{value}</p>
-      {max && <p className="text-xs text-gray-400 dark:text-gray-500">/ {max}</p>}
+      <p className="text-sm text-gray-500">{label}</p>
+      <p className={`text-2xl font-bold ${highlight ? "text-court-600" : "text-gray-900"}`}>{value}</p>
+      {max && <p className="text-xs text-gray-400">/ {max}</p>}
     </div>
   );
 }
@@ -596,15 +596,15 @@ function MetricSlider({ label, value, min, max, onChange }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
-        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{label}</label>
+        <label className="text-sm font-medium text-gray-700">{label}</label>
         <span className="text-sm font-bold text-court-600">{localVal.toFixed(1)}</span>
       </div>
       <input type="range" min={min} max={max} step="0.5" value={localVal}
         onChange={(e) => setLocalVal(parseFloat(e.target.value))}
         onMouseUp={() => onChange(localVal)} onTouchEnd={() => onChange(localVal)}
-        className="w-full h-2 bg-gray-200 dark:bg-gray-600 rounded-lg appearance-none cursor-pointer accent-court-500"
+        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-court-500"
       />
-      <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500">
+      <div className="flex justify-between text-xs text-gray-400">
         <span>{min}</span><span>{max}</span>
       </div>
     </div>

@@ -155,11 +155,11 @@ export default function RegisterPage() {
                 {avatarId ? (
                   <div className="flex flex-col items-center">
                     <AvatarBadge avatarId={avatarId} size="lg" />
-                    <span className="text-xs text-gray-500 dark:text-gray-400 mt-1">{getPlayerById(avatarId)?.name}</span>
+                    <span className="text-xs text-gray-500 mt-1">{getPlayerById(avatarId)?.name}</span>
                     <span className="text-xs text-court-600 mt-0.5">Click to change</span>
                   </div>
                 ) : (
-                  <div className="w-20 h-20 mx-auto rounded-full border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center text-gray-400 dark:text-gray-500 hover:border-court-400 hover:text-court-500 transition-colors">
+                  <div className="w-20 h-20 mx-auto rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 hover:border-court-400 hover:text-court-500 transition-colors">
                     <span className="text-sm text-center leading-tight">Pick a<br/>legend</span>
                   </div>
                 )}

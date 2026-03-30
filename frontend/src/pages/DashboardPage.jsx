@@ -143,7 +143,7 @@ export default function DashboardPage() {
             <AvatarBadge avatarId={user.avatar_url} size="lg" />
           )}
           <div>
-            <h1 className="text-3xl font-bold text-gray-100">
+            <h1 className="font-retro text-base text-gray-100">
               Welcome, {user?.full_name?.split(" ")[0]}!
             </h1>
             {currentRun && (
@@ -153,7 +153,7 @@ export default function DashboardPage() {
         </div>
         <div className="card text-center py-12">
           <div className="text-5xl mb-4">{isPending ? "⏳" : "🔒"}</div>
-          <h2 className="text-xl font-bold text-gray-100 mb-2">
+          <h2 className="font-retro text-sm text-gray-100 mb-2">
             {isPending ? "Registration Pending" : "Account Inactive"}
           </h2>
           <p className="text-gray-400 max-w-md mx-auto">
