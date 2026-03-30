@@ -182,7 +182,7 @@ export default function PlayerProfilePage() {
 
                 {/* Info column */}
                 <div className="flex-1 min-w-0">
-                  <h1 className="font-retro text-sm text-white leading-tight truncate">
+                  <h1 className="font-retro text-base text-white leading-tight truncate">
                     {player.full_name.toUpperCase()}
                   </h1>
                   <p className="text-xs text-gray-500 mt-0.5">@{player.username}</p>

@@ -105,7 +105,7 @@ export default function GamesPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Games</h1>
+          <h1 className="font-retro text-base text-gray-100">GAMES</h1>
           {currentRun && <p className="text-sm text-court-600">{currentRun.name}</p>}
         </div>
         <div className="flex items-center gap-3">

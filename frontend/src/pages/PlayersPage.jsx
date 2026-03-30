@@ -198,7 +198,7 @@ export default function PlayersPage() {
       <div className="mb-6 space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Roster</h1>
+            <h1 className="font-retro text-base text-gray-100">ROSTER</h1>
             {currentRun && <p className="text-sm text-court-600">{currentRun.name}</p>}
           </div>
           {isAdmin && (

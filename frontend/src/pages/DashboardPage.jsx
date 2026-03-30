@@ -125,7 +125,7 @@ export default function DashboardPage() {
   if (!currentRun) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-8 text-center">
-        <p className="text-gray-500 dark:text-gray-400">Please select a Run from the dropdown above.</p>
+        <p className="text-gray-400">Please select a Run from the dropdown above.</p>
       </div>
     );
   }
@@ -143,7 +143,7 @@ export default function DashboardPage() {
             <AvatarBadge avatarId={user.avatar_url} size="lg" />
           )}
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+            <h1 className="text-3xl font-bold text-gray-100">
               Welcome, {user?.full_name?.split(" ")[0]}!
             </h1>
             {currentRun && (
@@ -153,10 +153,10 @@ export default function DashboardPage() {
         </div>
         <div className="card text-center py-12">
           <div className="text-5xl mb-4">{isPending ? "⏳" : "🔒"}</div>
-          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+          <h2 className="text-xl font-bold text-gray-100 mb-2">
             {isPending ? "Registration Pending" : "Account Inactive"}
           </h2>
-          <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto">
+          <p className="text-gray-400 max-w-md mx-auto">
             {isPending
               ? "Your registration is being reviewed by an admin. You'll be notified once you're approved!"
               : "Your account is currently inactive. Please contact an admin for assistance."}
@@ -192,20 +192,20 @@ export default function DashboardPage() {
           </Link>
         ) : null}
         <div>
-          <h1 className="font-retro text-sm text-gray-900 dark:text-gray-100">
+          <h1 className="font-retro text-base text-gray-100">
             {user?.full_name?.split(" ")[0]?.toUpperCase()}
           </h1>
           {currentRun && (
             <p className="text-xs font-medium text-court-500 mt-1">{currentRun.name}</p>
           )}
           {isRunMember && (
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{statusMessage[user?.player_status] || ""}</p>
+            <p className="text-xs text-gray-400 mt-1">{statusMessage[user?.player_status] || ""}</p>
           )}
           {!isRunMember && user?.role === "super_admin" && (
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Managing as Super Admin</p>
+            <p className="text-xs text-gray-400 mt-1">Managing as Super Admin</p>
           )}
           {user?.avatar_url && getPlayerById(user.avatar_url) && (
-            <p className="text-[10px] text-gray-500 dark:text-gray-600 mt-0.5">
+            <p className="text-[10px] text-gray-500 mt-0.5">
               Repping {getPlayerById(user.avatar_url).name} — {getPlayerById(user.avatar_url).team}
             </p>
           )}
@@ -436,13 +436,13 @@ export default function DashboardPage() {
 function VoteDropdown({ label, emoji, voteType, players, currentVoteId, onVote }) {
   return (
     <div>
-      <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 mb-1">
+      <label className="block text-xs font-bold text-gray-400 mb-1">
         {emoji} {label}
       </label>
       <select
         value={currentVoteId || ""}
         onChange={(e) => onVote(voteType, e.target.value)}
-        className="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 dark:bg-gray-800 dark:text-gray-100 focus:border-court-500 focus:outline-none"
+        className="w-full text-sm border border-gray-600 rounded-lg px-3 py-2 bg-gray-800 text-gray-100 focus:border-court-500 focus:outline-none"
       >
         <option value="">Select player...</option>
         {players.map((p) => (

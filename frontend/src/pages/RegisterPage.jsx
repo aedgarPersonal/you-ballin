@@ -94,7 +94,7 @@ export default function RegisterPage() {
       <div className={retroBg}>
         <div className="w-full max-w-md text-center">
           <div className="flex justify-center"><Logo size="lg" /></div>
-          <h1 className="font-retro text-sm text-white mt-6">INVITE ONLY</h1>
+          <h1 className="font-retro text-base text-white mt-6">INVITE ONLY</h1>
           <p className="text-gray-400 mt-3 text-sm">
             Registration is by invite only. If you've received an invite link, please use it to sign up.
           </p>
@@ -110,7 +110,7 @@ export default function RegisterPage() {
       <div className={retroBg}>
         <div className="w-full max-w-md text-center">
           <div className="flex justify-center"><Logo size="lg" /></div>
-          <h1 className="font-retro text-sm text-red-400 mt-6">INVALID INVITE</h1>
+          <h1 className="font-retro text-base text-red-400 mt-6">INVALID INVITE</h1>
           <p className="text-gray-400 mt-3 text-sm">{codeMessage || "This invite link is invalid or has expired."}</p>
           <Link to="/login" className="btn-primary inline-block mt-6">Sign In</Link>
         </div>
@@ -133,7 +133,7 @@ export default function RegisterPage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="flex justify-center"><Logo size="lg" /></div>
-          <h1 className="font-retro text-sm text-white mt-4">JOIN THE GAME</h1>
+          <h1 className="font-retro text-base text-white mt-4">JOIN THE GAME</h1>
           {runName && (
             <div className="mt-3 inline-block bg-green-900/30 text-green-300 text-sm font-medium px-4 py-1.5 rounded-full border border-green-700">
               Joining: {runName}

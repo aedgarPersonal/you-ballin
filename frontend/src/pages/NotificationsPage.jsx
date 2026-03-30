@@ -56,7 +56,7 @@ export default function NotificationsPage() {
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="font-retro text-sm text-gray-900 dark:text-gray-100">ALERTS</h1>
+          <h1 className="font-retro text-base text-gray-100">ALERTS</h1>
           {unreadCount > 0 && (
             <p className="text-xs text-court-500 mt-1">{unreadCount} unread</p>
           )}

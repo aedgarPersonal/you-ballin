@@ -42,7 +42,7 @@ export default function Navbar() {
   };
 
   const navLinkClass = (path) =>
-    `relative px-3 py-2 rounded-lg font-retro text-[8px] tracking-wider transition-all duration-200 ${
+    `relative px-3 py-2 rounded-lg font-retro text-[9px] tracking-wider transition-all duration-200 ${
       isActive(path)
         ? "text-court-400 bg-court-900/30"
         : "text-gray-400 hover:text-court-400 hover:bg-gray-700/50"
@@ -136,7 +136,7 @@ export default function Navbar() {
                         const run = runs.find(r => r.id === parseInt(e.target.value));
                         if (run) setCurrentRun(run);
                       }}
-                      className="font-retro text-[7px] border border-gray-600 rounded-lg px-2.5 py-1.5 bg-gray-800 text-gray-300 focus:ring-2 focus:ring-court-500 focus:border-court-500 transition-all"
+                      className="font-retro text-[8px] border border-gray-600 rounded-lg px-2.5 py-1.5 bg-gray-800 text-gray-300 focus:ring-2 focus:ring-court-500 focus:border-court-500 transition-all"
                     >
                       {runs.map(run => (
                         <option key={run.id} value={run.id}>{run.name}</option>
@@ -179,9 +179,9 @@ export default function Navbar() {
                       {user?.full_name?.charAt(0)}
                     </div>
                   )}
-                  <span className="font-retro text-[7px] text-gray-300">{user?.full_name?.toUpperCase()}</span>
+                  <span className="font-retro text-[8px] text-gray-300">{user?.full_name?.toUpperCase()}</span>
                 </Link>
-                <button onClick={handleLogout} className="text-sm text-gray-500 hover:text-red-400 transition-colors p-1.5 rounded-lg hover:bg-red-900/20" title="Logout">
+                <button onClick={handleLogout} className="text-gray-500 hover:text-red-400 transition-colors p-1.5 rounded-lg hover:bg-red-900/20" title="Logout">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                   </svg>
@@ -238,14 +238,14 @@ export default function Navbar() {
             {/* Run Switcher */}
             {runs.length > 0 && (
               <div className="px-3 py-2">
-                <label className="block font-retro text-[6px] text-gray-500 tracking-widest mb-1.5">SEASON</label>
+                <label className="block font-retro text-[7px] text-gray-500 tracking-widest mb-1.5">SEASON</label>
                 <select
                   value={currentRun?.id || ""}
                   onChange={(e) => {
                     const run = runs.find(r => r.id === parseInt(e.target.value));
                     if (run) setCurrentRun(run);
                   }}
-                  className="w-full font-retro text-[7px] border border-gray-600 rounded-lg px-3 py-2 bg-gray-800 text-gray-300 focus:ring-2 focus:ring-court-500 focus:border-court-500"
+                  className="w-full font-retro text-[8px] border border-gray-600 rounded-lg px-3 py-2 bg-gray-800 text-gray-300 focus:ring-2 focus:ring-court-500 focus:border-court-500"
                 >
                   {runs.map(run => (
                     <option key={run.id} value={run.id}>{run.name}</option>
@@ -258,7 +258,7 @@ export default function Navbar() {
             {isSuperAdmin && (
               <button
                 onClick={() => { setShowCreateRun(true); closeMobileMenu(); }}
-                className="w-full text-left font-retro text-[7px] bg-gradient-to-r from-court-900/20 to-court-900/30 text-court-400 px-3 py-2.5 rounded-lg hover:from-court-900/30 hover:to-court-900/40 transition-all"
+                className="w-full text-left font-retro text-[8px] bg-gradient-to-r from-court-900/20 to-court-900/30 text-court-400 px-3 py-2.5 rounded-lg hover:from-court-900/30 hover:to-court-900/40 transition-all"
               >
                 + New Season
               </button>
@@ -276,7 +276,7 @@ export default function Navbar() {
                   {user?.full_name?.charAt(0)}
                 </div>
               )}
-              <span className="font-retro text-[7px] text-gray-300">{user?.full_name?.toUpperCase()}</span>
+              <span className="font-retro text-[8px] text-gray-300">{user?.full_name?.toUpperCase()}</span>
             </Link>
             <InstallButton className="w-full" />
             <button

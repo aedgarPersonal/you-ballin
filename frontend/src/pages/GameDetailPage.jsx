@@ -444,7 +444,7 @@ export default function GameDetailPage() {
                 </div>
               )}
             </div>
-            <h3 className="font-retro text-sm text-white mb-1">
+            <h3 className="font-retro text-base text-white mb-1">
               {awards.mvp.player.full_name.toUpperCase()}
             </h3>
             <p className="text-xs text-arcade-400">
