@@ -33,9 +33,9 @@
     @apply bg-gray-900 rounded-xl shadow-sm border border-gray-700/50 p-6;
   }
 
-  /* Form inputs — dark */
+  /* Form inputs — dark, retro */
   .input {
-    @apply w-full px-4 py-2 border border-gray-600 bg-gray-800 text-gray-100 placeholder-gray-500 rounded-lg focus:ring-2 focus:ring-court-500 focus:border-transparent outline-none transition-all;
+    @apply w-full px-4 py-2 border border-gray-600 bg-gray-800 text-gray-100 placeholder-gray-500 rounded-lg focus:ring-2 focus:ring-court-500 focus:border-transparent outline-none transition-all font-retro text-[9px];
   }
 
   /* Badge styles */

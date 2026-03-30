@@ -748,9 +748,9 @@ export default function AdminPage() {
                           {isEditing ? (
                             <div className="flex gap-1">
                               <input type="date" value={editGameForm.game_date || ""} onChange={(e) => setEditGameForm({ ...editGameForm, game_date: e.target.value })}
-                                className="w-32 text-xs border rounded px-1 py-1 bg-gray-700 text-gray-200 border-gray-600" />
+                                className="w-32 font-retro text-[8px] border rounded px-1 py-1 bg-gray-700 text-gray-200 border-gray-600" />
                               <input type="time" value={editGameForm.game_time || ""} onChange={(e) => setEditGameForm({ ...editGameForm, game_time: e.target.value })}
-                                className="w-24 text-xs border rounded px-1 py-1 bg-gray-700 text-gray-200 border-gray-600" />
+                                className="w-24 font-retro text-[8px] border rounded px-1 py-1 bg-gray-700 text-gray-200 border-gray-600" />
                             </div>
                           ) : (
                             <span className="text-gray-300">
@@ -1056,7 +1056,7 @@ export default function AdminPage() {
                         </td>
                         <td className="py-2 px-2">
                           <select value={player.player_status} onChange={(e) => handleUpdatePlayer(player.id, "player_status", e.target.value)}
-                            className="text-xs border rounded px-1 py-1 bg-gray-700 text-gray-200 border-gray-600">
+                            className="font-retro text-[8px] border rounded px-1 py-1 bg-gray-700 text-gray-200 border-gray-600">
                             <option value="regular">Regular</option>
                             <option value="dropin">Drop-in</option>
                             <option value="inactive">Inactive</option>
@@ -1148,7 +1148,7 @@ export default function AdminPage() {
                         {isSuperAdmin && (
                           <td className="py-2 px-2">
                             <select value={player.role} onChange={(e) => handleUpdatePlayer(player.id, "role", e.target.value)}
-                              className="text-xs border rounded px-1 py-1 bg-gray-700 text-gray-200 border-gray-600">
+                              className="font-retro text-[8px] border rounded px-1 py-1 bg-gray-700 text-gray-200 border-gray-600">
                               <option value="player">Player</option>
                               <option value="admin">Admin</option>
                               <option value="super_admin">Super Admin</option>

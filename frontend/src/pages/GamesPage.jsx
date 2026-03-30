@@ -117,7 +117,7 @@ export default function GamesPage() {
           <select
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            className="input w-auto"
+            className="input w-auto font-retro text-[9px]"
           >
             <option value="">All Games</option>
             {Object.entries(STATUS_LABELS).map(([key, label]) => (

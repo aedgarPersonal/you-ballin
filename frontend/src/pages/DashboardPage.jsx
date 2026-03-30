@@ -442,7 +442,7 @@ function VoteDropdown({ label, emoji, voteType, players, currentVoteId, onVote }
       <select
         value={currentVoteId || ""}
         onChange={(e) => onVote(voteType, e.target.value)}
-        className="w-full text-sm border border-gray-600 rounded-lg px-3 py-2 bg-gray-800 text-gray-100 focus:border-court-500 focus:outline-none"
+        className="w-full font-retro text-[9px] border border-gray-600 rounded-lg px-3 py-2 bg-gray-800 text-gray-100 focus:border-court-500 focus:outline-none"
       >
         <option value="">Select player...</option>
         {players.map((p) => (

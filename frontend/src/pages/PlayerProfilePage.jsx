@@ -291,7 +291,7 @@ export default function PlayerProfilePage() {
                             toast.error("Update failed");
                           }
                         }}
-                        className="text-[10px] font-semibold border border-gray-700 rounded px-1.5 py-0.5 bg-gray-800 text-gray-200"
+                        className="font-retro text-[8px] border border-gray-700 rounded px-1.5 py-0.5 bg-gray-800 text-gray-200"
                       >
                         <option value="regular">Regular</option>
                         <option value="dropin">Drop-in</option>

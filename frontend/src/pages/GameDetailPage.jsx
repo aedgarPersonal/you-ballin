@@ -289,7 +289,7 @@ export default function GameDetailPage() {
                   toast.error(err.response?.data?.detail || "Failed to change status");
                 }
               }}
-              className="text-sm font-semibold border rounded-lg px-2 py-1 bg-gray-700 text-gray-200 border-gray-600 cursor-pointer"
+              className="font-retro text-[8px] border rounded-lg px-2 py-1 bg-gray-700 text-gray-200 border-gray-600 cursor-pointer"
             >
               {["scheduled", "invites_sent", "dropin_open", "teams_set", "completed", "cancelled", "skipped"].map((s) => (
                 <option key={s} value={s}>{s.replace("_", " ")}</option>

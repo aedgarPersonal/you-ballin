@@ -229,7 +229,7 @@ export default function PlayersPage() {
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
-            className="text-sm border border-gray-600 bg-gray-700 text-gray-200 rounded-lg px-3 py-2 shrink-0"
+            className="font-retro text-[9px] border border-gray-600 bg-gray-700 text-gray-200 rounded-lg px-3 py-2 shrink-0"
           >
             {(isAdmin ? ADMIN_SORT_OPTIONS : SORT_OPTIONS).map((opt) => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
