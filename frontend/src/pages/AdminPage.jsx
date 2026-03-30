@@ -1871,6 +1871,7 @@ function InviteCodesPanel({ runId }) {
   const [expireDays, setExpireDays] = useState(1);
   const [maxUses, setMaxUses] = useState(1);
   const [qrCode, setQrCode] = useState(null);
+  const [showExpired, setShowExpired] = useState(false);
 
   const fetchCodes = async () => {
     if (!runId) return;
@@ -1939,7 +1940,6 @@ function InviteCodesPanel({ runId }) {
     const isMaxed = c.max_uses && c.use_count >= c.max_uses;
     return !c.is_active || isExpired || isMaxed;
   });
-  const [showExpired, setShowExpired] = useState(false);
 
   return (
     <div className="card">
@@ -1990,11 +1990,11 @@ function InviteCodesPanel({ runId }) {
                   <div className="flex gap-1.5 shrink-0">
                     <button onClick={() => copyLink(c.code)}
                       className="text-[10px] bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 px-2 py-1 rounded hover:bg-cyan-200">
-                      Copy
+                      Copy Link
                     </button>
                     <button onClick={() => setQrCode(c.code)}
                       className="text-[10px] bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-2 py-1 rounded hover:bg-purple-200">
-                      QR
+                      QR Code
                     </button>
                     <button onClick={() => handleDelete(c.id)}
                       className="text-[10px] bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 px-2 py-1 rounded hover:bg-red-200">
