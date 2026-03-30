@@ -84,7 +84,7 @@ export default function StatsPage() {
   if (!currentRun) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-8 text-center">
-        <p className="text-gray-500 dark:text-gray-400">Please select a Run from the dropdown above.</p>
+        <p className="text-gray-400">Please select a Run from the dropdown above.</p>
       </div>
     );
   }
@@ -92,7 +92,7 @@ export default function StatsPage() {
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <p className="text-gray-500 dark:text-gray-400">Loading stats...</p>
+        <p className="text-gray-400">Loading stats...</p>
       </div>
     );
   }
@@ -100,7 +100,7 @@ export default function StatsPage() {
   if (!stats) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-8 text-center">
-        <p className="text-gray-500 dark:text-gray-400">Unable to load stats.</p>
+        <p className="text-gray-400">Unable to load stats.</p>
       </div>
     );
   }
@@ -123,7 +123,7 @@ export default function StatsPage() {
                 setSelectedPlayerName(p ? p.full_name : null);
                 setLoading(true);
               }}
-              className="text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-lg px-3 py-1.5"
+              className="text-sm border border-gray-300 dark:border-gray-600 bg-gray-700 dark:text-gray-200 rounded-lg px-3 py-1.5"
             >
               <option value="">Myself</option>
               {allPlayers.map((p) => (
@@ -136,64 +136,54 @@ export default function StatsPage() {
 
       {/* Personal Stats Banner */}
       {stats.personal && !selectedPlayerId && (
-        <div className="card mb-6 border-2 border-court-300 dark:border-court-700">
-          <h2 className="text-sm font-semibold text-court-600 uppercase tracking-wide mb-3">Your Stats</h2>
-          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-court-600">
-                {(stats.personal.win_rate * 100).toFixed(0)}%
-              </div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">Win Rate</div>
-              <div className="text-xs text-gray-400 dark:text-gray-500">Rank #{stats.personal.win_rate_rank}</div>
+        <div className="rounded-xl bg-gradient-to-b from-court-400 to-court-600 p-[2px] mb-6">
+          <div className="rounded-[10px] bg-gray-950 overflow-hidden">
+            <div className="bg-gradient-to-r from-court-700 to-court-600 px-4 py-1.5">
+              <span className="font-retro text-[7px] text-white/70 tracking-widest">YOUR STATS</span>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                {stats.personal.games_won}-{stats.personal.games_played - stats.personal.games_won}
-              </div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">W-L Record</div>
-            </div>
-            {/* Streak */}
-            <div className="text-center">
-              {myForm?.current_streak?.count > 0 ? (
-                <>
-                  <div className={`text-2xl font-bold ${myForm.current_streak.type === "win" ? "text-green-500" : "text-red-500"}`}>
-                    {myForm.current_streak.type === "win" ? "🔥" : "❄️"} {myForm.current_streak.count}{myForm.current_streak.type === "win" ? "W" : "L"}
-                  </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">Streak</div>
-                </>
-              ) : (
-                <>
-                  <div className="text-2xl font-bold text-gray-400">—</div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">Streak</div>
-                </>
-              )}
-            </div>
-            {/* Last 5 */}
-            {myForm?.last_5 && (
+            <div className="p-4 grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-4">
               <div className="text-center">
-                <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                  {myForm.last_5.wins}W-{myForm.last_5.losses}L
+                <div className="font-retro text-lg text-court-400">{(stats.personal.win_rate * 100).toFixed(0)}%</div>
+                <div className="text-[8px] text-gray-500 uppercase tracking-wider mt-0.5">Win Rate</div>
+                <div className="text-[8px] text-gray-600">#{stats.personal.win_rate_rank}</div>
+              </div>
+              <div className="text-center">
+                <div className="font-retro text-lg text-white">{stats.personal.games_won}-{stats.personal.games_played - stats.personal.games_won}</div>
+                <div className="text-[8px] text-gray-500 uppercase tracking-wider mt-0.5">W-L</div>
+              </div>
+              <div className="text-center">
+                {myForm?.current_streak?.count > 0 ? (
+                  <>
+                    <div className={`font-retro text-lg ${myForm.current_streak.type === "win" ? "text-green-400" : "text-red-400"}`}>
+                      {myForm.current_streak.count}{myForm.current_streak.type === "win" ? "W" : "L"}
+                    </div>
+                    <div className="text-[8px] text-gray-500 uppercase tracking-wider mt-0.5">Streak</div>
+                  </>
+                ) : (
+                  <>
+                    <div className="font-retro text-lg text-gray-600">—</div>
+                    <div className="text-[8px] text-gray-500 uppercase tracking-wider mt-0.5">Streak</div>
+                  </>
+                )}
+              </div>
+              {myForm?.last_5 && (
+                <div className="text-center">
+                  <div className="font-retro text-lg text-white">{myForm.last_5.wins}W-{myForm.last_5.losses}L</div>
+                  <div className="text-[8px] text-gray-500 uppercase tracking-wider mt-0.5">Last 5</div>
                 </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">Last 5</div>
+              )}
+              <div className="text-center">
+                <div className="font-retro text-lg text-yellow-400">{stats.personal.mvp_count}</div>
+                <div className="text-[8px] text-gray-500 uppercase tracking-wider mt-0.5">MVP</div>
               </div>
-            )}
-            <div className="text-center">
-              <div className="text-2xl font-bold text-yellow-600">
-                {stats.personal.mvp_count}
+              <div className="text-center">
+                <div className="font-retro text-lg text-blue-400">{stats.personal.xfactor_count}</div>
+                <div className="text-[8px] text-gray-500 uppercase tracking-wider mt-0.5">XF</div>
               </div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">MVPs</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">
-                {stats.personal.xfactor_count}
+              <div className="text-center">
+                <div className="font-retro text-lg text-purple-400">{stats.personal.shaqtin_count}</div>
+                <div className="text-[8px] text-gray-500 uppercase tracking-wider mt-0.5">Shaqtin</div>
               </div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">X Factors</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-purple-600">
-                {stats.personal.shaqtin_count}
-              </div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">Shaqtin'</div>
             </div>
           </div>
         </div>
@@ -229,11 +219,11 @@ export default function StatsPage() {
                     {m.avatar_url ? (
                       <AvatarBadge avatarId={m.avatar_url} size="sm" />
                     ) : (
-                      <div className="w-7 h-7 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600 font-bold text-xs">
+                      <div className="w-7 h-7 rounded-full bg-green-900/30 flex items-center justify-center text-green-600 font-bold text-xs">
                         {m.full_name.charAt(0)}
                       </div>
                     )}
-                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate flex-1">
+                    <span className="text-sm font-medium text-gray-100 truncate flex-1">
                       {m.full_name}
                     </span>
                     <span className="text-sm font-bold text-green-600">{(m.win_rate * 100).toFixed(0)}%</span>
@@ -267,11 +257,11 @@ export default function StatsPage() {
                     {m.avatar_url ? (
                       <AvatarBadge avatarId={m.avatar_url} size="sm" />
                     ) : (
-                      <div className="w-7 h-7 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600 font-bold text-xs">
+                      <div className="w-7 h-7 rounded-full bg-red-900/30 flex items-center justify-center text-red-600 font-bold text-xs">
                         {m.full_name.charAt(0)}
                       </div>
                     )}
-                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate flex-1">
+                    <span className="text-sm font-medium text-gray-100 truncate flex-1">
                       {m.full_name}
                     </span>
                     <span className="text-sm font-bold text-red-600">{(m.win_rate * 100).toFixed(0)}%</span>
@@ -306,7 +296,7 @@ export default function StatsPage() {
             )}
             {playerForm.last_5 && (
               <div className="text-center">
-                <div className="text-sm font-bold text-gray-800 dark:text-gray-200">
+                <div className="text-sm font-bold text-gray-200">
                   {playerForm.last_5.wins}W-{playerForm.last_5.losses}L
                   <span className="text-xs text-gray-400 ml-1">({Math.round(playerForm.last_5.win_rate * 100)}%)</span>
                 </div>
@@ -315,7 +305,7 @@ export default function StatsPage() {
             )}
             {playerForm.last_10 && (
               <div className="text-center">
-                <div className="text-sm font-bold text-gray-800 dark:text-gray-200">
+                <div className="text-sm font-bold text-gray-200">
                   {playerForm.last_10.wins}W-{playerForm.last_10.losses}L
                   <span className="text-xs text-gray-400 ml-1">({Math.round(playerForm.last_10.win_rate * 100)}%)</span>
                 </div>
@@ -358,11 +348,11 @@ export default function StatsPage() {
               const shortDate = date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
               return (
                 <Link key={g.game_id} to={`/games/${g.game_id}`}
-                  className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                  className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-800 transition-colors">
                   <span className="text-xs text-gray-400 w-14 shrink-0">{shortDate}</span>
                   <span className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate flex-1">{g.team_name}</span>
                   <span className="text-xs text-gray-400 shrink-0">vs</span>
-                  <span className="text-xs text-gray-500 dark:text-gray-400 truncate flex-1">{g.opponent_team}</span>
+                  <span className="text-xs text-gray-400 truncate flex-1">{g.opponent_team}</span>
                   <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${
                     g.won ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
                       : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
@@ -381,23 +371,23 @@ export default function StatsPage() {
       )}
 
       {/* Run Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="card text-center">
-          <div className="text-3xl font-bold text-court-600">{stats.overview.total_games}</div>
-          <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">Games Played</div>
-        </div>
-        <div className="card text-center">
-          <div className="text-3xl font-bold text-court-600">{stats.overview.total_players}</div>
-          <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">Active Players</div>
-        </div>
-        <div className="card text-center">
-          <div className="text-3xl font-bold text-court-600">{stats.overview.avg_roster_size}</div>
-          <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">Avg Roster Size</div>
-        </div>
+      <div className="grid grid-cols-3 gap-3 mb-8">
+        {[
+          { val: stats.overview.total_games, label: "Games", color: "from-court-400 to-court-600" },
+          { val: stats.overview.total_players, label: "Players", color: "from-arcade-400 to-arcade-600" },
+          { val: stats.overview.avg_roster_size, label: "Avg Roster", color: "from-purple-400 to-purple-600" },
+        ].map((s) => (
+          <div key={s.label} className={`rounded-xl bg-gradient-to-b ${s.color} p-[1.5px]`}>
+            <div className="rounded-[10px] bg-gray-950 py-4 text-center">
+              <div className="font-retro text-lg text-white">{s.val}</div>
+              <div className="text-[7px] text-gray-500 uppercase tracking-wider mt-0.5">{s.label}</div>
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Leaderboards */}
-      <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Leaderboards</h2>
+      <h2 className="font-retro text-[9px] text-gray-400 uppercase tracking-widest mb-4">Leaderboards</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         <LeaderboardCard
           title="Win Rate"
@@ -432,7 +422,7 @@ export default function StatsPage() {
       {/* Recent Games */}
       {stats.recent_games.length > 0 && (
         <>
-          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Recent Games</h2>
+          <h2 className="font-retro text-[9px] text-gray-400 uppercase tracking-widest mb-4">Recent Games</h2>
           <div className="space-y-3">
             {stats.recent_games.map((game) => (
               <Link
@@ -442,8 +432,8 @@ export default function StatsPage() {
               >
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                   <div>
-                    <h3 className="font-semibold text-gray-900 dark:text-gray-100">{game.title}</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                    <h3 className="font-semibold text-gray-100">{game.title}</h3>
+                    <p className="text-sm text-gray-400">
                       {new Date(game.game_date).toLocaleDateString("en-US", {
                         weekday: "short",
                         month: "short",
@@ -469,10 +459,10 @@ export default function StatsPage() {
                           const isMyTeam = ts.team_name === game.my_team;
                           const teamColor = isMyTeam
                             ? (game.my_won ? "text-green-600 dark:text-green-400 font-bold" : "text-red-600 dark:text-red-400 font-bold")
-                            : "text-gray-600 dark:text-gray-400";
+                            : "text-gray-600 text-gray-400";
                           return (
                           <span key={idx} className="flex items-center gap-1">
-                            {idx > 0 && <span className="text-gray-400 dark:text-gray-500 font-bold">-</span>}
+                            {idx > 0 && <span className="text-gray-500 font-bold">-</span>}
                             <span className={`text-sm ${teamColor}`}>{ts.team_name}</span>
                             <span className="text-lg font-black text-court-600">{ts.wins}</span>
                           </span>
@@ -504,7 +494,7 @@ export default function StatsPage() {
       {/* Season History */}
       {seasons.length > 0 && (
         <>
-          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 mt-8">Past Seasons</h2>
+          <h2 className="font-retro text-[9px] text-gray-400 uppercase tracking-widest mb-4 mt-8">Past Seasons</h2>
           <div className="space-y-3">
             {seasons.map((season) => (
               <button
@@ -523,8 +513,8 @@ export default function StatsPage() {
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="font-semibold text-gray-900 dark:text-gray-100">{season.label}</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                    <h3 className="font-semibold text-gray-100">{season.label}</h3>
+                    <p className="text-sm text-gray-400">
                       {season.total_games} games &middot; {season.total_players} players
                     </p>
                   </div>
@@ -532,7 +522,7 @@ export default function StatsPage() {
                 </div>
 
                 {selectedSeason?.id === season.id && (
-                  <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+                  <div className="mt-4 pt-4 border-t border-gray-700">
                     <div className="space-y-2">
                       {selectedSeason.players.map((p, idx) => (
                         <Link
@@ -545,7 +535,7 @@ export default function StatsPage() {
                             idx === 0 ? "bg-yellow-400 text-yellow-900" :
                             idx === 1 ? "bg-gray-300 text-gray-700" :
                             idx === 2 ? "bg-orange-300 text-orange-800" :
-                            "bg-gray-100 dark:bg-gray-700 text-gray-500"
+                            "bg-gray-100 bg-gray-700 text-gray-500"
                           }`}>{idx + 1}</div>
                           {p.avatar_url && <AvatarBadge avatarId={p.avatar_url} size="sm" />}
                           <span className="text-sm font-medium flex-1 truncate">{p.full_name}</span>
@@ -570,17 +560,18 @@ export default function StatsPage() {
 function LeaderboardCard({ title, entries, formatValue, emoji }) {
   const RANK_COLORS = [
     "bg-yellow-400 text-yellow-900",
-    "bg-gray-300 text-gray-700 dark:bg-gray-500 dark:text-gray-100",
-    "bg-orange-300 text-orange-800 dark:bg-orange-700 dark:text-orange-100",
+    "bg-gray-400 text-gray-800",
+    "bg-orange-300 text-orange-800",
   ];
 
   return (
-    <div className="card">
-      <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+    <div className="rounded-xl bg-gradient-to-b from-gray-600 to-gray-700 p-[1.5px]">
+      <div className="rounded-[10px] bg-gray-950 p-5">
+      <h3 className="font-retro text-[7px] text-gray-400 uppercase tracking-widest mb-3">
         {emoji && <span className="mr-1">{emoji}</span>}{title}
       </h3>
       {entries.length === 0 ? (
-        <p className="text-sm text-gray-400 dark:text-gray-500 italic">Not enough data yet</p>
+        <p className="text-sm text-gray-500 italic">Not enough data yet</p>
       ) : (
         <div className="space-y-2">
           {entries.map((entry) => (
@@ -591,7 +582,7 @@ function LeaderboardCard({ title, entries, formatValue, emoji }) {
             >
               <div
                 className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black shrink-0 ${
-                  RANK_COLORS[entry.rank - 1] || "bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400"
+                  RANK_COLORS[entry.rank - 1] || "bg-gray-100 bg-gray-700 text-gray-400"
                 }`}
               >
                 {entry.rank}
@@ -599,18 +590,19 @@ function LeaderboardCard({ title, entries, formatValue, emoji }) {
               {entry.avatar_url ? (
                 <AvatarBadge avatarId={entry.avatar_url} size="sm" />
               ) : (
-                <div className="w-7 h-7 rounded-full bg-court-100 flex items-center justify-center text-court-600 font-bold text-xs">
+                <div className="w-7 h-7 rounded-full bg-gray-700 flex items-center justify-center text-gray-300 font-bold text-xs">
                   {entry.full_name.charAt(0)}
                 </div>
               )}
-              <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate flex-1">
+              <span className="text-sm font-medium text-gray-100 truncate flex-1">
                 {entry.full_name}
               </span>
-              <span className="text-sm font-bold text-court-600">{formatValue(entry.value)}</span>
+              <span className="text-sm font-bold text-court-400">{formatValue(entry.value)}</span>
             </Link>
           ))}
         </div>
       )}
+      </div>
     </div>
   );
 }
