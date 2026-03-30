@@ -173,44 +173,130 @@ export default function GamesPage() {
           <p className="text-gray-500 dark:text-gray-400">No games found.</p>
         </div>
       ) : (
-        <div className="space-y-4">
-          {games.map((game) => (
-            <Link key={game.id} to={`/games/${game.id}`} className={`card block hover:shadow-md transition-shadow ${game.status === "cancelled" ? "opacity-60 border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-900/10" : ""}`}>
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                <div>
-                  <h3 className={`text-lg font-semibold ${game.status === "cancelled" ? "line-through text-red-600 dark:text-red-400" : "text-gray-900 dark:text-gray-100"}`}>{game.title}</h3>
-                  <p className="text-gray-600 dark:text-gray-400">
-                    {new Date(game.game_date).toLocaleDateString("en-US", {
-                      weekday: "long",
-                      month: "long",
-                      day: "numeric",
-                      hour: "numeric",
-                      minute: "2-digit",
-                    })}
-                  </p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">{game.location}</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    {game.accepted_count}/{game.roster_size} players
-                  </span>
-                  <span className={`badge ${STATUS_COLORS[game.status]}`}>
-                    {STATUS_LABELS[game.status]}
-                  </span>
-                </div>
-              </div>
-              {/* Vegas Odds Line */}
-              {game.odds_line && (
-                <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
-                  <span className="text-xs font-mono text-gray-500 dark:text-gray-400">
-                    📊 {game.odds_line}
-                  </span>
-                </div>
-              )}
-            </Link>
-          ))}
-        </div>
+        <GamesList games={games} />
       )}
     </div>
+  );
+}
+
+function GamesList({ games }) {
+  const [showPast, setShowPast] = useState(false);
+  const now = new Date();
+
+  const activeStatuses = ["scheduled", "invites_sent", "dropin_open", "teams_set"];
+  const pastStatuses = ["completed", "cancelled", "skipped"];
+
+  // Split into active (upcoming/in-progress) and past
+  const activeGames = games.filter((g) => activeStatuses.includes(g.status));
+  const pastGames = games.filter((g) => pastStatuses.includes(g.status));
+
+  // The priority game: the next upcoming one (soonest date in active games)
+  const sortedActive = [...activeGames].sort(
+    (a, b) => new Date(a.game_date) - new Date(b.game_date)
+  );
+  const priorityGame = sortedActive[0] || null;
+  const otherActive = sortedActive.slice(1);
+
+  return (
+    <div className="space-y-6">
+      {/* Priority game — large, highlighted */}
+      {priorityGame && (
+        <div>
+          <h2 className="text-xs font-bold text-court-500 uppercase tracking-wider mb-2">Next Up</h2>
+          <GameCard game={priorityGame} priority />
+        </div>
+      )}
+
+      {/* Other active games */}
+      {otherActive.length > 0 && (
+        <div>
+          <h2 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Upcoming</h2>
+          <div className="space-y-3">
+            {otherActive.map((g) => <GameCard key={g.id} game={g} />)}
+          </div>
+        </div>
+      )}
+
+      {/* Past games — collapsed */}
+      {pastGames.length > 0 && (
+        <div>
+          <button onClick={() => setShowPast(!showPast)}
+            className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:text-gray-700 dark:hover:text-gray-300">
+            {showPast ? "Hide" : "Show"} Past Games ({pastGames.length})
+          </button>
+          {showPast && (
+            <div className="space-y-3 mt-2">
+              {pastGames.map((g) => <GameCard key={g.id} game={g} past />)}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* No active games message */}
+      {!priorityGame && pastGames.length > 0 && (
+        <p className="text-sm text-gray-500 dark:text-gray-400">No upcoming games scheduled.</p>
+      )}
+    </div>
+  );
+}
+
+function GameCard({ game, priority = false, past = false }) {
+  const isCancelled = game.status === "cancelled";
+  return (
+    <Link
+      to={`/games/${game.id}`}
+      className={`block rounded-xl overflow-hidden transition-shadow hover:shadow-lg ${
+        priority
+          ? "bg-gradient-to-b from-amber-300 via-yellow-400 to-amber-500 p-[2px]"
+          : ""
+      }`}
+    >
+      <div className={`rounded-${priority ? "[10px]" : "xl"} overflow-hidden ${
+        past ? "opacity-60" : ""
+      } ${isCancelled
+        ? "bg-red-50 dark:bg-red-900/10 border border-red-300 dark:border-red-800"
+        : priority
+          ? "bg-gray-950"
+          : "card"
+      }`}>
+        <div className={`p-4 ${priority ? "px-5 py-4" : ""}`}>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+            <div>
+              <h3 className={`font-semibold ${
+                isCancelled
+                  ? "line-through text-red-600 dark:text-red-400"
+                  : priority
+                    ? "font-retro text-[11px] text-white"
+                    : "text-gray-900 dark:text-gray-100"
+              }`}>
+                {priority ? game.title.toUpperCase() : game.title}
+              </h3>
+              <p className={`text-sm ${priority ? "text-gray-400" : "text-gray-600 dark:text-gray-400"}`}>
+                {new Date(game.game_date).toLocaleDateString("en-US", {
+                  weekday: "long", month: "long", day: "numeric",
+                  hour: "numeric", minute: "2-digit",
+                })}
+              </p>
+              <p className={`text-xs ${priority ? "text-gray-500" : "text-gray-500 dark:text-gray-400"}`}>{game.location}</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className={`text-sm ${priority ? "text-gray-400" : "text-gray-600 dark:text-gray-400"}`}>
+                {game.accepted_count}/{game.roster_size}
+              </span>
+              <span className={`badge ${STATUS_COLORS[game.status]}`}>
+                {STATUS_LABELS[game.status]}
+              </span>
+            </div>
+          </div>
+          {game.odds_line && (
+            <div className={`mt-2 pt-2 border-t ${priority ? "border-gray-700/50" : "border-gray-100 dark:border-gray-700"}`}>
+              <span className="text-xs font-mono text-gray-500 dark:text-gray-400">
+                {game.odds_line}
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+    </Link>
   );
 }
