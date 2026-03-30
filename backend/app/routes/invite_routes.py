@@ -90,12 +90,17 @@ async def create_invite_code(
     else:
         raise HTTPException(status_code=500, detail="Failed to generate unique code")
 
+    # Strip timezone info if present (DB column is TIMESTAMP WITHOUT TIME ZONE)
+    expires = data.expires_at
+    if expires and expires.tzinfo is not None:
+        expires = expires.replace(tzinfo=None)
+
     invite = InviteCode(
         code=code,
         run_id=run_id,
         created_by_user_id=admin.id,
         max_uses=data.max_uses,
-        expires_at=data.expires_at,
+        expires_at=expires,
     )
     db.add(invite)
     await db.flush()
