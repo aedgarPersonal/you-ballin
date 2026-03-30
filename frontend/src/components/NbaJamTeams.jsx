@@ -16,6 +16,7 @@
 
 import { Link } from "react-router-dom";
 import useAuthStore from "../stores/authStore";
+import useRunStore from "../stores/runStore";
 import { getPlayerById } from "../data/legacyPlayers";
 import { AvatarBadge } from "./AvatarPicker";
 
@@ -83,7 +84,7 @@ const TEAM_COLORS = [
   "#ec4899", // pink
 ];
 
-function JamPlayerCard({ player, isAdmin }) {
+function JamPlayerCard({ player, isAdmin, showRating = true }) {
   const winPct = ((player.win_rate || 0.5) * 100).toFixed(0);
 
   return (
@@ -104,7 +105,7 @@ function JamPlayerCard({ player, isAdmin }) {
                   {player.full_name?.charAt(0) || "?"}
                 </div>
               )}
-              {player.player_rating && (
+              {showRating && player.player_rating && (
                 <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-gradient-to-br from-court-500 to-court-600 border-2 border-gray-950 flex items-center justify-center">
                   <span className="font-retro text-[6px] text-white">{player.player_rating}</span>
                 </div>
@@ -145,6 +146,8 @@ function JamPlayerCard({ player, isAdmin }) {
 export default function NbaJamTeams({ teams, gameResult, onEditTeams, onGenerateTeams, isTeamsSet }) {
   const userRole = useAuthStore((s) => s.user?.role);
   const isAdmin = userRole === "super_admin" || userRole === "admin";
+  const { currentRun, isRunAdmin } = useRunStore();
+  const showRating = isAdmin || isRunAdmin || currentRun?.show_player_rating !== false;
 
   // Group assignments by team identifier and collect team names
   const teamGroups = {};
@@ -233,6 +236,7 @@ export default function NbaJamTeams({ teams, gameResult, onEditTeams, onGenerate
               isAdmin={isAdmin}
               odds={odds ? odds[idx] : null}
               isWinner={teamId === winningTeamId}
+              showRating={showRating}
             />
           ))}
         </div>
@@ -241,7 +245,7 @@ export default function NbaJamTeams({ teams, gameResult, onEditTeams, onGenerate
   );
 }
 
-function JamTeamPanel({ name, color, players, isAdmin, odds, isWinner }) {
+function JamTeamPanel({ name, color, players, isAdmin, odds, isWinner, showRating }) {
   const isFav = odds && odds.winProb > 0.5;
   const isUnderdog = odds && odds.winProb < 0.5;
 
@@ -292,7 +296,7 @@ function JamTeamPanel({ name, color, players, isAdmin, odds, isWinner }) {
       <div className="p-3 bg-gray-900">
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           {players.map((t) => (
-            <JamPlayerCard key={t.id} player={t.user} isAdmin={isAdmin} />
+            <JamPlayerCard key={t.id} player={t.user} isAdmin={isAdmin} showRating={showRating} />
           ))}
         </div>
       </div>

@@ -69,6 +69,7 @@ export default function PlayersPage() {
   const runId = currentRun?.id;
   const currentUser = useAuthStore((s) => s.user);
   const isAdmin = currentUser?.role === "super_admin" || isRunAdmin;
+  const showRating = isAdmin || currentRun?.show_player_rating !== false;
   const [players, setPlayers] = useState([]);
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("win_rate");
@@ -231,7 +232,9 @@ export default function PlayersPage() {
             onChange={(e) => setSortBy(e.target.value)}
             className="font-retro text-[9px] border border-gray-600 bg-gray-700 text-gray-200 rounded-lg px-3 py-2 shrink-0"
           >
-            {(isAdmin ? ADMIN_SORT_OPTIONS : SORT_OPTIONS).map((opt) => (
+            {(isAdmin ? ADMIN_SORT_OPTIONS : SORT_OPTIONS)
+              .filter((opt) => showRating || opt.value !== "player_rating")
+              .map((opt) => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
           </select>
@@ -572,7 +575,7 @@ export default function PlayersPage() {
                           </div>
                         )}
                         {/* Rating badge */}
-                        {player.player_rating && (
+                        {showRating && player.player_rating && (
                           <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-gradient-to-br from-court-500 to-court-600 border-2 border-gray-950 flex items-center justify-center shadow-lg">
                             <span className="font-retro text-[8px] text-white">{player.player_rating}</span>
                           </div>

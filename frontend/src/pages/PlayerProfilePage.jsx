@@ -52,6 +52,8 @@ export default function PlayerProfilePage() {
     ...(isAdmin ? [{ id: "ratings", label: "Ratings" }] : []),
   ];
 
+  const showRating = isAdmin || currentRun?.show_player_rating !== false;
+
   // Fast initial load — just player + form (for the card)
   useEffect(() => {
     setLoading(true);
@@ -165,9 +167,11 @@ export default function PlayerProfilePage() {
                       </button>
                     </div>
                     {/* Rating badge */}
+                    {showRating && (
                     <div className="absolute -bottom-2 -right-2 w-10 h-10 rounded-full bg-gradient-to-br from-court-500 to-court-600 border-2 border-gray-950 flex items-center justify-center shadow-lg">
                       <span className="font-retro text-[10px] text-white">{player?.player_rating || 50}</span>
                     </div>
+                    )}
                   </div>
 
                   {legacy && (
