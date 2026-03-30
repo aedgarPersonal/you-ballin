@@ -1960,15 +1960,15 @@ function InviteCodesPanel({ runId }) {
       <div className="mb-4 p-4 bg-gray-950 rounded-lg">
         <div className="flex items-end gap-3 flex-wrap">
           <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1">Uses</label>
+            <label className="block font-retro text-[7px] text-gray-400 mb-1">USES</label>
             <input type="number" min="1" max="50" value={maxUses}
               onChange={(e) => setMaxUses(parseInt(e.target.value) || 1)}
-              className="input text-sm w-20" />
+              className="input !text-[11px] w-16" />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1">Expires in</label>
+            <label className="block font-retro text-[7px] text-gray-400 mb-1">EXPIRES IN</label>
             <select value={expireDays} onChange={(e) => setExpireDays(parseInt(e.target.value))}
-              className="input text-sm w-28">
+              className="input !text-[11px] w-32">
               {[1, 2, 3, 4, 5, 6, 7].map((d) => (
                 <option key={d} value={d}>{d} day{d > 1 ? "s" : ""}</option>
               ))}
