@@ -181,8 +181,12 @@ export default function GameDetailPage() {
       if (editForm.location !== game.location) payload.location = editForm.location;
       if (editForm.notes !== (game.notes || "")) payload.notes = editForm.notes || null;
       if (editForm.game_date) {
-        const newDate = new Date(editForm.game_date).toISOString();
-        if (newDate !== game.game_date) payload.game_date = newDate;
+        // Compare without seconds/ms to avoid spurious changes from format differences
+        const editMs = new Date(editForm.game_date).getTime();
+        const origMs = new Date(game.game_date).getTime();
+        if (Math.abs(editMs - origMs) > 60000) {
+          payload.game_date = new Date(editForm.game_date).toISOString();
+        }
       }
       if (Object.keys(payload).length === 0) {
         setEditing(false);

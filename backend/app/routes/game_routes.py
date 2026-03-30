@@ -205,7 +205,11 @@ async def create_game(
 
     Notifies all regular and drop-in members about the new game.
     """
-    game = Game(run_id=run_id, **data.model_dump())
+    # Strip timezone info from game_date if present
+    game_data = data.model_dump()
+    if game_data.get("game_date") and game_data["game_date"].tzinfo is not None:
+        game_data["game_date"] = game_data["game_date"].replace(tzinfo=None)
+    game = Game(run_id=run_id, **game_data)
     db.add(game)
     await db.flush()
     await db.refresh(game, ["rsvps", "teams", "result"])
@@ -384,6 +388,10 @@ async def update_game(
 
     update_fields = data.model_dump(exclude_unset=True)
     old_status = game.status
+
+    # Strip timezone info from game_date if present (DB uses TIMESTAMP WITHOUT TIME ZONE)
+    if "game_date" in update_fields and update_fields["game_date"] and update_fields["game_date"].tzinfo is not None:
+        update_fields["game_date"] = update_fields["game_date"].replace(tzinfo=None)
 
     # Track meaningful changes that players should know about
     changes = []
