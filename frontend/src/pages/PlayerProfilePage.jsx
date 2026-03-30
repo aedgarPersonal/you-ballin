@@ -526,21 +526,6 @@ export default function PlayerProfilePage() {
         ) : (
           <>
             {customMetrics.length > 0 ? (
-              <div className="grid gap-4 mb-6 grid-cols-2 md:grid-cols-4">
-                {customMetrics.map((metric) => {
-                  const val = metricValueMap[metric.id];
-                  return (
-                    <StatCard key={metric.id} label={metric.display_name}
-                      value={val != null ? val.toFixed(1) : "N/A"} max={`${metric.max_value || 10}.0`} />
-                  );
-                })}
-              </div>
-            ) : (
-              <p className="text-sm text-gray-400 mb-6">
-                No custom metrics defined for this run. Add metrics in Admin &rarr; Balancer.
-              </p>
-            )}
-            {customMetrics.length > 0 && (
               <div className="card">
                 <h2 className="text-lg font-semibold mb-1">Edit Metrics</h2>
                 <p className="text-sm text-gray-500 mb-4">
@@ -571,6 +556,10 @@ export default function PlayerProfilePage() {
                   })}
                 </div>
               </div>
+            ) : (
+              <p className="text-sm text-gray-400 mb-6">
+                No custom metrics defined for this run. Add metrics in Admin &rarr; Balancer.
+              </p>
             )}
           </>
         )
