@@ -480,7 +480,7 @@ export default function AdminPage() {
   if (!currentRun) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-8 text-center">
-        <p className="text-gray-500 dark:text-gray-400">Please select a Run from the dropdown above.</p>
+        <p className="text-gray-400">Please select a Run from the dropdown above.</p>
       </div>
     );
   }
@@ -495,12 +495,12 @@ export default function AdminPage() {
     teams_set: "Teams Set", completed: "Completed", cancelled: "Cancelled", skipped: "Skipped",
   };
   const STATUS_COLORS = {
-    scheduled: "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300",
-    invites_sent: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
-    dropin_open: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
-    teams_set: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-    completed: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400",
-    cancelled: "bg-red-200 text-red-900 dark:bg-red-900/40 dark:text-red-300 font-bold",
+    scheduled: "bg-gray-100 text-gray-800 bg-gray-700 text-gray-300",
+    invites_sent: "bg-blue-900/30 text-blue-400",
+    dropin_open: "bg-yellow-900/30 text-yellow-400",
+    teams_set: "bg-green-900/30 text-green-400",
+    completed: "bg-purple-900/30 text-purple-400",
+    cancelled: "bg-red-900/40 text-red-300 font-bold",
   };
 
   const tabs = ["registration", "players", "balancer", "settings"];
@@ -509,19 +509,19 @@ export default function AdminPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Admin Panel</h1>
+        <h1 className="font-retro text-sm text-gray-100">ADMIN</h1>
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-gray-200 dark:border-gray-700 mb-6">
+      <div className="flex gap-2 mb-6 overflow-x-auto">
         {tabs.map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`pb-3 px-4 text-sm font-medium border-b-2 transition-colors capitalize ${
+            className={`px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-colors whitespace-nowrap ${
               tab === t
-                ? "border-court-500 text-court-600"
-                : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                ? "bg-court-600 text-white"
+                : "bg-gray-800 text-gray-400 hover:text-gray-200 hover:bg-gray-700"
             }`}
           >
             {tabLabels[t] || t} {t === "pending" && pending.length > 0 && `(${pending.length})`}
@@ -530,16 +530,16 @@ export default function AdminPage() {
       </div>
 
       {loading && tab === "registration" ? (
-        <p className="text-gray-500 dark:text-gray-400">Loading...</p>
+        <p className="text-gray-400">Loading...</p>
       ) : tab === "registration" ? (
         /* ===== Registration: Pending + Invite Codes ===== */
         <div className="space-y-8">
         {/* Pending Registrations */}
         <div>
-          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">Pending Approvals</h2>
+          <h2 className="font-retro text-[9px] text-gray-100 mb-4">Pending Approvals</h2>
         {pending.length === 0 ? (
           <div className="card text-center py-8">
-            <p className="text-gray-500 dark:text-gray-400">No pending registrations.</p>
+            <p className="text-gray-400">No pending registrations.</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -554,8 +554,8 @@ export default function AdminPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="font-semibold">{pUser.full_name}</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{pUser.email}</p>
-                    <p className="text-xs text-gray-400 dark:text-gray-500">
+                    <p className="text-sm text-gray-400">{pUser.email}</p>
+                    <p className="text-xs text-gray-500">
                       Registered {new Date(pUser.created_at).toLocaleDateString()}
                     </p>
                   </div>
@@ -587,8 +587,8 @@ export default function AdminPage() {
                   </div>
                 </div>
                 {isExpanded && (
-                  <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Optional — set player metrics before approving (defaults: 5.0, scale 1-10)</p>
+                  <div className="mt-3 pt-3 border-t border-gray-700">
+                    <p className="text-xs text-gray-400 mb-2">Optional — set player metrics before approving (defaults: 5.0, scale 1-10)</p>
                     <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                       <div>
                         <label className="block text-[10px] text-gray-400 mb-0.5">Height (ft)</label>
@@ -601,7 +601,7 @@ export default function AdminPage() {
                               setM("heightFt", e.target.value);
                               setM("height_inches", ft * 12 + inches);
                             }}
-                            className="w-10 text-xs text-center border rounded px-1 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600" />
+                            className="w-10 text-xs text-center border rounded px-1 py-1 bg-gray-700 text-gray-200 border-gray-600" />
                           <span className="text-gray-400 text-xs">'</span>
                           <input type="number" min="0" max="11" placeholder="10"
                             value={m.heightIn || ""}
@@ -611,7 +611,7 @@ export default function AdminPage() {
                               setM("heightIn", e.target.value);
                               setM("height_inches", ft * 12 + inches);
                             }}
-                            className="w-10 text-xs text-center border rounded px-1 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600" />
+                            className="w-10 text-xs text-center border rounded px-1 py-1 bg-gray-700 text-gray-200 border-gray-600" />
                           <span className="text-gray-400 text-xs">"</span>
                         </div>
                       </div>
@@ -619,7 +619,7 @@ export default function AdminPage() {
                         <label className="block text-[10px] text-gray-400 mb-0.5">Age</label>
                         <input type="number" min="16" max="70" placeholder="30"
                           value={m.age || ""} onChange={(e) => setM("age", e.target.value)}
-                          className="w-full text-xs text-center border rounded px-1 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600" />
+                          className="w-full text-xs text-center border rounded px-1 py-1 bg-gray-700 text-gray-200 border-gray-600" />
                       </div>
                       {customMetrics.map((metric) => (
                         <div key={metric.id}>
@@ -628,7 +628,7 @@ export default function AdminPage() {
                             placeholder={String(metric.default_value || 5)}
                             value={m[`metric_${metric.id}`] || ""}
                             onChange={(e) => setM(`metric_${metric.id}`, e.target.value)}
-                            className="w-full text-xs text-center border rounded px-1 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600" />
+                            className="w-full text-xs text-center border rounded px-1 py-1 bg-gray-700 text-gray-200 border-gray-600" />
                         </div>
                       ))}
                     </div>
@@ -657,35 +657,35 @@ export default function AdminPage() {
           </div>
 
           {showCreateGame && (
-            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
-              <p className="text-sm text-amber-800 dark:text-amber-300 mb-3">
+            <div className="bg-amber-900/20 border border-amber-800 rounded-lg p-4">
+              <p className="text-sm text-amber-300 mb-3">
                 This creates a game outside the regular schedule. All regular and drop-in members will be notified.
               </p>
               <form onSubmit={handleCreateGame} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Title *</label>
+                  <label className="block text-xs font-medium text-gray-300 mb-1">Title *</label>
                   <input type="text" required value={newGame.title} onChange={(e) => setNewGame({ ...newGame, title: e.target.value })}
-                    placeholder="e.g. Special Pickup - Apr 5" className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-md px-3 py-2 text-sm" />
+                    placeholder="e.g. Special Pickup - Apr 5" className="w-full border border-gray-300 border-gray-600 bg-gray-700 text-gray-200 rounded-md px-3 py-2 text-sm" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Date *</label>
+                  <label className="block text-xs font-medium text-gray-300 mb-1">Date *</label>
                   <input type="date" required value={newGame.game_date} onChange={(e) => setNewGame({ ...newGame, game_date: e.target.value })}
-                    className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-md px-3 py-2 text-sm" />
+                    className="w-full border border-gray-300 border-gray-600 bg-gray-700 text-gray-200 rounded-md px-3 py-2 text-sm" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Time</label>
+                  <label className="block text-xs font-medium text-gray-300 mb-1">Time</label>
                   <input type="time" value={newGame.game_time} onChange={(e) => setNewGame({ ...newGame, game_time: e.target.value })}
-                    className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-md px-3 py-2 text-sm" />
+                    className="w-full border border-gray-300 border-gray-600 bg-gray-700 text-gray-200 rounded-md px-3 py-2 text-sm" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Location</label>
+                  <label className="block text-xs font-medium text-gray-300 mb-1">Location</label>
                   <input type="text" value={newGame.location} onChange={(e) => setNewGame({ ...newGame, location: e.target.value })}
-                    placeholder="TBD" className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-md px-3 py-2 text-sm" />
+                    placeholder="TBD" className="w-full border border-gray-300 border-gray-600 bg-gray-700 text-gray-200 rounded-md px-3 py-2 text-sm" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Teams</label>
+                  <label className="block text-xs font-medium text-gray-300 mb-1">Teams</label>
                   <select value={newGame.num_teams} onChange={(e) => setNewGame({ ...newGame, num_teams: Number(e.target.value) })}
-                    className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-md px-3 py-2 text-sm">
+                    className="w-full border border-gray-300 border-gray-600 bg-gray-700 text-gray-200 rounded-md px-3 py-2 text-sm">
                     {[2, 3, 4, 5, 6, 7, 8].map((n) => <option key={n} value={n}>{n}</option>)}
                   </select>
                 </div>
@@ -698,16 +698,16 @@ export default function AdminPage() {
 
           {/* Games Table */}
           {gamesLoading ? (
-            <p className="text-gray-500 dark:text-gray-400">Loading games...</p>
+            <p className="text-gray-400">Loading games...</p>
           ) : adminGames.length === 0 ? (
             <div className="card text-center py-8">
-              <p className="text-gray-500 dark:text-gray-400">No games yet. Generate season games from Run Settings or create a one-off game above.</p>
+              <p className="text-gray-400">No games yet. Generate season games from Run Settings or create a one-off game above.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead>
-                  <tr className="border-b border-gray-200 dark:border-gray-700">
+                  <tr className="border-b border-gray-700">
                     {[
                       { field: "game_date", label: "Date" },
                       { field: "title", label: "Title" },
@@ -721,12 +721,12 @@ export default function AdminPage() {
                           if (gamesSortField === field) setGamesSortDir(gamesSortDir === "asc" ? "desc" : "asc");
                           else { setGamesSortField(field); setGamesSortDir(field === "game_date" ? "desc" : "asc"); }
                         }}
-                        className="py-3 px-3 text-xs font-medium text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-700 dark:hover:text-gray-200 select-none"
+                        className="py-3 px-3 text-xs font-medium text-gray-400 cursor-pointer hover:text-gray-200 select-none"
                       >
                         {label} {gamesSortField === field ? (gamesSortDir === "asc" ? "▲" : "▼") : ""}
                       </th>
                     ))}
-                    <th className="py-3 px-3 text-xs font-medium text-gray-500 dark:text-gray-400">Actions</th>
+                    <th className="py-3 px-3 text-xs font-medium text-gray-400">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -743,19 +743,19 @@ export default function AdminPage() {
                     const canEdit = !["completed", "cancelled", "skipped"].includes(game.status);
 
                     return (
-                      <tr key={game.id} className={`border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 ${game.status === "cancelled" ? "opacity-60 bg-red-50 dark:bg-red-900/10" : ""}`}>
+                      <tr key={game.id} className={`border-b border-gray-700 hover:bg-gray-800 ${game.status === "cancelled" ? "opacity-60 bg-red-900/10" : ""}`}>
                         <td className="py-2 px-3 text-sm">
                           {isEditing ? (
                             <div className="flex gap-1">
                               <input type="date" value={editGameForm.game_date || ""} onChange={(e) => setEditGameForm({ ...editGameForm, game_date: e.target.value })}
-                                className="w-32 text-xs border rounded px-1 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600" />
+                                className="w-32 text-xs border rounded px-1 py-1 bg-gray-700 text-gray-200 border-gray-600" />
                               <input type="time" value={editGameForm.game_time || ""} onChange={(e) => setEditGameForm({ ...editGameForm, game_time: e.target.value })}
-                                className="w-24 text-xs border rounded px-1 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600" />
+                                className="w-24 text-xs border rounded px-1 py-1 bg-gray-700 text-gray-200 border-gray-600" />
                             </div>
                           ) : (
-                            <span className="text-gray-700 dark:text-gray-300">
+                            <span className="text-gray-300">
                               {d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                              <span className="text-gray-400 dark:text-gray-500 ml-1 text-xs">
+                              <span className="text-gray-500 ml-1 text-xs">
                                 {d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
                               </span>
                             </span>
@@ -764,17 +764,17 @@ export default function AdminPage() {
                         <td className="py-2 px-3 text-sm">
                           {isEditing ? (
                             <input type="text" value={editGameForm.title || ""} onChange={(e) => setEditGameForm({ ...editGameForm, title: e.target.value })}
-                              className="w-full text-sm border rounded px-2 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600" />
+                              className="w-full text-sm border rounded px-2 py-1 bg-gray-700 text-gray-200 border-gray-600" />
                           ) : (
-                            <Link to={`/games/${game.id}`} className={`font-medium hover:text-court-600 ${game.status === "cancelled" ? "line-through text-red-600 dark:text-red-400" : "text-gray-900 dark:text-gray-100"}`}>{game.title}</Link>
+                            <Link to={`/games/${game.id}`} className={`font-medium hover:text-court-600 ${game.status === "cancelled" ? "line-through text-red-400" : "text-gray-100"}`}>{game.title}</Link>
                           )}
                         </td>
                         <td className="py-2 px-3 text-sm">
                           {isEditing ? (
                             <input type="text" value={editGameForm.location || ""} onChange={(e) => setEditGameForm({ ...editGameForm, location: e.target.value })}
-                              className="w-full text-sm border rounded px-2 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600" />
+                              className="w-full text-sm border rounded px-2 py-1 bg-gray-700 text-gray-200 border-gray-600" />
                           ) : (
-                            <span className="text-gray-600 dark:text-gray-400">{game.location}</span>
+                            <span className="text-gray-400">{game.location}</span>
                           )}
                         </td>
                         <td className="py-2 px-3">
@@ -782,7 +782,7 @@ export default function AdminPage() {
                             {STATUS_LABELS[game.status] || game.status}
                           </span>
                         </td>
-                        <td className="py-2 px-3 text-sm text-gray-600 dark:text-gray-400">
+                        <td className="py-2 px-3 text-sm text-gray-400">
                           {game.accepted_count || 0}/{game.roster_size}
                         </td>
                         <td className="py-2 px-3">
@@ -806,7 +806,7 @@ export default function AdminPage() {
                                 }}
                                 className="text-xs bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded"
                               >Save</button>
-                              <button onClick={() => setEditingGameId(null)} className="text-xs bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 px-2 py-1 rounded">Cancel</button>
+                              <button onClick={() => setEditingGameId(null)} className="text-xs bg-gray-600 text-gray-300 px-2 py-1 rounded">Cancel</button>
                             </div>
                           ) : canEdit ? (
                             <div className="flex gap-1">
@@ -865,49 +865,49 @@ export default function AdminPage() {
           {/* Add Player Modal */}
           {showAddPlayer && (
             <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-              <div className="bg-white dark:bg-gray-800 rounded-xl max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto">
-                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 z-10">
-                  <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Add Player</h2>
-                  <button onClick={() => setShowAddPlayer(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-white text-2xl leading-none">&times;</button>
+              <div className="bg-gray-900 rounded-xl max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-700 sticky top-0 bg-gray-900 z-10">
+                  <h2 className="font-retro text-[9px] text-gray-100">Add Player</h2>
+                  <button onClick={() => setShowAddPlayer(false)} className="text-gray-400 hover:text-white text-2xl leading-none">&times;</button>
                 </div>
                 <div className="px-6 py-4 space-y-3">
                   <div className="grid grid-cols-2 gap-3">
                     <div className="col-span-2">
-                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Full Name *</label>
+                      <label className="block text-xs font-medium text-gray-400 mb-1">Full Name *</label>
                       <input type="text" value={addForm.full_name} onChange={(e) => setAddForm({ ...addForm, full_name: e.target.value })}
                         className="input w-full" placeholder="John Doe" />
                     </div>
                     <div className="col-span-2">
-                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Email *</label>
+                      <label className="block text-xs font-medium text-gray-400 mb-1">Email *</label>
                       <input type="email" value={addForm.email} onChange={(e) => setAddForm({ ...addForm, email: e.target.value })}
                         className="input w-full" placeholder="john@example.com" />
                     </div>
                     <div className="col-span-2">
-                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Phone</label>
+                      <label className="block text-xs font-medium text-gray-400 mb-1">Phone</label>
                       <input type="tel" value={addForm.phone} onChange={(e) => setAddForm({ ...addForm, phone: e.target.value })}
                         className="input w-full" placeholder="Optional" />
                     </div>
                   </div>
-                  <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
-                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Record</p>
+                  <div className="border-t border-gray-700 pt-3">
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Record</p>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Wins</label>
+                        <label className="block text-xs font-medium text-gray-400 mb-1">Wins</label>
                         <input type="number" min="0" value={addForm.wins} onChange={(e) => setAddForm({ ...addForm, wins: parseInt(e.target.value) || 0 })}
                           className="input w-full" />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Losses</label>
+                        <label className="block text-xs font-medium text-gray-400 mb-1">Losses</label>
                         <input type="number" min="0" value={addForm.losses} onChange={(e) => setAddForm({ ...addForm, losses: parseInt(e.target.value) || 0 })}
                           className="input w-full" />
                       </div>
                     </div>
                   </div>
-                  <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
-                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Physical</p>
+                  <div className="border-t border-gray-700 pt-3">
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Physical</p>
                     <div className="grid grid-cols-3 gap-3">
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Height</label>
+                        <label className="block text-xs font-medium text-gray-400 mb-1">Height</label>
                         <div className="flex items-center gap-1">
                           <input type="number" min="4" max="7"
                             value={Math.floor((addForm.height_inches || 70) / 12)}
@@ -930,7 +930,7 @@ export default function AdminPage() {
                         </div>
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Age</label>
+                        <label className="block text-xs font-medium text-gray-400 mb-1">Age</label>
                         <input type="number" min="16" max="70" value={addForm.age || 30}
                           onChange={(e) => setAddForm({ ...addForm, age: parseInt(e.target.value) || 30 })}
                           className="input w-full" />
@@ -938,12 +938,12 @@ export default function AdminPage() {
                     </div>
                   </div>
                   {customMetrics.length > 0 && (
-                    <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
-                      <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Metrics (1-10)</p>
+                    <div className="border-t border-gray-700 pt-3">
+                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Metrics (1-10)</p>
                       <div className="grid grid-cols-3 gap-3">
                         {customMetrics.map((metric) => (
                           <div key={metric.id}>
-                            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{metric.display_name}</label>
+                            <label className="block text-xs font-medium text-gray-400 mb-1">{metric.display_name}</label>
                             <input type="number" min={metric.min_value || 1} max={metric.max_value || 10} step="0.5"
                               value={addForm[`metric_${metric.id}`] || metric.default_value || 5}
                               onChange={(e) => setAddForm({ ...addForm, [`metric_${metric.id}`]: parseFloat(e.target.value) || 5 })}
@@ -953,8 +953,8 @@ export default function AdminPage() {
                       </div>
                     </div>
                   )}
-                  <p className="text-xs text-gray-400 dark:text-gray-500">
-                    Default password: <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">Password123</code>
+                  <p className="text-xs text-gray-500">
+                    Default password: <code className="bg-gray-100 bg-gray-700 px-1 rounded">Password123</code>
                   </p>
                   <div className="flex justify-end gap-2 pt-2">
                     <button onClick={() => setShowAddPlayer(false)} className="btn-secondary text-sm py-2 px-4">Cancel</button>
@@ -963,7 +963,7 @@ export default function AdminPage() {
                       disabled={adding || !addForm.full_name.trim() || !addForm.email.trim()}
                       className={`font-medium py-2 px-6 rounded-lg text-sm transition-colors ${
                         adding || !addForm.full_name.trim() || !addForm.email.trim()
-                          ? "bg-gray-200 dark:bg-gray-600 text-gray-400 cursor-not-allowed"
+                          ? "bg-gray-600 text-gray-400 cursor-not-allowed"
                           : "bg-green-600 hover:bg-green-700 text-white"
                       }`}>
                       {adding ? "Adding..." : "Add Player"}
@@ -984,9 +984,9 @@ export default function AdminPage() {
               const active = adminStatusFilters.has(key);
               const count = players.filter((p) => p.player_status === key).length;
               const colorMap = {
-                green: active ? "bg-green-100 text-green-800 border-green-400 dark:bg-green-900/30 dark:text-green-400 dark:border-green-600" : "bg-gray-100 text-gray-400 border-gray-300 dark:bg-gray-800 dark:text-gray-500 dark:border-gray-600",
-                yellow: active ? "bg-yellow-100 text-yellow-800 border-yellow-400 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-600" : "bg-gray-100 text-gray-400 border-gray-300 dark:bg-gray-800 dark:text-gray-500 dark:border-gray-600",
-                gray: active ? "bg-gray-200 text-gray-700 border-gray-400 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500" : "bg-gray-100 text-gray-400 border-gray-300 dark:bg-gray-800 dark:text-gray-500 dark:border-gray-600",
+                green: active ? "bg-green-900/30 text-green-400 border-green-600" : "bg-gray-900 text-gray-500 border-gray-600",
+                yellow: active ? "bg-yellow-900/30 text-yellow-400 border-yellow-600" : "bg-gray-900 text-gray-500 border-gray-600",
+                gray: active ? "bg-gray-700 text-gray-300 border-gray-500" : "bg-gray-900 text-gray-500 border-gray-600",
               };
               return (
                 <button key={key} onClick={() => setAdminStatusFilters((prev) => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n; })}
@@ -1010,25 +1010,25 @@ export default function AdminPage() {
             const SortTh = ({ field, children }) => {
               const active = adminSort.key === field;
               return (
-                <th className="py-3 px-2 text-xs font-medium text-gray-500 dark:text-gray-400 cursor-pointer select-none hover:text-gray-700 dark:hover:text-gray-200 whitespace-nowrap"
+                <th className="py-3 px-2 text-xs font-medium text-gray-400 cursor-pointer select-none hover:text-gray-200 whitespace-nowrap"
                   onClick={() => setAdminSort((prev) => prev.key === field ? { key: field, dir: prev.dir === "asc" ? "desc" : "asc" } : { key: field, dir: "desc" })}>
                   {children} {active ? (adminSort.dir === "asc" ? "▲" : "▼") : ""}
                 </th>
               );
             };
-            const inputCls = "w-14 text-sm border rounded px-1 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 text-center";
+            const inputCls = "w-14 text-sm border rounded px-1 py-1 bg-gray-700 text-gray-200 border-gray-600 text-center";
             return (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
                   <thead>
-                    <tr className="border-b border-gray-200 dark:border-gray-700">
+                    <tr className="border-b border-gray-700">
                       <SortTh field="full_name">Player</SortTh>
                       <SortTh field="player_status">Status</SortTh>
                       {currentRun?.dropin_priority_mode === "admin" && <SortTh field="dropin_priority">Wait List Priority</SortTh>}
                       <SortTh field="height_inches">Ht</SortTh>
                       <SortTh field="age">Age</SortTh>
                       {customMetrics.map((metric) => (
-                        <th key={metric.id} className="py-3 px-2 text-xs font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap" title={metric.display_name}>
+                        <th key={metric.id} className="py-3 px-2 text-xs font-medium text-gray-400 whitespace-nowrap" title={metric.display_name}>
                           {metric.display_name.substring(0, 4).toUpperCase()}
                         </th>
                       ))}
@@ -1040,21 +1040,21 @@ export default function AdminPage() {
                   </thead>
                   <tbody>
                     {sorted.map((player) => (
-                      <tr key={player.id} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                      <tr key={player.id} className="border-b border-gray-700 hover:bg-gray-700">
                         <td className="py-2 px-2">
                           <div className="flex items-center gap-1">
                             <input type="text" defaultValue={player.full_name}
                               onBlur={(e) => { const v = e.target.value.trim(); if (v && v !== player.full_name) handleUpdatePlayer(player.id, "full_name", v); }}
-                              className="w-24 text-sm font-medium border border-transparent hover:border-gray-300 dark:hover:border-gray-600 rounded px-1 py-1 bg-transparent dark:text-gray-200 focus:border-gray-300 dark:focus:border-gray-600" />
+                              className="w-24 text-sm font-medium border border-transparent hover:border-gray-600 rounded px-1 py-1 bg-transparent text-gray-200 focus:border-gray-600" />
                             <Link to={`/players/${player.id}`} className="text-court-500 hover:text-court-600 text-xs shrink-0" title="View profile">
                               &rarr;
                             </Link>
                           </div>
-                          <div className="text-[10px] text-gray-400 dark:text-gray-500 truncate max-w-[140px]">{player.email}</div>
+                          <div className="text-[10px] text-gray-500 truncate max-w-[140px]">{player.email}</div>
                         </td>
                         <td className="py-2 px-2">
                           <select value={player.player_status} onChange={(e) => handleUpdatePlayer(player.id, "player_status", e.target.value)}
-                            className="text-xs border rounded px-1 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600">
+                            className="text-xs border rounded px-1 py-1 bg-gray-700 text-gray-200 border-gray-600">
                             <option value="regular">Regular</option>
                             <option value="dropin">Drop-in</option>
                             <option value="inactive">Inactive</option>
@@ -1146,7 +1146,7 @@ export default function AdminPage() {
                         {isSuperAdmin && (
                           <td className="py-2 px-2">
                             <select value={player.role} onChange={(e) => handleUpdatePlayer(player.id, "role", e.target.value)}
-                              className="text-xs border rounded px-1 py-1 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600">
+                              className="text-xs border rounded px-1 py-1 bg-gray-700 text-gray-200 border-gray-600">
                               <option value="player">Player</option>
                               <option value="admin">Admin</option>
                               <option value="super_admin">Super Admin</option>
@@ -1200,20 +1200,20 @@ export default function AdminPage() {
           {/* Suggestions Section */}
           {suggestions.length > 0 && (
             <div className="card">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              <h2 className="font-retro text-[9px] text-gray-100 mb-4">
                 Incoming Suggestions ({suggestions.length})
               </h2>
               <div className="space-y-3">
                 {suggestions.map((s) => (
-                  <div key={s.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                  <div key={s.id} className="flex items-center justify-between p-3 bg-gray-50 bg-gray-950 rounded-lg">
                     <div>
-                      <p className="font-medium text-gray-900 dark:text-gray-100">
+                      <p className="font-medium text-gray-100">
                         {s.suggested_user?.full_name || `User #${s.suggested_user_id}`}
                       </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                      <p className="text-xs text-gray-400">
                         Suggested by {s.suggested_by?.full_name || `User #${s.suggested_by_user_id}`}
                       </p>
-                      {s.message && <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 italic">"{s.message}"</p>}
+                      {s.message && <p className="text-sm text-gray-400 mt-1 italic">"{s.message}"</p>}
                     </div>
                     <div className="flex gap-2">
                       <button
@@ -1240,7 +1240,7 @@ export default function AdminPage() {
                             toast.error(err.response?.data?.detail || "Failed");
                           }
                         }}
-                        className="bg-gray-300 hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-300 text-sm font-medium py-1.5 px-3 rounded-lg"
+                        className="bg-gray-600 hover:bg-gray-500 text-gray-300 text-sm font-medium py-1.5 px-3 rounded-lg"
                       >
                         Decline
                       </button>
@@ -1254,10 +1254,10 @@ export default function AdminPage() {
           {/* Suggest a Player to Another Run */}
           {runsNeedingPlayers.filter((r) => r.id !== runId).length > 0 && (
             <div className="card">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Suggest a Player to Another Run</h2>
+              <h2 className="font-retro text-[9px] text-gray-100 mb-4">Suggest a Player to Another Run</h2>
               <div className="space-y-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Target Run</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Target Run</label>
                   <select
                     value={suggestForm.targetRunId}
                     onChange={(e) => setSuggestForm({ ...suggestForm, targetRunId: e.target.value })}
@@ -1274,7 +1274,7 @@ export default function AdminPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Player to Suggest</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Player to Suggest</label>
                   <select
                     value={suggestForm.userId}
                     onChange={(e) => setSuggestForm({ ...suggestForm, userId: e.target.value })}
@@ -1289,7 +1289,7 @@ export default function AdminPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Note (optional)</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Note (optional)</label>
                   <input
                     type="text"
                     value={suggestForm.message}
@@ -1326,28 +1326,28 @@ export default function AdminPage() {
           {/* Import Modal */}
           {showImportModal && (
             <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-              <div className="bg-white dark:bg-gray-800 rounded-xl max-w-lg w-full shadow-2xl">
-                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                  <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Import Roster</h2>
-                  <button onClick={() => setShowImportModal(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-white text-2xl leading-none">&times;</button>
+              <div className="bg-gray-900 rounded-xl max-w-lg w-full shadow-2xl">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-700">
+                  <h2 className="font-retro text-[9px] text-gray-100">Import Roster</h2>
+                  <button onClick={() => setShowImportModal(false)} className="text-gray-400 hover:text-white text-2xl leading-none">&times;</button>
                 </div>
                 <div className="px-6 py-4">
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Paste player data below (one per line):</p>
-                  <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-2 mb-3 text-xs font-mono text-gray-600 dark:text-gray-400 space-y-0.5">
+                  <p className="text-sm text-gray-400 mb-3">Paste player data below (one per line):</p>
+                  <div className="bg-gray-50 bg-gray-950 rounded-lg p-2 mb-3 text-xs font-mono text-gray-400 space-y-0.5">
                     <p>Name, Email, Wins, Losses</p>
                   </div>
-                  <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">
-                    Email is required and must be unique. Default password: <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">Password123</code>
+                  <p className="text-xs text-gray-500 mb-3">
+                    Email is required and must be unique. Default password: <code className="bg-gray-100 bg-gray-700 px-1 rounded">Password123</code>
                   </p>
                   <textarea
                     rows={10}
                     value={importText}
                     onChange={(e) => setImportText(e.target.value)}
-                    className="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 font-mono focus:ring-2 focus:ring-court-500 focus:border-court-500 dark:bg-gray-700 dark:text-gray-200"
+                    className="w-full text-sm border border-gray-300 border-gray-600 rounded-lg px-3 py-2 font-mono focus:ring-2 focus:ring-court-500 focus:border-court-500 bg-gray-700 text-gray-200"
                     placeholder={`Bryan, bryan@email.com, 26, 14\nJulien, julien@email.com, 23, 12`}
                   />
                   <div className="flex items-center justify-between mt-4">
-                    <span className="text-sm text-gray-500 dark:text-gray-400">
+                    <span className="text-sm text-gray-400">
                       {parseImportText(importText).length} player(s) detected
                     </span>
                     <button
@@ -1373,7 +1373,7 @@ export default function AdminPage() {
                       disabled={importing || !importText.trim()}
                       className={`font-medium py-2 px-6 rounded-lg transition-colors ${
                         importing || !importText.trim()
-                          ? "bg-gray-200 dark:bg-gray-600 text-gray-400 cursor-not-allowed"
+                          ? "bg-gray-600 text-gray-400 cursor-not-allowed"
                           : "bg-court-500 hover:bg-court-600 text-white"
                       }`}
                     >
@@ -1381,25 +1381,25 @@ export default function AdminPage() {
                     </button>
                   </div>
                   {importResult && (
-                    <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <div className="mt-4 pt-4 border-t border-gray-700">
                       <div className="grid grid-cols-2 gap-3 mb-3">
-                        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-2 text-center">
-                          <div className="text-xl font-bold text-green-700 dark:text-green-400">{importResult.created_count}</div>
-                          <div className="text-xs text-green-600 dark:text-green-500">Created</div>
+                        <div className="bg-green-900/20 border border-green-700 rounded-lg p-2 text-center">
+                          <div className="text-xl font-bold text-green-400">{importResult.created_count}</div>
+                          <div className="text-xs text-green-500">Created</div>
                         </div>
-                        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg p-2 text-center">
-                          <div className="text-xl font-bold text-yellow-700 dark:text-yellow-400">{importResult.skipped_count}</div>
-                          <div className="text-xs text-yellow-600 dark:text-yellow-500">Skipped</div>
+                        <div className="bg-yellow-900/20 border border-yellow-700 rounded-lg p-2 text-center">
+                          <div className="text-xl font-bold text-yellow-400">{importResult.skipped_count}</div>
+                          <div className="text-xs text-yellow-500">Skipped</div>
                         </div>
                       </div>
                       {importResult.created_players.length > 0 && (
-                        <p className="text-xs text-gray-600 dark:text-gray-400">
-                          <span className="font-medium text-green-700 dark:text-green-400">Created:</span> {importResult.created_players.join(", ")}
+                        <p className="text-xs text-gray-400">
+                          <span className="font-medium text-green-400">Created:</span> {importResult.created_players.join(", ")}
                         </p>
                       )}
                       {importResult.skipped_players.length > 0 && (
-                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                          <span className="font-medium text-yellow-700 dark:text-yellow-400">Skipped:</span> {importResult.skipped_players.join(", ")}
+                        <p className="text-xs text-gray-400 mt-1">
+                          <span className="font-medium text-yellow-400">Skipped:</span> {importResult.skipped_players.join(", ")}
                         </p>
                       )}
                     </div>
@@ -1419,33 +1419,33 @@ export default function AdminPage() {
               <SettingsSection title="General" defaultOpen>
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Run Name</label>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">Run Name</label>
                     <input type="text" required value={runForm.name}
                       onChange={(e) => setRunForm({ ...runForm, name: e.target.value })}
                       className="input" placeholder="e.g. Monday Madness" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">Description</label>
                     <textarea rows={2} value={runForm.description}
                       onChange={(e) => setRunForm({ ...runForm, description: e.target.value })}
                       className="input" placeholder="Brief description" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Default Location</label>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">Default Location</label>
                     <input type="text" value={runForm.default_location}
                       onChange={(e) => setRunForm({ ...runForm, default_location: e.target.value })}
                       className="input" placeholder="e.g. Rec Center Gym" />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Game Day</label>
+                      <label className="block text-sm font-medium text-gray-300 mb-1">Game Day</label>
                       <select value={runForm.default_game_day}
                         onChange={(e) => setRunForm({ ...runForm, default_game_day: e.target.value })} className="input">
                         {DAY_NAMES.map((day, i) => <option key={i} value={i}>{day}</option>)}
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Game Time</label>
+                      <label className="block text-sm font-medium text-gray-300 mb-1">Game Time</label>
                       <input type="time" value={runForm.default_game_time}
                         onChange={(e) => setRunForm({ ...runForm, default_game_time: e.target.value })} className="input" />
                     </div>
@@ -1458,24 +1458,24 @@ export default function AdminPage() {
                 <div className="space-y-3">
                   <div className="grid grid-cols-3 gap-3">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Roster Size</label>
+                      <label className="block text-sm font-medium text-gray-300 mb-1">Roster Size</label>
                       <input type="number" min="2" max="30" value={runForm.default_roster_size}
                         onChange={(e) => setRunForm({ ...runForm, default_roster_size: e.target.value })} className="input" />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Teams</label>
+                      <label className="block text-sm font-medium text-gray-300 mb-1">Teams</label>
                       <input type="number" min="2" max="8" value={runForm.default_num_teams}
                         onChange={(e) => setRunForm({ ...runForm, default_num_teams: e.target.value })} className="input" />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Dues ($)</label>
+                      <label className="block text-sm font-medium text-gray-300 mb-1">Dues ($)</label>
                       <input type="number" min="0" step="0.01" value={runForm.dues_amount}
                         onChange={(e) => setRunForm({ ...runForm, dues_amount: e.target.value })} className="input" placeholder="Optional" />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Skill Level</label>
+                      <label className="block text-sm font-medium text-gray-300 mb-1">Skill Level</label>
                       <select value={runForm.skill_level}
                         onChange={(e) => setRunForm({ ...runForm, skill_level: e.target.value })} className="input">
                         {[1,2,3,4,5].map((n) => <option key={n} value={n}>{n} — {["Beginner","Casual","Intermediate","Competitive","Elite"][n-1]}</option>)}
@@ -1486,7 +1486,7 @@ export default function AdminPage() {
                         <input type="checkbox" checked={runForm.needs_players}
                           onChange={(e) => setRunForm({ ...runForm, needs_players: e.target.checked })}
                           className="w-4 h-4 text-court-500 rounded focus:ring-court-500" />
-                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">This run needs players</span>
+                        <span className="text-sm font-medium text-gray-300">This run needs players</span>
                       </label>
                     </div>
                   </div>
@@ -1498,19 +1498,19 @@ export default function AdminPage() {
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Start Date</label>
+                      <label className="block text-sm font-medium text-gray-300 mb-1">Start Date</label>
                       <input type="date" value={runForm.start_date || ""}
                         onChange={(e) => setRunForm({ ...runForm, start_date: e.target.value })} className="input" />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">End Date</label>
+                      <label className="block text-sm font-medium text-gray-300 mb-1">End Date</label>
                       <input type="date" value={runForm.end_date || ""}
                         onChange={(e) => setRunForm({ ...runForm, end_date: e.target.value })} className="input" />
                     </div>
                   </div>
                   {hasFullSchedule ? (
-                    <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                    <div className="pt-2 border-t border-gray-700">
+                      <p className="text-sm text-gray-400 mb-2">
                         Every <strong>{DAY_NAMES[currentRun.default_game_day]}</strong> at <strong>{currentRun.default_game_time}</strong>,
                         from <strong>{new Date(currentRun.start_date + "T00:00").toLocaleDateString()}</strong> to <strong>{new Date(currentRun.end_date + "T00:00").toLocaleDateString()}</strong>
                       </p>
@@ -1520,15 +1520,15 @@ export default function AdminPage() {
                       </button>
                     </div>
                   ) : (
-                    <p className="text-xs text-amber-600 dark:text-amber-400">
+                    <p className="text-xs text-amber-400">
                       Set game day, time, and season dates to enable season generation.
                     </p>
                   )}
 
                   {/* Season Reset */}
-                  <div className="pt-3 mt-3 border-t border-gray-200 dark:border-gray-700">
+                  <div className="pt-3 mt-3 border-t border-gray-700">
                     <h4 className="text-sm font-semibold text-red-600 mb-2">Season Reset</h4>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                    <p className="text-xs text-gray-400 mb-2">
                       Archives all current stats and resets W-L records, awards for the new season. Games and results are preserved.
                     </p>
                     <div className="flex items-center gap-2">
@@ -1565,7 +1565,7 @@ export default function AdminPage() {
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Open drop-in spots</label>
+                      <label className="block text-sm font-medium text-gray-300 mb-1">Open drop-in spots</label>
                       <select value={runForm.dropin_open_hours_before ?? "never"}
                         onChange={(e) => setRunForm({ ...runForm, dropin_open_hours_before: e.target.value === "never" ? null : parseInt(e.target.value) })} className="input">
                         <option value="never">Never (manual only)</option>
@@ -1573,7 +1573,7 @@ export default function AdminPage() {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Waitlist priority</label>
+                      <label className="block text-sm font-medium text-gray-300 mb-1">Waitlist priority</label>
                       <select value={runForm.dropin_priority_mode || "fifo"}
                         onChange={(e) => setRunForm({ ...runForm, dropin_priority_mode: e.target.value })} className="input">
                         <option value="fifo">First come, first served</option>
@@ -1585,7 +1585,7 @@ export default function AdminPage() {
                     <input type="checkbox" checked={runForm.dropin_auto_promote ?? true}
                       onChange={(e) => setRunForm({ ...runForm, dropin_auto_promote: e.target.checked })}
                       className="w-4 h-4 rounded border-gray-300 text-court-600 focus:ring-court-500" />
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Auto-promote drop-ins from waitlist</span>
+                    <span className="text-sm font-medium text-gray-300">Auto-promote drop-ins from waitlist</span>
                   </label>
                 </div>
               </SettingsSection>
@@ -1594,7 +1594,7 @@ export default function AdminPage() {
               <SettingsSection title="Automation & Timing">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Award voting deadline</label>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">Award voting deadline</label>
                     <div className="flex items-center gap-2">
                       <input type="number" min="1" max="72" value={runForm.voting_deadline_hours ?? ""}
                         onChange={(e) => setRunForm({ ...runForm, voting_deadline_hours: e.target.value === "" ? "" : parseInt(e.target.value) })} className="input w-20" />
@@ -1602,7 +1602,7 @@ export default function AdminPage() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Auto-generate teams</label>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">Auto-generate teams</label>
                     <div className="flex items-center gap-2">
                       <input type="number" min="0" max="1440" value={runForm.auto_team_minutes_before ?? ""}
                         onChange={(e) => setRunForm({ ...runForm, auto_team_minutes_before: e.target.value === "" ? "" : parseInt(e.target.value) })} className="input w-20" />
@@ -1610,7 +1610,7 @@ export default function AdminPage() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Award voting reminder</label>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">Award voting reminder</label>
                     <div className="flex items-center gap-2">
                       <input type="number" min="0" max="48" value={runForm.voting_reminder_hours_before ?? ""}
                         onChange={(e) => setRunForm({ ...runForm, voting_reminder_hours_before: e.target.value === "" ? "" : parseInt(e.target.value) })} className="input w-20" />
@@ -1618,7 +1618,7 @@ export default function AdminPage() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Auto-send invites</label>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">Auto-send invites</label>
                     <div className="flex items-center gap-2">
                       <input type="number" min="0" max="168" value={runForm.invite_hours_before ?? ""}
                         onChange={(e) => setRunForm({ ...runForm, invite_hours_before: e.target.value === "" ? "" : parseInt(e.target.value) })} className="input w-20" />
@@ -1630,7 +1630,7 @@ export default function AdminPage() {
                   <input type="checkbox" checked={runForm.auto_regen_teams ?? false}
                     onChange={(e) => setRunForm({ ...runForm, auto_regen_teams: e.target.checked })}
                     className="w-4 h-4 rounded border-gray-300 text-court-600 focus:ring-court-500" />
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Auto-regenerate teams when a new player accepts</span>
+                  <span className="text-sm font-medium text-gray-300">Auto-regenerate teams when a new player accepts</span>
                 </label>
                 <p className="text-xs text-gray-400 mt-2">Set any value to 0 to disable that automation.</p>
               </SettingsSection>
@@ -1640,7 +1640,7 @@ export default function AdminPage() {
                   <input type="checkbox" checked={runForm.show_player_rating ?? true}
                     onChange={(e) => setRunForm({ ...runForm, show_player_rating: e.target.checked })}
                     className="w-4 h-4 rounded border-gray-300 text-court-600 focus:ring-court-500" />
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Show Player Rating (1-100) to all players</span>
+                  <span className="text-sm font-medium text-gray-300">Show Player Rating (1-100) to all players</span>
                 </label>
                 <p className="text-xs text-gray-400 mt-1">When off, only admins can see the composite player rating.</p>
               </SettingsSection>
@@ -1658,9 +1658,9 @@ export default function AdminPage() {
           {/* Weight Sliders */}
           <div className="card">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Algorithm Weights</h2>
+              <h2 className="font-retro text-[9px] text-gray-100">Algorithm Weights</h2>
               <div className="flex items-center gap-3">
-                <span className="text-xs text-gray-500 dark:text-gray-400">
+                <span className="text-xs text-gray-400">
                   Total: {totalWeight.toFixed(2)}
                 </span>
                 <button
@@ -1669,14 +1669,14 @@ export default function AdminPage() {
                   className={`text-sm font-medium py-1.5 px-4 rounded-lg transition-colors ${
                     weightsDirty
                       ? "bg-court-500 hover:bg-court-600 text-white"
-                      : "bg-gray-200 dark:bg-gray-600 text-gray-400 dark:text-gray-500 cursor-not-allowed"
+                      : "bg-gray-600 text-gray-500 cursor-not-allowed"
                   }`}
                 >
                   {savingWeights ? "Saving..." : "Save Weights"}
                 </button>
               </div>
             </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+            <p className="text-sm text-gray-400 mb-6">
               Adjust how much each factor matters when balancing teams.
               Weights are relative — the algorithm normalizes them automatically.
             </p>
@@ -1692,16 +1692,16 @@ export default function AdminPage() {
                   <div key={w.metric_name}>
                     <div className="flex items-center justify-between mb-1">
                       <div>
-                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{label}</span>
+                        <span className="text-sm font-medium text-gray-300">{label}</span>
                         {!w.is_builtin && (
                           <span className="ml-1 text-xs text-court-500">custom</span>
                         )}
                       </div>
                       <div className="text-right">
-                        <span className="text-sm font-mono text-gray-600 dark:text-gray-400">
+                        <span className="text-sm font-mono text-gray-400">
                           {w.weight.toFixed(2)}
                         </span>
-                        <span className="text-xs text-gray-400 dark:text-gray-500 ml-1">({pct}%)</span>
+                        <span className="text-xs text-gray-500 ml-1">({pct}%)</span>
                       </div>
                     </div>
                     <input
@@ -1719,14 +1719,14 @@ export default function AdminPage() {
             </div>
 
             {weights.length === 0 && (
-              <p className="text-gray-400 dark:text-gray-500 text-sm">Loading weights...</p>
+              <p className="text-gray-500 text-sm">Loading weights...</p>
             )}
           </div>
 
           {/* Custom Metrics Management */}
           <div className="card">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Custom Metrics</h2>
+              <h2 className="font-retro text-[9px] text-gray-100">Custom Metrics</h2>
               <button
                 onClick={() => setShowNewMetricForm(!showNewMetricForm)}
                 className="text-sm font-medium text-court-600 hover:text-court-700"
@@ -1734,17 +1734,17 @@ export default function AdminPage() {
                 {showNewMetricForm ? "Cancel" : "+ Add Metric"}
               </button>
             </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            <p className="text-sm text-gray-400 mb-4">
               Create custom player attributes that feed into team balancing.
               New metrics start with weight 0 — adjust the slider above to activate them.
             </p>
 
             {/* New metric form */}
             {showNewMetricForm && (
-              <form onSubmit={handleCreateMetric} className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 mb-4 space-y-3">
+              <form onSubmit={handleCreateMetric} className="bg-gray-50 bg-gray-950 rounded-lg p-4 mb-4 space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                    <label className="block text-xs font-medium text-gray-400 mb-1">
                       Internal Name (lowercase, no spaces)
                     </label>
                     <input
@@ -1753,12 +1753,12 @@ export default function AdminPage() {
                       pattern="^[a-z][a-z0-9_]*$"
                       value={newMetric.name}
                       onChange={(e) => setNewMetric({ ...newMetric, name: e.target.value })}
-                      className="w-full text-sm border rounded px-3 py-1.5 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
+                      className="w-full text-sm border rounded px-3 py-1.5 bg-gray-700 text-gray-200 border-gray-600"
                       placeholder="e.g. shooting"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                    <label className="block text-xs font-medium text-gray-400 mb-1">
                       Display Name
                     </label>
                     <input
@@ -1766,52 +1766,52 @@ export default function AdminPage() {
                       required
                       value={newMetric.display_name}
                       onChange={(e) => setNewMetric({ ...newMetric, display_name: e.target.value })}
-                      className="w-full text-sm border rounded px-3 py-1.5 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
+                      className="w-full text-sm border rounded px-3 py-1.5 bg-gray-700 text-gray-200 border-gray-600"
                       placeholder="e.g. Shooting Ability"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                  <label className="block text-xs font-medium text-gray-400 mb-1">
                     Description (optional)
                   </label>
                   <input
                     type="text"
                     value={newMetric.description}
                     onChange={(e) => setNewMetric({ ...newMetric, description: e.target.value })}
-                    className="w-full text-sm border rounded px-3 py-1.5 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
+                    className="w-full text-sm border rounded px-3 py-1.5 bg-gray-700 text-gray-200 border-gray-600"
                     placeholder="What this metric measures"
                   />
                 </div>
                 <div className="grid grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Min Value</label>
+                    <label className="block text-xs font-medium text-gray-400 mb-1">Min Value</label>
                     <input
                       type="number"
                       step="any"
                       value={newMetric.min_value}
                       onChange={(e) => setNewMetric({ ...newMetric, min_value: parseFloat(e.target.value) })}
-                      className="w-full text-sm border rounded px-3 py-1.5 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
+                      className="w-full text-sm border rounded px-3 py-1.5 bg-gray-700 text-gray-200 border-gray-600"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Max Value</label>
+                    <label className="block text-xs font-medium text-gray-400 mb-1">Max Value</label>
                     <input
                       type="number"
                       step="any"
                       value={newMetric.max_value}
                       onChange={(e) => setNewMetric({ ...newMetric, max_value: parseFloat(e.target.value) })}
-                      className="w-full text-sm border rounded px-3 py-1.5 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
+                      className="w-full text-sm border rounded px-3 py-1.5 bg-gray-700 text-gray-200 border-gray-600"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Default</label>
+                    <label className="block text-xs font-medium text-gray-400 mb-1">Default</label>
                     <input
                       type="number"
                       step="any"
                       value={newMetric.default_value}
                       onChange={(e) => setNewMetric({ ...newMetric, default_value: parseFloat(e.target.value) })}
-                      className="w-full text-sm border rounded px-3 py-1.5 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
+                      className="w-full text-sm border rounded px-3 py-1.5 bg-gray-700 text-gray-200 border-gray-600"
                     />
                   </div>
                 </div>
@@ -1823,23 +1823,23 @@ export default function AdminPage() {
 
             {/* Existing custom metrics */}
             {customMetrics.length === 0 ? (
-              <p className="text-sm text-gray-400 dark:text-gray-500">No custom metrics yet.</p>
+              <p className="text-sm text-gray-500">No custom metrics yet.</p>
             ) : (
               <div className="space-y-2">
                 {customMetrics.map((metric) => (
                   <div
                     key={metric.id}
-                    className="flex items-center justify-between py-2 px-3 bg-gray-50 dark:bg-gray-900 rounded-lg"
+                    className="flex items-center justify-between py-2 px-3 bg-gray-50 bg-gray-950 rounded-lg"
                   >
                     <div>
-                      <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                      <span className="text-sm font-medium text-gray-800 text-gray-200">
                         {metric.display_name}
                       </span>
-                      <span className="text-xs text-gray-400 dark:text-gray-500 ml-2">
+                      <span className="text-xs text-gray-500 ml-2">
                         ({metric.name}) &middot; {metric.min_value}–{metric.max_value}, default {metric.default_value}
                       </span>
                       {metric.description && (
-                        <p className="text-xs text-gray-500 dark:text-gray-400">{metric.description}</p>
+                        <p className="text-xs text-gray-400">{metric.description}</p>
                       )}
                     </div>
                     <button
@@ -1950,19 +1950,19 @@ function InviteCodesPanel({ runId }) {
   return (
     <div className="card">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Invite Codes</h2>
+        <h2 className="font-retro text-[9px] text-gray-100">Invite Codes</h2>
       </div>
 
-      <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+      <div className="mb-4 p-4 bg-gray-50 bg-gray-950 rounded-lg">
         <div className="flex items-end gap-3 flex-wrap">
           <div>
-            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Uses</label>
+            <label className="block text-xs font-medium text-gray-400 mb-1">Uses</label>
             <input type="number" min="1" max="50" value={maxUses}
               onChange={(e) => setMaxUses(parseInt(e.target.value) || 1)}
               className="input text-sm w-20" />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Expires in</label>
+            <label className="block text-xs font-medium text-gray-400 mb-1">Expires in</label>
             <select value={expireDays} onChange={(e) => setExpireDays(parseInt(e.target.value))}
               className="input text-sm w-28">
               {[1, 2, 3, 4, 5, 6, 7].map((d) => (
@@ -1981,33 +1981,33 @@ function InviteCodesPanel({ runId }) {
       </div>
 
       {loading ? (
-        <p className="text-gray-500 dark:text-gray-400">Loading...</p>
+        <p className="text-gray-400">Loading...</p>
       ) : activeCodes.length === 0 && expiredCodes.length === 0 ? (
-        <p className="text-gray-500 dark:text-gray-400">No invite codes yet. Generate one to share with new players.</p>
+        <p className="text-gray-400">No invite codes yet. Generate one to share with new players.</p>
       ) : (
         <>
           {/* Active codes */}
           {activeCodes.length > 0 ? (
             <div className="space-y-2">
               {activeCodes.map((c) => (
-                <div key={c.id} className="flex items-center justify-between gap-2 p-3 bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800 rounded-lg">
+                <div key={c.id} className="flex items-center justify-between gap-2 p-3 bg-green-900/10 border border-green-800 rounded-lg">
                   <div className="min-w-0">
                     <code className="text-sm font-mono font-bold text-court-600">{c.code}</code>
-                    <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">
+                    <div className="text-[10px] text-gray-400 mt-0.5">
                       {c.use_count}{c.max_uses ? `/${c.max_uses} used` : " used"} · Expires {c.expires_at ? new Date(c.expires_at).toLocaleDateString() : "Never"}
                     </div>
                   </div>
                   <div className="flex gap-1.5 shrink-0">
                     <button onClick={() => copyLink(c.code)}
-                      className="text-[10px] bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 px-2 py-1 rounded hover:bg-cyan-200">
+                      className="text-[10px] bg-cyan-900/30 text-cyan-300 px-2 py-1 rounded hover:bg-cyan-200">
                       Copy Link
                     </button>
                     <button onClick={() => setQrCode(c.code)}
-                      className="text-[10px] bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-2 py-1 rounded hover:bg-purple-200">
+                      className="text-[10px] bg-purple-900/30 text-purple-300 px-2 py-1 rounded hover:bg-purple-200">
                       QR Code
                     </button>
                     <button onClick={() => handleDelete(c.id)}
-                      className="text-[10px] bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 px-2 py-1 rounded hover:bg-red-200">
+                      className="text-[10px] bg-red-900/30 text-red-400 px-2 py-1 rounded hover:bg-red-200">
                       Delete
                     </button>
                   </div>
@@ -2015,14 +2015,14 @@ function InviteCodesPanel({ runId }) {
               ))}
             </div>
           ) : (
-            <p className="text-sm text-gray-400 dark:text-gray-500">No active invite codes.</p>
+            <p className="text-sm text-gray-500">No active invite codes.</p>
           )}
 
           {/* Expired / maxed codes — collapsible */}
           {expiredCodes.length > 0 && (
             <div className="mt-4">
               <button onClick={() => setShowExpired(!showExpired)}
-                className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 font-medium">
+                className="text-xs text-gray-400 hover:text-gray-700 hover:text-gray-300 font-medium">
                 {showExpired ? "Hide" : "Show"} expired/maxed ({expiredCodes.length})
               </button>
               {showExpired && (
@@ -2031,14 +2031,14 @@ function InviteCodesPanel({ runId }) {
                     const isExpired = c.expires_at && new Date(c.expires_at) < new Date();
                     const isMaxed = c.max_uses && c.use_count >= c.max_uses;
                     return (
-                      <div key={c.id} className="flex items-center justify-between gap-2 p-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg opacity-70">
+                      <div key={c.id} className="flex items-center justify-between gap-2 p-3 bg-gray-50 bg-gray-900/50 border border-gray-700 rounded-lg opacity-70">
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
                             <code className="text-sm font-mono text-gray-500">{c.code}</code>
                             <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                              isExpired ? "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
-                                : isMaxed ? "bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400"
-                                : "bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400"
+                              isExpired ? "bg-red-900/30 text-red-400"
+                                : isMaxed ? "bg-yellow-900/30 text-yellow-400"
+                                : "bg-gray-100 text-gray-500 bg-gray-700 text-gray-400"
                             }`}>
                               {isExpired ? "Expired" : isMaxed ? "Maxed" : "Inactive"}
                             </span>
@@ -2048,7 +2048,7 @@ function InviteCodesPanel({ runId }) {
                           </div>
                         </div>
                         <button onClick={() => handleDelete(c.id)}
-                          className="text-[10px] bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 px-2 py-1 rounded hover:bg-red-200 shrink-0">
+                          className="text-[10px] bg-red-900/30 text-red-400 px-2 py-1 rounded hover:bg-red-200 shrink-0">
                           Delete
                         </button>
                       </div>
@@ -2064,8 +2064,8 @@ function InviteCodesPanel({ runId }) {
       {/* QR Code Modal */}
       {qrCode && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setQrCode(null)}>
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-sm w-full text-center" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">Scan to Register</h3>
+          <div className="bg-gray-900 rounded-2xl p-6 max-w-sm w-full text-center" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-retro text-[9px] text-gray-100 mb-4">Scan to Register</h3>
             <div className="bg-white p-4 rounded-xl inline-block mb-4">
               <QRCodeSVG
                 value={`${baseUrl}/register?code=${qrCode}`}
@@ -2074,8 +2074,8 @@ function InviteCodesPanel({ runId }) {
                 includeMargin={false}
               />
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 font-mono">{qrCode}</p>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mb-4 break-all">{baseUrl}/register?code={qrCode}</p>
+            <p className="text-xs text-gray-400 mb-2 font-mono">{qrCode}</p>
+            <p className="text-xs text-gray-500 mb-4 break-all">{baseUrl}/register?code={qrCode}</p>
             <div className="flex gap-2 justify-center">
               <button onClick={() => { copyLink(qrCode); }} className="btn-primary text-sm">
                 Copy Link
@@ -2104,7 +2104,7 @@ function SettingsSection({ title, defaultOpen = false, children }) {
         onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between text-left"
       >
-        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">{title}</h3>
+        <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">{title}</h3>
         <span className={`text-gray-400 transition-transform ${open ? "rotate-180" : ""}`}>
           &#9660;
         </span>

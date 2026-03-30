@@ -44,8 +44,8 @@ export default function Navbar() {
   const navLinkClass = (path) =>
     `relative px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
       isActive(path)
-        ? "text-court-600 dark:text-court-400 bg-court-50 dark:bg-court-900/30"
-        : "text-gray-600 dark:text-gray-300 hover:text-court-600 dark:hover:text-court-400 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+        ? "text-court-600 text-court-400 bg-court-50 bg-court-900/30"
+        : "text-gray-300 hover:text-court-600 hover:text-court-400 hover:bg-gray-50 hover:bg-gray-700/50"
     }`;
 
   const handleCreateRun = async (e) => {
@@ -98,7 +98,7 @@ export default function Navbar() {
       <div className="h-1 bg-gradient-to-r from-arcade-500 via-court-500 to-court-700" />
 
       {/* Main navbar */}
-      <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50 shadow-sm">
+      <div className="bg-gray-900/90 backdrop-blur-xl border-b border-gray-700/50 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo & Nav Links */}
@@ -128,7 +128,7 @@ export default function Navbar() {
                 )}
 
                 {/* Run Switcher - separated with a subtle divider */}
-                <div className="flex items-center space-x-2 ml-3 pl-3 border-l border-gray-200 dark:border-gray-700">
+                <div className="flex items-center space-x-2 ml-3 pl-3 border-l border-gray-700">
                   {runs.length > 0 && (
                     <select
                       value={currentRun?.id || ""}
@@ -136,7 +136,7 @@ export default function Navbar() {
                         const run = runs.find(r => r.id === parseInt(e.target.value));
                         if (run) setCurrentRun(run);
                       }}
-                      className="text-sm border border-gray-200 dark:border-gray-600 rounded-lg px-2.5 py-1.5 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-court-500 focus:border-court-500 transition-all"
+                      className="text-sm border border-gray-200 border-gray-600 rounded-lg px-2.5 py-1.5 bg-gray-800 text-gray-200 focus:ring-2 focus:ring-court-500 focus:border-court-500 transition-all"
                     >
                       {runs.map(run => (
                         <option key={run.id} value={run.id}>{run.name}</option>
@@ -158,7 +158,7 @@ export default function Navbar() {
 
             {/* Right side: notifications + theme + user + mobile hamburger */}
             <div className="flex items-center space-x-1 sm:space-x-2">
-              <Link to="/notifications" className="relative p-2 text-gray-500 dark:text-gray-400 hover:text-court-600 dark:hover:text-court-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all">
+              <Link to="/notifications" className="relative p-2 text-gray-400 hover:text-court-600 hover:text-court-400 hover:bg-gray-800 rounded-lg transition-all">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                 </svg>
@@ -170,8 +170,8 @@ export default function Navbar() {
               </Link>
 
               {/* Desktop user info */}
-              <div className="hidden md:flex items-center space-x-2 ml-2 pl-2 border-l border-gray-200 dark:border-gray-700">
-                <Link to={`/players/${user?.id}`} className="flex items-center space-x-2 px-2 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all">
+              <div className="hidden md:flex items-center space-x-2 ml-2 pl-2 border-l border-gray-700">
+                <Link to={`/players/${user?.id}`} className="flex items-center space-x-2 px-2 py-1.5 rounded-lg hover:bg-gray-800 transition-all">
                   {user?.avatar_url ? (
                     <AvatarBadge avatarId={user.avatar_url} size="sm" />
                   ) : (
@@ -179,9 +179,9 @@ export default function Navbar() {
                       {user?.full_name?.charAt(0)}
                     </div>
                   )}
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{user?.full_name}</span>
+                  <span className="text-sm font-medium text-gray-200">{user?.full_name}</span>
                 </Link>
-                <button onClick={handleLogout} className="text-sm text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-colors p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20" title="Logout">
+                <button onClick={handleLogout} className="text-sm text-gray-500 hover:text-red-400 transition-colors p-1.5 rounded-lg hover:bg-red-900/20" title="Logout">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                   </svg>
@@ -191,7 +191,7 @@ export default function Navbar() {
               {/* Mobile hamburger button */}
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="md:hidden p-2 text-gray-500 dark:text-gray-400 hover:text-court-600 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all"
+                className="md:hidden p-2 text-gray-400 hover:text-court-600 hover:bg-gray-800 rounded-lg transition-all"
                 aria-label="Toggle menu"
               >
                 {mobileMenuOpen ? (
@@ -211,7 +211,7 @@ export default function Navbar() {
 
       {/* Mobile menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50 shadow-lg">
+        <div className="md:hidden bg-gray-900/95 backdrop-blur-xl border-b border-gray-700/50 shadow-lg">
           <div className="px-4 py-3 space-y-1">
             {/* Nav links */}
             <Link to="/" onClick={closeMobileMenu} className={`block ${navLinkClass("/")}`}>
@@ -233,19 +233,19 @@ export default function Navbar() {
             )}
 
             {/* Divider */}
-            <div className="border-t border-gray-100 dark:border-gray-700/50 my-2" />
+            <div className="border-t border-gray-700/50 my-2" />
 
             {/* Run Switcher */}
             {runs.length > 0 && (
               <div className="px-3 py-2">
-                <label className="block text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1.5">Season</label>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Season</label>
                 <select
                   value={currentRun?.id || ""}
                   onChange={(e) => {
                     const run = runs.find(r => r.id === parseInt(e.target.value));
                     if (run) setCurrentRun(run);
                   }}
-                  className="w-full text-sm border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-court-500 focus:border-court-500"
+                  className="w-full text-sm border border-gray-200 border-gray-600 rounded-lg px-3 py-2 bg-gray-800 text-gray-200 focus:ring-2 focus:ring-court-500 focus:border-court-500"
                 >
                   {runs.map(run => (
                     <option key={run.id} value={run.id}>{run.name}</option>
@@ -258,17 +258,17 @@ export default function Navbar() {
             {isSuperAdmin && (
               <button
                 onClick={() => { setShowCreateRun(true); closeMobileMenu(); }}
-                className="w-full text-left text-sm bg-gradient-to-r from-court-50 to-court-100 dark:from-court-900/20 dark:to-court-900/30 text-court-700 dark:text-court-400 font-medium px-3 py-2.5 rounded-lg hover:from-court-100 hover:to-court-200 dark:hover:from-court-900/30 dark:hover:to-court-900/40 transition-all"
+                className="w-full text-left text-sm bg-gradient-to-r from-court-900/20 to-court-900/30 text-court-700 text-court-400 font-medium px-3 py-2.5 rounded-lg hover:from-court-900/30 hover:to-court-900/40 transition-all"
               >
                 + New Season
               </button>
             )}
 
             {/* Divider */}
-            <div className="border-t border-gray-100 dark:border-gray-700/50 my-2" />
+            <div className="border-t border-gray-700/50 my-2" />
 
             {/* User info & logout */}
-            <Link to={`/players/${user?.id}`} onClick={closeMobileMenu} className="flex items-center space-x-2 px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-all">
+            <Link to={`/players/${user?.id}`} onClick={closeMobileMenu} className="flex items-center space-x-2 px-3 py-2.5 hover:bg-gray-800 rounded-lg transition-all">
               {user?.avatar_url ? (
                 <AvatarBadge avatarId={user.avatar_url} size="sm" />
               ) : (
@@ -276,12 +276,12 @@ export default function Navbar() {
                   {user?.full_name?.charAt(0)}
                 </div>
               )}
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{user?.full_name}</span>
+              <span className="text-sm font-medium text-gray-200">{user?.full_name}</span>
             </Link>
             <InstallButton className="w-full" />
             <button
               onClick={() => { handleLogout(); closeMobileMenu(); }}
-              className="w-full text-left text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 px-3 py-2.5 rounded-lg font-medium transition-all"
+              className="w-full text-left text-sm text-red-500 hover:bg-red-900/20 px-3 py-2.5 rounded-lg font-medium transition-all"
             >
               Logout
             </button>
@@ -292,27 +292,27 @@ export default function Navbar() {
       {/* Create Run Modal */}
       {showCreateRun && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => { setShowCreateRun(false); setCreatedRun(null); }}>
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white bg-gray-800 rounded-lg p-6 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             {createdRun ? (
               /* Step 2: Generate Season Games Prompt */
               <div>
-                <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3">Run Created!</h2>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                <h2 className="text-lg font-bold text-gray-900 text-gray-100 mb-3">Run Created!</h2>
+                <p className="text-sm text-gray-600 text-gray-400 mb-4">
                   <strong>{createdRun.name}</strong> is set up with a schedule:
                 </p>
-                <div className="bg-court-50 dark:bg-court-900/20 border border-court-200 dark:border-court-800 rounded-lg p-3 mb-4">
-                  <p className="text-sm text-court-800 dark:text-court-300">
+                <div className="bg-court-900/20 border border-court-200 border-court-800 rounded-lg p-3 mb-4">
+                  <p className="text-sm text-court-800 text-court-300">
                     Every <strong>{DAY_NAMES[createdRun.default_game_day]}</strong> at <strong>{createdRun.default_game_time}</strong>
                   </p>
-                  <p className="text-xs text-court-600 dark:text-court-400 mt-1">
+                  <p className="text-xs text-court-600 text-court-400 mt-1">
                     {new Date(createdRun.start_date + "T00:00").toLocaleDateString()} — {new Date(createdRun.end_date + "T00:00").toLocaleDateString()}
                   </p>
                 </div>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Generate all season games now?</p>
+                <p className="text-sm text-gray-600 text-gray-400 mb-4">Generate all season games now?</p>
                 <div className="flex justify-end space-x-3">
                   <button
                     onClick={() => { setShowCreateRun(false); setCreatedRun(null); }}
-                    className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 px-4 py-2"
+                    className="text-sm text-gray-600 text-gray-400 hover:text-gray-800 px-4 py-2"
                   >
                     Skip for Now
                   </button>
@@ -340,74 +340,74 @@ export default function Navbar() {
             ) : (
               /* Step 1: Create Run Form */
               <div>
-                <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">Create New Run</h2>
+                <h2 className="text-lg font-bold text-gray-900 text-gray-100 mb-4">Create New Run</h2>
                 <form onSubmit={handleCreateRun} className="space-y-3">
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Run Name *</label>
+                    <label className="block text-xs font-medium text-gray-600 text-gray-400 mb-1">Run Name *</label>
                     <input
                       type="text"
                       value={newRun.name}
                       onChange={(e) => setNewRun({ ...newRun, name: e.target.value })}
                       placeholder="e.g. Monday Night Hoops"
-                      className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md px-3 py-2 text-sm focus:ring-court-500 focus:border-court-500"
+                      className="w-full border border-gray-600 bg-gray-700 text-gray-100 rounded-md px-3 py-2 text-sm focus:ring-court-500 focus:border-court-500"
                       autoFocus
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Schedule Day</label>
+                      <label className="block text-xs font-medium text-gray-600 text-gray-400 mb-1">Schedule Day</label>
                       <select
                         value={newRun.default_game_day}
                         onChange={(e) => setNewRun({ ...newRun, default_game_day: e.target.value })}
-                        className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-md px-3 py-2 text-sm focus:ring-court-500 focus:border-court-500"
+                        className="w-full border border-gray-600 bg-gray-700 text-gray-200 rounded-md px-3 py-2 text-sm focus:ring-court-500 focus:border-court-500"
                       >
                         <option value="">Select day...</option>
                         {DAY_NAMES.map((d, i) => <option key={i} value={i}>{d}</option>)}
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Game Time</label>
+                      <label className="block text-xs font-medium text-gray-600 text-gray-400 mb-1">Game Time</label>
                       <input
                         type="time"
                         value={newRun.default_game_time}
                         onChange={(e) => setNewRun({ ...newRun, default_game_time: e.target.value })}
-                        className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-md px-3 py-2 text-sm focus:ring-court-500 focus:border-court-500"
+                        className="w-full border border-gray-600 bg-gray-700 text-gray-200 rounded-md px-3 py-2 text-sm focus:ring-court-500 focus:border-court-500"
                       />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Location</label>
+                    <label className="block text-xs font-medium text-gray-600 text-gray-400 mb-1">Location</label>
                     <input
                       type="text"
                       value={newRun.default_location}
                       onChange={(e) => setNewRun({ ...newRun, default_location: e.target.value })}
                       placeholder="e.g. Downtown Rec Center"
-                      className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md px-3 py-2 text-sm focus:ring-court-500 focus:border-court-500"
+                      className="w-full border border-gray-600 bg-gray-700 text-gray-100 rounded-md px-3 py-2 text-sm focus:ring-court-500 focus:border-court-500"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Season Start</label>
+                      <label className="block text-xs font-medium text-gray-600 text-gray-400 mb-1">Season Start</label>
                       <input
                         type="date"
                         value={newRun.start_date}
                         onChange={(e) => setNewRun({ ...newRun, start_date: e.target.value })}
-                        className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-md px-3 py-2 text-sm focus:ring-court-500 focus:border-court-500"
+                        className="w-full border border-gray-600 bg-gray-700 text-gray-200 rounded-md px-3 py-2 text-sm focus:ring-court-500 focus:border-court-500"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Season End</label>
+                      <label className="block text-xs font-medium text-gray-600 text-gray-400 mb-1">Season End</label>
                       <input
                         type="date"
                         value={newRun.end_date}
                         onChange={(e) => setNewRun({ ...newRun, end_date: e.target.value })}
-                        className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-md px-3 py-2 text-sm focus:ring-court-500 focus:border-court-500"
+                        className="w-full border border-gray-600 bg-gray-700 text-gray-200 rounded-md px-3 py-2 text-sm focus:ring-court-500 focus:border-court-500"
                       />
                     </div>
                   </div>
-                  <p className="text-xs text-gray-400 dark:text-gray-500">Schedule and dates are optional. You can set them later in Run Settings.</p>
+                  <p className="text-xs text-gray-500">Schedule and dates are optional. You can set them later in Run Settings.</p>
                   <div className="flex justify-end space-x-3 pt-2">
-                    <button type="button" onClick={() => setShowCreateRun(false)} className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 px-4 py-2">
+                    <button type="button" onClick={() => setShowCreateRun(false)} className="text-sm text-gray-600 text-gray-400 hover:text-gray-800 px-4 py-2">
                       Cancel
                     </button>
                     <button type="submit" disabled={creating || !newRun.name.trim()} className="text-sm bg-court-600 text-white rounded-md px-4 py-2 hover:bg-court-700 disabled:opacity-50">
