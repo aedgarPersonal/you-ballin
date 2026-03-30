@@ -49,11 +49,18 @@ export default function DashboardPage() {
       if (gamesRes.status !== "fulfilled") { setLoading(false); return; }
 
       const games = gamesRes.value.data;
+      const now = new Date();
+
+      // Next game: soonest active game from today onwards
       const activeGames = games
-        .filter((g) => !["completed", "cancelled", "skipped"].includes(g.status))
+        .filter((g) => !["completed", "cancelled", "skipped"].includes(g.status) && new Date(g.game_date) >= new Date(now.toDateString()))
         .sort((a, b) => new Date(a.game_date) - new Date(b.game_date));
       const upcoming = activeGames[0] || null;
-      const completed = games.find((g) => g.status === "completed");
+
+      // Last game: most recent completed game on or before today
+      const completed = games
+        .filter((g) => g.status === "completed" && new Date(g.game_date) <= now)
+        .sort((a, b) => new Date(b.game_date) - new Date(a.game_date))[0] || null;
 
       // Step 2: Fetch game details in parallel
       const detailFetches = [];
