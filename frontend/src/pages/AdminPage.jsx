@@ -1886,7 +1886,7 @@ function InviteCodesPanel({ runId }) {
 
   useEffect(() => { fetchCodes(); }, [runId]);
 
-  const handleGenerate = async () => {
+  const handleGenerate = async (mode = "copy") => {
     setGenerating(true);
     try {
       const expires = new Date();
@@ -1896,10 +1896,15 @@ function InviteCodesPanel({ runId }) {
         expires_at: expires.toISOString(),
       };
       const { data } = await createInviteCode(runId, payload);
-      const code = data.code || data;
-      const url = `${window.location.origin}/register?code=${typeof code === "string" ? code : code.code}`;
-      await navigator.clipboard.writeText(url);
-      toast.success("Invite link copied to clipboard!");
+      const codeStr = typeof data === "string" ? data : (data.code || "");
+      if (mode === "qr") {
+        setQrCode(codeStr);
+        toast.success("Invite code generated!");
+      } else {
+        const url = `${window.location.origin}/register?code=${codeStr}`;
+        await navigator.clipboard.writeText(url);
+        toast.success("Invite link copied to clipboard!");
+      }
       setExpireDays(1);
       setMaxUses(1);
       fetchCodes();
@@ -1963,8 +1968,12 @@ function InviteCodesPanel({ runId }) {
               ))}
             </select>
           </div>
-          <button onClick={handleGenerate} disabled={generating} className="btn-primary text-sm">
+          <button onClick={() => handleGenerate("copy")} disabled={generating} className="btn-primary text-sm">
             {generating ? "Generating..." : "Generate & Copy Link"}
+          </button>
+          <button onClick={() => handleGenerate("qr")} disabled={generating}
+            className="text-sm font-semibold py-2 px-4 rounded-lg bg-purple-500 hover:bg-purple-600 text-white transition-colors">
+            Generate & QR Code
           </button>
         </div>
       </div>
