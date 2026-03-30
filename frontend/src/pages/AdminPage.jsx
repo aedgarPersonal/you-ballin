@@ -1018,10 +1018,12 @@ export default function AdminPage() {
             };
             const inputCls = "w-14 text-sm border rounded px-1 py-1 bg-gray-700 text-gray-200 border-gray-600 text-center";
             return (
+              <div className="rounded-xl bg-gradient-to-b from-gray-600 to-gray-700 p-[1.5px]">
+              <div className="rounded-[10px] bg-gray-950 overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
                   <thead>
-                    <tr className="border-b border-gray-700">
+                    <tr className="border-b border-gray-700 bg-gray-900/50">
                       <SortTh field="full_name">Player</SortTh>
                       <SortTh field="player_status">Status</SortTh>
                       {currentRun?.dropin_priority_mode === "admin" && <SortTh field="dropin_priority">Wait List Priority</SortTh>}
@@ -1194,6 +1196,8 @@ export default function AdminPage() {
                   </tbody>
                 </table>
               </div>
+              </div>
+              </div>
             );
           })()}
 
@@ -1205,7 +1209,7 @@ export default function AdminPage() {
               </h2>
               <div className="space-y-3">
                 {suggestions.map((s) => (
-                  <div key={s.id} className="flex items-center justify-between p-3 bg-gray-50 bg-gray-950 rounded-lg">
+                  <div key={s.id} className="flex items-center justify-between p-3 bg-gray-950 rounded-lg">
                     <div>
                       <p className="font-medium text-gray-100">
                         {s.suggested_user?.full_name || `User #${s.suggested_user_id}`}
@@ -1333,7 +1337,7 @@ export default function AdminPage() {
                 </div>
                 <div className="px-6 py-4">
                   <p className="text-sm text-gray-400 mb-3">Paste player data below (one per line):</p>
-                  <div className="bg-gray-50 bg-gray-950 rounded-lg p-2 mb-3 text-xs font-mono text-gray-400 space-y-0.5">
+                  <div className="bg-gray-950 rounded-lg p-2 mb-3 text-xs font-mono text-gray-400 space-y-0.5">
                     <p>Name, Email, Wins, Losses</p>
                   </div>
                   <p className="text-xs text-gray-500 mb-3">
@@ -1741,7 +1745,7 @@ export default function AdminPage() {
 
             {/* New metric form */}
             {showNewMetricForm && (
-              <form onSubmit={handleCreateMetric} className="bg-gray-50 bg-gray-950 rounded-lg p-4 mb-4 space-y-3">
+              <form onSubmit={handleCreateMetric} className="bg-gray-950 rounded-lg p-4 mb-4 space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-gray-400 mb-1">
@@ -1829,7 +1833,7 @@ export default function AdminPage() {
                 {customMetrics.map((metric) => (
                   <div
                     key={metric.id}
-                    className="flex items-center justify-between py-2 px-3 bg-gray-50 bg-gray-950 rounded-lg"
+                    className="flex items-center justify-between py-2 px-3 bg-gray-950 rounded-lg"
                   >
                     <div>
                       <span className="text-sm font-medium text-gray-800 text-gray-200">
@@ -1953,7 +1957,7 @@ function InviteCodesPanel({ runId }) {
         <h2 className="font-retro text-[9px] text-gray-100">Invite Codes</h2>
       </div>
 
-      <div className="mb-4 p-4 bg-gray-50 bg-gray-950 rounded-lg">
+      <div className="mb-4 p-4 bg-gray-950 rounded-lg">
         <div className="flex items-end gap-3 flex-wrap">
           <div>
             <label className="block text-xs font-medium text-gray-400 mb-1">Uses</label>
@@ -2098,18 +2102,20 @@ function InviteCodesPanel({ runId }) {
 function SettingsSection({ title, defaultOpen = false, children }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="card mb-3">
-      <button
-        type="button"
-        onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between text-left"
-      >
-        <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">{title}</h3>
-        <span className={`text-gray-400 transition-transform ${open ? "rotate-180" : ""}`}>
-          &#9660;
-        </span>
-      </button>
-      {open && <div className="mt-3">{children}</div>}
+    <div className="rounded-xl bg-gradient-to-b from-gray-600 to-gray-700 p-[1.5px] mb-3">
+      <div className="rounded-[10px] bg-gray-950 overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setOpen(!open)}
+          className="w-full flex items-center justify-between text-left bg-gradient-to-r from-gray-800 to-gray-800/50 px-5 py-3 hover:from-gray-700 transition-colors"
+        >
+          <h3 className="font-retro text-[8px] text-gray-300 tracking-wider">{title.toUpperCase()}</h3>
+          <span className={`text-gray-500 transition-transform text-xs ${open ? "rotate-180" : ""}`}>
+            &#9660;
+          </span>
+        </button>
+        {open && <div className="px-5 py-4 border-t border-gray-800">{children}</div>}
+      </div>
     </div>
   );
 }
