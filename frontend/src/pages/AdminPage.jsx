@@ -1867,9 +1867,8 @@ function InviteCodesPanel({ runId }) {
   const [codes, setCodes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
-  const [showForm, setShowForm] = useState(false);
-  const [maxUses, setMaxUses] = useState("");
-  const [expiresAt, setExpiresAt] = useState("");
+  const [expireDays, setExpireDays] = useState(1);
+  const [maxUses, setMaxUses] = useState(1);
   const [qrCode, setQrCode] = useState(null);
 
   const fetchCodes = async () => {
@@ -1889,14 +1888,19 @@ function InviteCodesPanel({ runId }) {
   const handleGenerate = async () => {
     setGenerating(true);
     try {
-      const payload = {};
-      if (maxUses) payload.max_uses = parseInt(maxUses);
-      if (expiresAt) payload.expires_at = new Date(expiresAt).toISOString();
-      await createInviteCode(runId, payload);
-      toast.success("Invite code generated!");
-      setShowForm(false);
-      setMaxUses("");
-      setExpiresAt("");
+      const expires = new Date();
+      expires.setDate(expires.getDate() + expireDays);
+      const payload = {
+        max_uses: maxUses,
+        expires_at: expires.toISOString(),
+      };
+      const { data } = await createInviteCode(runId, payload);
+      const code = data.code || data;
+      const url = `${window.location.origin}/register?code=${typeof code === "string" ? code : code.code}`;
+      await navigator.clipboard.writeText(url);
+      toast.success("Invite link copied to clipboard!");
+      setExpireDays(1);
+      setMaxUses(1);
       fetchCodes();
     } catch (err) {
       toast.error(err.response?.data?.detail || "Failed to generate code");
@@ -1927,43 +1931,30 @@ function InviteCodesPanel({ runId }) {
     <div className="card">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Invite Codes</h2>
-        <button onClick={() => setShowForm(!showForm)} className="btn-primary text-sm">
-          + Generate Code
-        </button>
       </div>
 
-      {showForm && (
-        <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-            <div>
-              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Max Uses (optional)</label>
-              <input
-                type="number"
-                min="1"
-                value={maxUses}
-                onChange={(e) => setMaxUses(e.target.value)}
-                className="input text-sm"
-                placeholder="Unlimited"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Expires (optional)</label>
-              <input
-                type="datetime-local"
-                value={expiresAt}
-                onChange={(e) => setExpiresAt(e.target.value)}
-                className="input text-sm"
-              />
-            </div>
+      <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+        <div className="flex items-end gap-3 flex-wrap">
+          <div>
+            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Uses</label>
+            <input type="number" min="1" max="50" value={maxUses}
+              onChange={(e) => setMaxUses(parseInt(e.target.value) || 1)}
+              className="input text-sm w-20" />
           </div>
-          <div className="flex gap-2">
-            <button onClick={handleGenerate} disabled={generating} className="btn-primary text-sm">
-              {generating ? "Generating..." : "Generate"}
-            </button>
-            <button onClick={() => setShowForm(false)} className="btn-secondary text-sm">Cancel</button>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Expires in</label>
+            <select value={expireDays} onChange={(e) => setExpireDays(parseInt(e.target.value))}
+              className="input text-sm w-28">
+              {[1, 2, 3, 4, 5, 6, 7].map((d) => (
+                <option key={d} value={d}>{d} day{d > 1 ? "s" : ""}</option>
+              ))}
+            </select>
           </div>
+          <button onClick={handleGenerate} disabled={generating} className="btn-primary text-sm">
+            {generating ? "Generating..." : "Generate & Copy Link"}
+          </button>
         </div>
-      )}
+      </div>
 
       {loading ? (
         <p className="text-gray-500 dark:text-gray-400">Loading...</p>
