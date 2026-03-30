@@ -170,72 +170,71 @@ export default function DashboardPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Welcome Section */}
+      {/* Welcome Section — retro header */}
       <div className="mb-8 flex items-center gap-4">
         {user?.avatar_url ? (
           <Link to={`/players/${user?.id}`}>
-            <AvatarBadge avatarId={user.avatar_url} size="lg" />
+            <div className="rounded-xl bg-gradient-to-b from-amber-300 via-yellow-400 to-amber-500 p-[2px]">
+              <div className="rounded-[10px] bg-gray-950 p-1.5">
+                <AvatarBadge avatarId={user.avatar_url} size="lg" />
+              </div>
+            </div>
           </Link>
         ) : null}
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-            Welcome back, {user?.full_name?.split(" ")[0]}!
+          <h1 className="font-retro text-sm text-gray-900 dark:text-gray-100">
+            {user?.full_name?.split(" ")[0]?.toUpperCase()}
           </h1>
           {currentRun && (
-            <p className="text-sm font-medium text-court-600 mt-0.5">{currentRun.name}</p>
+            <p className="text-xs font-medium text-court-500 mt-1">{currentRun.name}</p>
           )}
           {isRunMember && (
-            <p className="text-gray-600 dark:text-gray-400 mt-1">{statusMessage[user?.player_status] || ""}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{statusMessage[user?.player_status] || ""}</p>
           )}
           {!isRunMember && user?.role === "super_admin" && (
-            <p className="text-gray-600 dark:text-gray-400 mt-1">Managing as Super Admin</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Managing as Super Admin</p>
           )}
           {user?.avatar_url && getPlayerById(user.avatar_url) && (
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+            <p className="text-[10px] text-gray-500 dark:text-gray-600 mt-0.5">
               Repping {getPlayerById(user.avatar_url).name} — {getPlayerById(user.avatar_url).team}
             </p>
           )}
         </div>
       </div>
 
-      {/* Status Cards — only for run members */}
+      {/* Stats Cards — retro style */}
       {isRunMember && (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <div className="card">
-          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Win Rate</h3>
-          <div className="mt-2">
-            <div className="text-3xl font-bold text-court-600">
+      <div className="grid grid-cols-2 gap-4 mb-6">
+        <div className="rounded-xl bg-gradient-to-b from-court-400 to-court-600 p-[2px]">
+          <div className="rounded-[10px] bg-gray-950 p-4 text-center">
+            <div className="font-retro text-2xl text-court-400">
               {((user?.win_rate || 0.5) * 100).toFixed(0)}%
             </div>
-            <div className="text-xs text-gray-500 dark:text-gray-400">
+            <div className="text-[8px] text-gray-500 uppercase tracking-wider mt-1">Win Rate</div>
+            <div className="text-xs text-gray-400 mt-0.5">
               {user?.games_won || 0}W - {(user?.games_played || 0) - (user?.games_won || 0)}L
             </div>
           </div>
         </div>
-        <div className="card">
-          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Current Form</h3>
-          <div className="mt-2">
+        <div className="rounded-xl bg-gradient-to-b from-arcade-400 to-arcade-600 p-[2px]">
+          <div className="rounded-[10px] bg-gray-950 p-4 text-center">
             {myForm?.current_streak?.count > 0 ? (
-              <div className="flex items-center gap-3">
-                <div className={`text-3xl font-bold ${
-                  myForm.current_streak.type === "win" ? "text-green-500" : "text-red-500"
+              <>
+                <div className={`font-retro text-2xl ${
+                  myForm.current_streak.type === "win" ? "text-green-400" : "text-red-400"
                 }`}>
-                  {myForm.current_streak.type === "win" ? "🔥" : "❄️"} {myForm.current_streak.count}{myForm.current_streak.type === "win" ? "W" : "L"}
+                  {myForm.current_streak.count}{myForm.current_streak.type === "win" ? "W" : "L"}
                 </div>
-                {myForm.trend && (
-                  <span className={`text-lg ${
-                    myForm.trend === "improving" ? "text-green-500" :
-                    myForm.trend === "declining" ? "text-red-500" : "text-gray-400"
-                  }`}>
-                    {myForm.trend === "improving" ? "↑" : myForm.trend === "declining" ? "↓" : "→"}
-                  </span>
-                )}
-              </div>
+                <div className="text-[8px] text-gray-500 uppercase tracking-wider mt-1">Streak</div>
+              </>
             ) : (
-              <div className="text-3xl font-bold text-gray-400">—</div>
+              <>
+                <div className="font-retro text-2xl text-gray-600">—</div>
+                <div className="text-[8px] text-gray-500 uppercase tracking-wider mt-1">Streak</div>
+              </>
             )}
             {myForm?.last_5 && (
-              <div className="text-xs text-gray-500 dark:text-gray-400">
+              <div className="text-xs text-gray-400 mt-0.5">
                 Last 5: {myForm.last_5.wins}W-{myForm.last_5.losses}L
               </div>
             )}
@@ -243,198 +242,178 @@ export default function DashboardPage() {
         </div>
       </div>)}
 
-      {/* Next Game with RSVP */}
-      <div className="card mb-6">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Next Game</h2>
-        {loading ? (
-          <p className="text-gray-500 dark:text-gray-400">Loading...</p>
-        ) : nextGame ? (
-          <div>
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div>
-                <h3 className="text-lg font-semibold">{nextGame.title}</h3>
-                <p className="text-gray-600 dark:text-gray-400">
-                  {new Date(nextGame.game_date).toLocaleDateString("en-US", {
-                    weekday: "long", month: "long", day: "numeric",
-                    hour: "numeric", minute: "2-digit",
-                  })}
-                </p>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  {nextGame.location} &middot; {nextGame.accepted_count}/{nextGame.roster_size} players
-                </p>
-                <span className={`badge mt-2 inline-block ${
-                  nextGame.status === "teams_set" ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" :
-                  nextGame.status === "dropin_open" ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400" :
-                  "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
-                }`}>
-                  {nextGame.status.replace("_", " ")}
+      {/* Next Game — gold frame */}
+      <div className="mb-6">
+        <h2 className="text-xs font-bold text-court-500 uppercase tracking-wider mb-2">Next Game</h2>
+        <div className="rounded-xl bg-gradient-to-b from-amber-300 via-yellow-400 to-amber-500 p-[2px]">
+          <div className="rounded-[10px] bg-gradient-to-b from-gray-950 via-gray-900 to-gray-950 overflow-hidden">
+            {/* Header strip */}
+            <div className="bg-gradient-to-r from-arcade-700 via-arcade-600 to-court-600 px-4 py-1.5 flex items-center justify-between">
+              <span className="font-retro text-[7px] text-white/60 tracking-widest">NEXT UP</span>
+              {nextGame && (
+                <span className="text-[10px] text-white/50">
+                  {nextGame.accepted_count}/{nextGame.roster_size} players
                 </span>
-              </div>
-              <Link to={`/games/${nextGame.id}`} className="text-sm text-court-600 hover:text-court-700 font-medium">
-                View Details &rarr;
-              </Link>
+              )}
             </div>
 
-            {/* RSVP Action — only for run members */}
-            {nextGame.status !== "teams_set" && isRunMember && (
-              <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
-                {myRsvp ? (
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm text-gray-500 dark:text-gray-400">Your RSVP:</span>
-                    <span className={`badge ${
-                      myRsvp.status === "accepted" ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" :
-                      myRsvp.status === "declined" ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400" :
-                      "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
-                    }`}>{myRsvp.status}</span>
-                    {myRsvp.status !== "accepted" && (
-                      <button onClick={() => handleRsvp("accepted")} className="btn-primary text-sm py-1.5 px-3">
-                        I'm In!
-                      </button>
-                    )}
-                    {myRsvp.status !== "declined" && (
-                      <button onClick={() => handleRsvp("declined")} className="btn-secondary text-sm py-1.5 px-3">
-                        Can't Make It
-                      </button>
-                    )}
+            <div className="p-4">
+              {loading ? (
+                <p className="text-gray-500 text-sm">Loading...</p>
+              ) : nextGame ? (
+                <div>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div>
+                      <h3 className="font-retro text-[10px] text-white">{nextGame.title.toUpperCase()}</h3>
+                      <p className="text-sm text-gray-400 mt-1">
+                        {new Date(nextGame.game_date).toLocaleDateString("en-US", {
+                          weekday: "long", month: "long", day: "numeric",
+                          hour: "numeric", minute: "2-digit",
+                        })}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-0.5">{nextGame.location}</p>
+                    </div>
+                    <Link to={`/games/${nextGame.id}`} className="text-xs text-court-400 hover:text-court-300 font-medium">
+                      Details →
+                    </Link>
                   </div>
-                ) : (
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm text-gray-500 dark:text-gray-400">Are you playing?</span>
-                    <button onClick={() => handleRsvp("accepted")} className="btn-primary text-sm py-1.5 px-4">
-                      I'm In!
-                    </button>
-                    <button onClick={() => handleRsvp("declined")} className="btn-secondary text-sm py-1.5 px-4">
-                      Can't Make It
-                    </button>
+
+                  {/* RSVP Action */}
+                  {nextGame.status !== "teams_set" && isRunMember && (
+                    <div className="mt-3 pt-3 border-t border-gray-700/50">
+                      {myRsvp ? (
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs text-gray-500">RSVP:</span>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                            myRsvp.status === "accepted" ? "bg-green-500/20 text-green-400" :
+                            myRsvp.status === "declined" ? "bg-red-500/20 text-red-400" :
+                            "bg-gray-700 text-gray-400"
+                          }`}>{myRsvp.status.toUpperCase()}</span>
+                          {myRsvp.status !== "accepted" && (
+                            <button onClick={() => handleRsvp("accepted")} className="btn-primary text-xs py-1 px-3">
+                              I'm In!
+                            </button>
+                          )}
+                          {myRsvp.status !== "declined" && (
+                            <button onClick={() => handleRsvp("declined")} className="btn-secondary text-xs py-1 px-3">
+                              Can't Make It
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs text-gray-500">Are you playing?</span>
+                          <button onClick={() => handleRsvp("accepted")} className="btn-primary text-xs py-1 px-3">
+                            I'm In!
+                          </button>
+                          <button onClick={() => handleRsvp("declined")} className="btn-secondary text-xs py-1 px-3">
+                            Can't Make It
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-gray-500 text-sm">No upcoming games scheduled.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Last Completed Game — purple frame */}
+      {lastCompleted && (
+        <div className="mb-6">
+          <h2 className="text-xs font-bold text-purple-400 uppercase tracking-wider mb-2">Last Game</h2>
+          <div className="rounded-xl bg-gradient-to-b from-purple-400 via-purple-500 to-purple-600 p-[2px]">
+            <div className="rounded-[10px] bg-gradient-to-b from-gray-950 via-gray-900 to-gray-950 overflow-hidden">
+              {/* Header strip */}
+              <div className="bg-gradient-to-r from-purple-800 via-purple-700 to-purple-600 px-4 py-1.5 flex items-center justify-between">
+                <span className="font-retro text-[7px] text-white/60 tracking-widest">FINAL</span>
+                <Link to={`/games/${lastCompleted.id}`} className="text-[10px] text-white/50 hover:text-white/80">
+                  Details →
+                </Link>
+              </div>
+
+              <div className="p-4">
+                <h3 className="font-retro text-[10px] text-white">{lastCompleted.title.toUpperCase()}</h3>
+
+                {/* Score */}
+                {lastCompleted.result?.team_scores?.length > 0 && (
+                  <div className="flex items-center gap-4 mt-3 justify-center">
+                    {[...lastCompleted.result.team_scores]
+                      .sort((a, b) => b.wins - a.wins)
+                      .map((ts, idx) => (
+                        <div key={ts.team} className="flex items-center gap-2">
+                          {idx > 0 && <span className="font-retro text-[10px] text-gray-600">VS</span>}
+                          <div className="text-center">
+                            <div className="font-retro text-lg text-court-400">{ts.wins}</div>
+                            <div className="text-[9px] text-gray-500">{ts.team_name}</div>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                )}
+
+                {/* Commentary */}
+                {lastCompleted.commentary && (
+                  <p className="text-xs text-gray-500 italic mt-3">{lastCompleted.commentary}</p>
+                )}
+
+                {/* Voting or Awards */}
+                {lastAwards && (
+                  <div className="mt-3 pt-3 border-t border-gray-700/50">
+                    {lastAwards.voting_open && isParticipant ? (
+                      <>
+                        <p className="text-[10px] font-bold text-gray-400 mb-2">
+                          VOTE ({lastAwards.votes_cast}/{lastAwards.total_voters})
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                          <VoteDropdown label="MVP" emoji="🏆" voteType="mvp"
+                            players={eligibleForVote} currentVoteId={myVotes?.mvp_vote?.nominee_id} onVote={handleVote} />
+                          <VoteDropdown label="X Factor" emoji="⚡" voteType="xfactor"
+                            players={eligibleForVote} currentVoteId={myVotes?.xfactor_vote?.nominee_id} onVote={handleVote} />
+                          <VoteDropdown label="Shaqtin'" emoji="🤦" voteType="shaqtin"
+                            players={eligibleForVote} currentVoteId={myVotes?.shaqtin_vote?.nominee_id} onVote={handleVote} />
+                        </div>
+                      </>
+                    ) : !lastAwards.voting_open ? (
+                      <div className="grid grid-cols-3 gap-2">
+                        <AwardCard label="MVP" emoji="🏆" winner={lastAwards.mvp} />
+                        <AwardCard label="X Factor" emoji="⚡" winner={lastAwards.xfactor} />
+                        <AwardCard label="Shaqtin'" emoji="🤦" winner={lastAwards.shaqtin} />
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-500">
+                        Voting open — {lastAwards.votes_cast}/{lastAwards.total_voters} voted
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
-            )}
-          </div>
-        ) : (
-          <p className="text-gray-500 dark:text-gray-400">No upcoming games scheduled.</p>
-        )}
-      </div>
-
-      {/* Last Completed Game */}
-      {lastCompleted && (
-        <div className="card mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Last Game</h2>
-            <Link to={`/games/${lastCompleted.id}`} className="text-sm text-court-600 hover:text-court-700 font-medium">
-              View Details &rarr;
-            </Link>
-          </div>
-
-          <h3 className="font-semibold text-gray-800 dark:text-gray-200">{lastCompleted.title}</h3>
-
-          {/* Score */}
-          {lastCompleted.result?.team_scores?.length > 0 && (
-            <div className="flex items-center gap-3 mt-2 flex-wrap">
-              {[...lastCompleted.result.team_scores]
-                .sort((a, b) => b.wins - a.wins)
-                .map((ts, idx) => (
-                  <div key={ts.team} className="flex items-center gap-1">
-                    {idx > 0 && <span className="text-gray-400 font-bold mr-1">-</span>}
-                    <span className="font-medium text-gray-700 dark:text-gray-300">{ts.team_name}</span>
-                    <span className="text-xl font-black text-court-600">{ts.wins}</span>
-                  </div>
-                ))}
             </div>
-          )}
-
-          {/* Commentary */}
-          {lastCompleted.commentary && (
-            <p className="text-sm text-gray-600 dark:text-gray-400 italic mt-3">{lastCompleted.commentary}</p>
-          )}
-
-          {/* Voting (dropdowns) or Award Results */}
-          {lastAwards && (
-            <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
-              {lastAwards.voting_open && isParticipant ? (
-                <>
-                  <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                    Player Award Voting ({lastAwards.votes_cast}/{lastAwards.total_voters} voted)
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <VoteDropdown
-                      label="MVP"
-                      emoji="🏆"
-                      voteType="mvp"
-                      players={eligibleForVote}
-                      currentVoteId={myVotes?.mvp_vote?.nominee_id}
-                      onVote={handleVote}
-                    />
-                    <VoteDropdown
-                      label="X Factor"
-                      emoji="⚡"
-                      voteType="xfactor"
-                      players={eligibleForVote}
-                      currentVoteId={myVotes?.xfactor_vote?.nominee_id}
-                      onVote={handleVote}
-                    />
-                    <VoteDropdown
-                      label="Shaqtin'"
-                      emoji="🤦"
-                      voteType="shaqtin"
-                      players={eligibleForVote}
-                      currentVoteId={myVotes?.shaqtin_vote?.nominee_id}
-                      onVote={handleVote}
-                    />
-                  </div>
-                </>
-              ) : !lastAwards.voting_open ? (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <AwardCard label="MVP" emoji="🏆" winner={lastAwards.mvp}
-                    gradient="from-yellow-50 to-amber-50" border="border-yellow-300"
-                    labelColor="text-yellow-700" nameColor="text-yellow-900" />
-                  <AwardCard label="X Factor" emoji="⚡" winner={lastAwards.xfactor}
-                    gradient="from-blue-50 to-indigo-50" border="border-blue-300"
-                    labelColor="text-blue-700" nameColor="text-blue-900" />
-                  <AwardCard label="Shaqtin'" emoji="🤦" winner={lastAwards.shaqtin}
-                    gradient="from-purple-50 to-fuchsia-50" border="border-purple-300"
-                    labelColor="text-purple-700" nameColor="text-purple-900" />
-                </div>
-              ) : (
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Player award voting is open. {lastAwards.votes_cast}/{lastAwards.total_voters} participants have voted.
-                </p>
-              )}
-            </div>
-          )}
+          </div>
         </div>
       )}
 
-      {/* Quick Links */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mt-8">
-        <Link to="/games" className="card hover:shadow-md transition-shadow text-center">
-          <span className="text-3xl">🏀</span>
-          <p className="mt-2 font-medium">All Games</p>
-        </Link>
-        <Link to="/players" className="card hover:shadow-md transition-shadow text-center">
-          <span className="text-3xl">👥</span>
-          <p className="mt-2 font-medium">Roster</p>
-        </Link>
-        <Link to="/stats" className="card hover:shadow-md transition-shadow text-center">
-          <span className="text-3xl">📊</span>
-          <p className="mt-2 font-medium">Stats</p>
-        </Link>
-        <Link to="/notifications" className="card hover:shadow-md transition-shadow text-center">
-          <span className="text-3xl">🔔</span>
-          <p className="mt-2 font-medium">Notifications</p>
-        </Link>
-        {isRunMember && (
-          <Link to={`/players/${user?.id}`} className="card hover:shadow-md transition-shadow text-center">
-            <span className="text-3xl">⭐</span>
-            <p className="mt-2 font-medium">My Profile</p>
+      {/* Quick Links — retro cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mt-8">
+        {[
+          { to: "/games", icon: "🏀", label: "Games" },
+          { to: "/players", icon: "👥", label: "Roster" },
+          { to: "/stats", icon: "📊", label: "Stats" },
+          { to: "/notifications", icon: "🔔", label: "Alerts" },
+          ...(isRunMember ? [{ to: `/players/${user?.id}`, icon: "⭐", label: "Profile" }] : []),
+          ...((user?.role === "super_admin" || user?.role === "admin") ? [{ to: "/admin", icon: "⚙️", label: "Admin" }] : []),
+        ].map((link) => (
+          <Link key={link.to} to={link.to} className="block rounded-xl bg-gradient-to-b from-gray-600 to-gray-700 p-[1.5px] hover:from-court-400 hover:to-court-600 transition-all">
+            <div className="rounded-[10px] bg-gray-950 py-4 text-center hover:bg-gray-900 transition-colors">
+              <span className="text-2xl">{link.icon}</span>
+              <p className="font-retro text-[7px] text-gray-400 mt-2">{link.label.toUpperCase()}</p>
+            </div>
           </Link>
-        )}
-        {(user?.role === "super_admin" || user?.role === "admin") && (
-          <Link to="/admin" className="card hover:shadow-md transition-shadow text-center border-court-300 dark:border-court-700">
-            <span className="text-3xl">⚙️</span>
-            <p className="mt-2 font-medium text-court-600">Admin</p>
-          </Link>
-        )}
+        ))}
       </div>
     </div>
   );
@@ -468,27 +447,27 @@ function VoteDropdown({ label, emoji, voteType, players, currentVoteId, onVote }
 /**
  * AwardCard — a mini card for displaying a single award winner.
  */
-function AwardCard({ label, emoji, winner, gradient, border, labelColor, nameColor }) {
+function AwardCard({ label, emoji, winner }) {
   return (
-    <div className={`bg-gradient-to-br ${gradient} ${border} dark:border-gray-600 dark:from-gray-700 dark:to-gray-700 border rounded-lg p-3 text-center`}>
-      <div className="text-2xl mb-1">{emoji}</div>
-      <div className={`text-[10px] font-bold uppercase tracking-wider ${labelColor} mb-1`}>{label}</div>
+    <div className="bg-gray-800/50 border border-gray-700/50 rounded-lg p-2 text-center">
+      <div className="text-lg">{emoji}</div>
+      <div className="font-retro text-[6px] text-gray-500 uppercase tracking-wider mt-0.5">{label}</div>
       {winner ? (
         <>
-          <div className="flex justify-center mb-1">
+          <div className="flex justify-center mt-1">
             {winner.player.avatar_url ? (
               <AvatarBadge avatarId={winner.player.avatar_url} size="sm" />
             ) : (
-              <div className="w-8 h-8 rounded-full bg-white/60 flex items-center justify-center text-sm font-bold text-gray-600 dark:text-gray-400">
+              <div className="w-7 h-7 rounded-full bg-gray-700 flex items-center justify-center text-xs font-bold text-gray-400">
                 {winner.player.full_name.charAt(0)}
               </div>
             )}
           </div>
-          <div className={`text-sm font-bold ${nameColor} truncate`}>{winner.player.full_name}</div>
-          <div className="text-[10px] text-gray-500 dark:text-gray-400">{winner.vote_count} vote{winner.vote_count !== 1 ? "s" : ""}</div>
+          <div className="text-[10px] font-bold text-white truncate mt-1">{winner.player.full_name}</div>
+          <div className="text-[8px] text-gray-500">{winner.vote_count}v</div>
         </>
       ) : (
-        <div className="text-xs text-gray-400 dark:text-gray-500 italic">No votes</div>
+        <div className="text-[9px] text-gray-600 italic mt-1">—</div>
       )}
     </div>
   );
