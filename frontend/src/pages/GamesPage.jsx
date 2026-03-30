@@ -242,57 +242,75 @@ function GamesList({ games }) {
 
 function GameCard({ game, priority = false, past = false }) {
   const isCancelled = game.status === "cancelled";
+
+  // Status-specific border gradients
+  const borderColors = {
+    scheduled: "from-gray-400 via-gray-300 to-gray-400",
+    invites_sent: "from-blue-400 via-blue-300 to-blue-500",
+    dropin_open: "from-yellow-400 via-amber-300 to-yellow-500",
+    teams_set: "from-green-400 via-emerald-300 to-green-500",
+    completed: "from-purple-400 via-purple-300 to-purple-500",
+    cancelled: "from-red-400 via-red-300 to-red-500",
+    skipped: "from-gray-500 via-gray-400 to-gray-500",
+  };
+
+  // Header strip color per status
+  const headerColors = {
+    scheduled: "from-gray-600 to-gray-700",
+    invites_sent: "from-blue-700 via-blue-600 to-arcade-600",
+    dropin_open: "from-yellow-700 via-amber-600 to-court-600",
+    teams_set: "from-green-700 via-emerald-600 to-green-600",
+    completed: "from-purple-700 via-purple-600 to-purple-500",
+    cancelled: "from-red-800 to-red-700",
+    skipped: "from-gray-700 to-gray-600",
+  };
+
+  const border = priority
+    ? "from-amber-300 via-yellow-400 to-amber-500"
+    : borderColors[game.status] || borderColors.scheduled;
+
+  const header = priority
+    ? "from-arcade-700 via-arcade-600 to-court-600"
+    : headerColors[game.status] || headerColors.scheduled;
+
   return (
     <Link
       to={`/games/${game.id}`}
-      className={`block rounded-xl overflow-hidden transition-shadow hover:shadow-lg ${
-        priority
-          ? "bg-gradient-to-b from-amber-300 via-yellow-400 to-amber-500 p-[2px]"
-          : ""
-      }`}
+      className={`block rounded-xl overflow-hidden transition-shadow hover:shadow-xl ${past ? "opacity-60" : ""}`}
     >
-      <div className={`rounded-${priority ? "[10px]" : "xl"} overflow-hidden ${
-        past ? "opacity-60" : ""
-      } ${isCancelled
-        ? "bg-red-50 dark:bg-red-900/10 border border-red-300 dark:border-red-800"
-        : priority
-          ? "bg-gray-950"
-          : "card"
-      }`}>
-        <div className={`p-4 ${priority ? "px-5 py-4" : ""}`}>
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-            <div>
-              <h3 className={`font-semibold ${
-                isCancelled
-                  ? "line-through text-red-600 dark:text-red-400"
-                  : priority
-                    ? "font-retro text-[11px] text-white"
-                    : "text-gray-900 dark:text-gray-100"
-              }`}>
-                {priority ? game.title.toUpperCase() : game.title}
-              </h3>
-              <p className={`text-sm ${priority ? "text-gray-400" : "text-gray-600 dark:text-gray-400"}`}>
-                {new Date(game.game_date).toLocaleDateString("en-US", {
-                  weekday: "long", month: "long", day: "numeric",
-                  hour: "numeric", minute: "2-digit",
-                })}
-              </p>
-              <p className={`text-xs ${priority ? "text-gray-500" : "text-gray-500 dark:text-gray-400"}`}>{game.location}</p>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className={`text-sm ${priority ? "text-gray-400" : "text-gray-600 dark:text-gray-400"}`}>
-                {game.accepted_count}/{game.roster_size}
-              </span>
-              <span className={`badge ${STATUS_COLORS[game.status]}`}>
-                {STATUS_LABELS[game.status]}
-              </span>
-            </div>
+      <div className={`rounded-xl bg-gradient-to-b ${border} p-[2px]`}>
+        <div className="rounded-[10px] bg-gradient-to-b from-gray-950 via-gray-900 to-gray-950 overflow-hidden">
+
+          {/* Header strip */}
+          <div className={`bg-gradient-to-r ${header} px-4 py-1.5 flex items-center justify-between`}>
+            <span className={`badge ${STATUS_COLORS[game.status]}`}>
+              {STATUS_LABELS[game.status]}
+            </span>
+            <span className="text-[10px] text-white/50">
+              {game.accepted_count}/{game.roster_size} players
+            </span>
           </div>
+
+          {/* Card body */}
+          <div className="px-4 py-3">
+            <h3 className={`font-retro text-[10px] leading-tight ${
+              isCancelled ? "line-through text-red-400" : "text-white"
+            }`}>
+              {game.title.toUpperCase()}
+            </h3>
+            <p className="text-sm text-gray-400 mt-1">
+              {new Date(game.game_date).toLocaleDateString("en-US", {
+                weekday: "long", month: "long", day: "numeric",
+                hour: "numeric", minute: "2-digit",
+              })}
+            </p>
+            <p className="text-xs text-gray-500 mt-0.5">{game.location}</p>
+          </div>
+
+          {/* Odds line if available */}
           {game.odds_line && (
-            <div className={`mt-2 pt-2 border-t ${priority ? "border-gray-700/50" : "border-gray-100 dark:border-gray-700"}`}>
-              <span className="text-xs font-mono text-gray-500 dark:text-gray-400">
-                {game.odds_line}
-              </span>
+            <div className="px-4 pb-2">
+              <span className="text-xs font-mono text-gray-500">{game.odds_line}</span>
             </div>
           )}
         </div>
