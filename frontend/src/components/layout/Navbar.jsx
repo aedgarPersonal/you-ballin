@@ -10,7 +10,6 @@ import { useEffect, useState } from "react";
 import useAuthStore from "../../stores/authStore";
 import useNotificationStore from "../../stores/notificationStore";
 import useRunStore from "../../stores/runStore";
-import useThemeStore from "../../stores/themeStore";
 import { createRun } from "../../api/runs";
 import { generateSeasonGames } from "../../api/games";
 import { AvatarBadge } from "../AvatarPicker";
@@ -31,7 +30,7 @@ export default function Navbar() {
   const [createdRun, setCreatedRun] = useState(null);
   const [generating, setGenerating] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { theme, setTheme } = useThemeStore();
+
 
   const location = useLocation();
   const isSuperAdmin = user?.role === "super_admin";
@@ -169,26 +168,6 @@ export default function Navbar() {
                   </span>
                 )}
               </Link>
-
-              <button
-                onClick={() => setTheme(theme === "dark" ? "light" : theme === "light" ? "system" : "dark")}
-                className="p-2 text-gray-500 dark:text-gray-400 hover:text-court-600 dark:hover:text-court-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all"
-                title={`Theme: ${theme}`}
-              >
-                {theme === "dark" ? (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                  </svg>
-                ) : theme === "light" ? (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                  </svg>
-                ) : (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                )}
-              </button>
 
               {/* Desktop user info */}
               <div className="hidden md:flex items-center space-x-2 ml-2 pl-2 border-l border-gray-200 dark:border-gray-700">
