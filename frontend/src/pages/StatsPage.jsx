@@ -425,64 +425,42 @@ export default function StatsPage() {
           <h2 className="font-retro text-[9px] text-gray-400 uppercase tracking-widest mb-4">Recent Games</h2>
           <div className="space-y-3">
             {stats.recent_games.map((game) => (
-              <Link
-                key={game.game_id}
-                to={`/games/${game.game_id}`}
-                className="card block hover:shadow-md transition-shadow"
-              >
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                  <div>
-                    <h3 className="font-semibold text-gray-100">{game.title}</h3>
-                    <p className="text-sm text-gray-400">
-                      {new Date(game.game_date).toLocaleDateString("en-US", {
-                        weekday: "short",
-                        month: "short",
-                        day: "numeric",
-                      })}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    {/* W/L badge */}
+              <Link key={game.game_id} to={`/games/${game.game_id}`}
+                className="block rounded-xl bg-gradient-to-b from-purple-400 via-purple-500 to-purple-600 p-[1.5px] hover:shadow-lg transition-shadow">
+                <div className="rounded-[10px] bg-gray-950 overflow-hidden">
+                  <div className="bg-gradient-to-r from-purple-800 to-purple-700 px-4 py-1 flex items-center justify-between">
+                    <span className="font-retro text-[7px] text-white/60">{new Date(game.game_date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}</span>
                     {game.my_won !== null && game.my_won !== undefined && (
-                      <span className={`text-xs font-bold px-2 py-1 rounded ${
-                        game.my_won
-                          ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                          : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                      }`}>
-                        {game.my_won ? "W" : "L"}
-                      </span>
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                        game.my_won ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"
+                      }`}>{game.my_won ? "W" : "L"}</span>
                     )}
-                    {/* Scores — highlight user's team */}
+                  </div>
+                  <div className="px-4 py-3">
+                    <h3 className="font-retro text-[9px] text-white">{game.title.toUpperCase()}</h3>
                     {game.team_scores.length > 0 && (
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-3 mt-2">
                         {game.team_scores.map((ts, idx) => {
                           const isMyTeam = ts.team_name === game.my_team;
                           const teamColor = isMyTeam
-                            ? (game.my_won ? "text-green-600 dark:text-green-400 font-bold" : "text-red-600 dark:text-red-400 font-bold")
-                            : "text-gray-600 text-gray-400";
+                            ? (game.my_won ? "text-green-400 font-bold" : "text-red-400 font-bold")
+                            : "text-gray-400";
                           return (
-                          <span key={idx} className="flex items-center gap-1">
-                            {idx > 0 && <span className="text-gray-500 font-bold">-</span>}
-                            <span className={`text-sm ${teamColor}`}>{ts.team_name}</span>
-                            <span className="text-lg font-black text-court-600">{ts.wins}</span>
-                          </span>
+                            <span key={idx} className="flex items-center gap-1">
+                              {idx > 0 && <span className="text-gray-600 font-bold">-</span>}
+                              <span className={`text-xs ${teamColor}`}>{ts.team_name}</span>
+                              <span className="font-retro text-[10px] text-court-400">{ts.wins}</span>
+                            </span>
                           );
                         })}
                       </div>
                     )}
-                    {/* Awards */}
-                    <div className="flex items-center gap-2">
-                      {game.mvp && (
-                        <span className="text-sm" title={`MVP: ${game.mvp.full_name}`}>
-                          🏆 {game.mvp.full_name.split(" ")[0]}
-                        </span>
-                      )}
-                      {game.shaqtin && (
-                        <span className="text-sm" title={`Shaqtin': ${game.shaqtin.full_name}`}>
-                          🤦 {game.shaqtin.full_name.split(" ")[0]}
-                        </span>
-                      )}
-                    </div>
+                    {(game.mvp || game.shaqtin) && (
+                      <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-400">
+                        {game.mvp && <span>🏆 {game.mvp.full_name.split(" ")[0]}</span>}
+                        {game.shaqtin && <span>🤦 {game.shaqtin.full_name.split(" ")[0]}</span>}
+                      </div>
+                    )}
                   </div>
                 </div>
               </Link>
@@ -509,16 +487,17 @@ export default function StatsPage() {
                     setSelectedSeason(data);
                   } catch { /* ignore */ }
                 }}
-                className="card block w-full text-left hover:shadow-md transition-shadow"
+                className="block w-full text-left rounded-xl bg-gradient-to-b from-gray-600 to-gray-700 p-[1.5px] hover:shadow-lg transition-shadow"
               >
+                <div className="rounded-[10px] bg-gray-950 p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="font-semibold text-gray-100">{season.label}</h3>
-                    <p className="text-sm text-gray-400">
+                    <h3 className="font-retro text-[9px] text-white">{season.label?.toUpperCase()}</h3>
+                    <p className="text-xs text-gray-500 mt-1">
                       {season.total_games} games &middot; {season.total_players} players
                     </p>
                   </div>
-                  <span className="text-xs text-gray-400">{selectedSeason?.id === season.id ? "▼" : "▶"}</span>
+                  <span className="text-xs text-gray-500">{selectedSeason?.id === season.id ? "▼" : "▶"}</span>
                 </div>
 
                 {selectedSeason?.id === season.id && (
@@ -535,18 +514,19 @@ export default function StatsPage() {
                             idx === 0 ? "bg-yellow-400 text-yellow-900" :
                             idx === 1 ? "bg-gray-300 text-gray-700" :
                             idx === 2 ? "bg-orange-300 text-orange-800" :
-                            "bg-gray-100 bg-gray-700 text-gray-500"
+                            "bg-gray-700 text-gray-400"
                           }`}>{idx + 1}</div>
                           {p.avatar_url && <AvatarBadge avatarId={p.avatar_url} size="sm" />}
                           <span className="text-sm font-medium flex-1 truncate">{p.full_name}</span>
-                          <span className="text-sm font-bold text-court-600">{(p.win_rate * 100).toFixed(0)}%</span>
-                          <span className="text-xs text-gray-400">{p.games_won}W-{p.games_played - p.games_won}L</span>
+                          <span className="text-sm font-bold text-court-400">{(p.win_rate * 100).toFixed(0)}%</span>
+                          <span className="text-xs text-gray-500">{p.games_won}W-{p.games_played - p.games_won}L</span>
                           {p.mvp_count > 0 && <span className="text-xs">🏆{p.mvp_count}</span>}
                         </Link>
                       ))}
                     </div>
                   </div>
                 )}
+                </div>
               </button>
             ))}
           </div>
