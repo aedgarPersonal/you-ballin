@@ -1226,7 +1226,9 @@ async def record_result(
     """
     # Verify game exists and belongs to this run
     result = await db.execute(
-        select(Game).where(Game.id == game_id).options(selectinload(Game.teams))
+        select(Game).where(Game.id == game_id).options(
+            selectinload(Game.teams).selectinload(TeamAssignment.user)
+        )
     )
     game = result.scalar_one_or_none()
     if not game:
