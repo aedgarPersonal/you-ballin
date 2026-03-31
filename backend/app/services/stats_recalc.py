@@ -8,7 +8,7 @@ operation that could make cached stats stale.
 
 import logging
 
-from sqlalchemy import select, func
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -22,12 +22,13 @@ logger = logging.getLogger(__name__)
 async def recalculate_run_stats(db: AsyncSession, run_id: int):
     """Recalculate games_played, games_won, win_rate for all players in a run.
 
-    Computes from actual completed game results (team_assignments + team_scores).
+    Uses the granular per-game scores (e.g., a 3-2 result means 5 games
+    played, 3 won for the winning team, 2 won for the losing team).
     Updates both RunPlayerStats and the User model's cached fields.
     """
     from app.models.user import User
 
-    # Get all completed games with results
+    # Get all completed games with results and scores
     games_result = await db.execute(
         select(Game)
         .where(Game.run_id == run_id, Game.status == GameStatus.COMPLETED)
@@ -35,13 +36,16 @@ async def recalculate_run_stats(db: AsyncSession, run_id: int):
     )
     completed_games = games_result.scalars().all()
 
-    # Build winning team map
-    game_winners: dict[int, str] = {}
+    # Build per-game score maps: game_id -> {team: wins, total: total_games}
+    game_scores: dict[int, dict] = {}
     for game in completed_games:
         if game.result and game.result.team_scores:
-            winner = max(game.result.team_scores, key=lambda ts: ts.wins)
-            if winner.wins > 0:
-                game_winners[game.id] = winner.team
+            score_map = {}
+            total = 0
+            for ts in game.result.team_scores:
+                score_map[ts.team] = ts.wins
+                total += ts.wins
+            game_scores[game.id] = {"scores": score_map, "total": total}
 
     # Get all team assignments for completed games
     game_ids = [g.id for g in completed_games]
@@ -54,7 +58,6 @@ async def recalculate_run_stats(db: AsyncSession, run_id: int):
             rps.games_played = 0
             rps.games_won = 0
             rps.win_rate = 0.5
-            # Also update User
             user_result = await db.execute(select(User).where(User.id == rps.user_id))
             user = user_result.scalar_one_or_none()
             if user:
@@ -70,15 +73,18 @@ async def recalculate_run_stats(db: AsyncSession, run_id: int):
     )
     all_assignments = assignments_result.scalars().all()
 
-    # Compute per-player stats
+    # Compute per-player stats using granular scores
     player_stats: dict[int, dict] = {}
     for a in all_assignments:
         if a.user_id not in player_stats:
             player_stats[a.user_id] = {"played": 0, "won": 0}
-        player_stats[a.user_id]["played"] += 1
-        winning_team = game_winners.get(a.game_id)
-        if a.team == winning_team:
-            player_stats[a.user_id]["won"] += 1
+
+        gs = game_scores.get(a.game_id)
+        if gs:
+            # Add total games in session (e.g., 5 for a 3-2 result)
+            player_stats[a.user_id]["played"] += gs["total"]
+            # Add this player's team wins (e.g., 3 if on winning team, 2 if on losing)
+            player_stats[a.user_id]["won"] += gs["scores"].get(a.team, 0)
 
     # Update RunPlayerStats
     all_rps = await db.execute(
