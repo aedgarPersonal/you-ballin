@@ -374,11 +374,24 @@ export default function DashboardPage() {
                 {/* Voting or Awards */}
                 {lastAwards && (
                   <div className="mt-3 pt-3 border-t border-gray-700/50">
+                    {lastAwards.voting_open && (
+                      <div className="mb-3 px-3 py-2 rounded-lg bg-yellow-900/20 border border-yellow-700/50 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm">🗳️</span>
+                          <span className="font-retro text-[8px] text-yellow-400 animate-pulse">VOTING OPEN</span>
+                        </div>
+                        <span className="text-[10px] text-yellow-400/80">
+                          {lastAwards.votes_cast}/{lastAwards.total_voters} voted
+                          {lastAwards.voting_deadline && (
+                            <span className="text-gray-500 ml-1.5">
+                              · ends {new Date(lastAwards.voting_deadline).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                    )}
                     {lastAwards.voting_open && isParticipant ? (
                       <>
-                        <p className="text-[10px] font-bold text-gray-400 mb-2">
-                          VOTE ({lastAwards.votes_cast}/{lastAwards.total_voters})
-                        </p>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                           <VoteDropdown label="MVP" emoji="🏆" voteType="mvp"
                             players={eligibleForVote} currentVoteId={myVotes?.mvp_vote?.nominee_id} onVote={handleVote} />
