@@ -35,6 +35,7 @@ import {
   listInviteCodes,
   updateInviteCode,
   deleteInviteCode,
+  getSchedulerStatus,
 } from "../api/admin";
 import { adminResetPassword } from "../api/auth";
 import { createGame, generateSeasonGames, listGames, updateGame, cancelGame } from "../api/games";
@@ -503,8 +504,8 @@ export default function AdminPage() {
     cancelled: "bg-red-900/40 text-red-300 font-bold",
   };
 
-  const tabs = ["registration", "players", "balancer", "settings"];
-  const tabLabels = { registration: "Registration", players: "Roster", settings: "Run Settings" };
+  const tabs = ["registration", "players", "balancer", "settings", ...(isSuperAdmin ? ["scheduler"] : [])];
+  const tabLabels = { registration: "Registration", players: "Roster", settings: "Run Settings", scheduler: "Scheduler" };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -1656,7 +1657,7 @@ export default function AdminPage() {
           )}
 
         </div>
-      ) : (
+      ) : tab === "balancer" ? (
         /* ===== Balancer Tab ===== */
         <div className="space-y-8">
           {/* Weight Sliders */}
@@ -1858,7 +1859,117 @@ export default function AdminPage() {
             )}
           </div>
         </div>
-      )}
+      ) : tab === "scheduler" && isSuperAdmin ? (
+        <SchedulerPanel />
+      ) : null}
+    </div>
+  );
+}
+
+
+/**
+ * SchedulerPanel — Shows scheduled job status and run configurations.
+ */
+function SchedulerPanel() {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getSchedulerStatus()
+      .then(({ data }) => setData(data))
+      .catch(() => setData(null))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <p className="text-gray-400">Loading scheduler...</p>;
+  if (!data) return <p className="text-red-400">Failed to load scheduler status.</p>;
+
+  const JOB_DESCRIPTIONS = {
+    send_game_invites: "Auto-send invites for upcoming games",
+    open_dropin_spots: "Open drop-in spots when window starts",
+    generate_teams: "Auto-generate balanced teams before game time",
+    voting_reminders: "Remind players to vote the morning after",
+    announce_awards: "Close voting and announce award winners",
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Scheduler Status */}
+      <div className="flex items-center gap-3 mb-2">
+        <span className={`w-3 h-3 rounded-full ${data.running ? "bg-green-400 animate-pulse" : "bg-red-400"}`} />
+        <span className="font-retro text-[9px] text-gray-300">
+          SCHEDULER {data.running ? "RUNNING" : "STOPPED"}
+        </span>
+      </div>
+
+      {/* Jobs */}
+      <div>
+        <h2 className="font-retro text-[9px] text-gray-400 tracking-widest mb-3">SCHEDULED JOBS</h2>
+        <div className="space-y-2">
+          {data.jobs.map((job) => (
+            <div key={job.id} className="rounded-xl bg-gradient-to-b from-gray-600 to-gray-700 p-[1.5px]">
+              <div className="rounded-[10px] bg-gray-950 px-4 py-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-retro text-[8px] text-white">{job.id.toUpperCase().replace(/_/g, " ")}</h3>
+                    <p className="text-[10px] text-gray-500 mt-0.5">
+                      {JOB_DESCRIPTIONS[job.id] || job.name}
+                    </p>
+                  </div>
+                  <span className="font-retro text-[7px] text-arcade-400">{job.schedule}</span>
+                </div>
+                {job.next_run && (
+                  <div className="mt-2 text-[10px] text-gray-400">
+                    Next: <span className="text-court-400 font-bold">
+                      {new Date(job.next_run).toLocaleString("en-US", {
+                        month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
+                      })}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Run Configurations */}
+      <div>
+        <h2 className="font-retro text-[9px] text-gray-400 tracking-widest mb-3">RUN CONFIGURATIONS</h2>
+        <div className="space-y-2">
+          {data.run_configs.map((run) => (
+            <div key={run.id} className="rounded-xl bg-gradient-to-b from-court-500 to-court-700 p-[1.5px]">
+              <div className="rounded-[10px] bg-gray-950 px-4 py-3">
+                <h3 className="font-retro text-[8px] text-white mb-2">{run.name.toUpperCase()}</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[10px]">
+                  <div>
+                    <span className="text-gray-500">Invite before:</span>{" "}
+                    <span className="text-gray-300">{run.invite_hours_before ?? "Off"}h</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Drop-in open:</span>{" "}
+                    <span className="text-gray-300">{run.dropin_open_hours_before ?? "Off"}h</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Auto teams:</span>{" "}
+                    <span className="text-gray-300">{run.auto_team_minutes_before ?? "Off"}m</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Voting closes:</span>{" "}
+                    <span className="text-gray-300">{run.voting_deadline_hours ?? 16}h</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Auto-regen:</span>{" "}
+                    <span className={run.auto_regen_teams ? "text-green-400" : "text-gray-500"}>
+                      {run.auto_regen_teams ? "On" : "Off"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

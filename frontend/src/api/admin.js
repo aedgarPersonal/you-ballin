@@ -3,6 +3,7 @@ import api from "./client";
 // --- Super Admin (global) ---
 export const listAllUsers = () => api.get("/admin/users");
 export const updateUserAdmin = (userId, data) => api.patch(`/admin/users/${userId}`, data);
+export const getSchedulerStatus = () => api.get("/admin/scheduler");
 
 // --- Run Admin (run-scoped) ---
 export const listPendingRegistrations = (runId) => api.get(`/runs/${runId}/admin/pending`);

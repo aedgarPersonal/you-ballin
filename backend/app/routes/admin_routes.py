@@ -42,6 +42,62 @@ from app.schemas.user import (
 router = APIRouter(prefix="/api/admin", tags=["Super Admin"])
 
 
+@router.get("/scheduler")
+async def get_scheduler_status(
+    _admin: User = Depends(get_current_super_admin),
+):
+    """Get the status of all scheduled jobs (super admin only)."""
+    from app.services.scheduler import scheduler
+    from app.database import async_session
+
+    jobs = []
+    for job in scheduler.get_jobs():
+        job_info = {
+            "id": job.id,
+            "name": job.name,
+            "next_run": job.next_run_time.isoformat() if job.next_run_time else None,
+        }
+
+        trigger = job.trigger
+        if hasattr(trigger, "interval"):
+            job_info["schedule"] = f"Every {int(trigger.interval.total_seconds() / 60)} minutes"
+        elif hasattr(trigger, "fields"):
+            # Cron trigger
+            parts = []
+            for field in trigger.fields:
+                if str(field) != "*":
+                    parts.append(f"{field.name}={field}")
+            job_info["schedule"] = "Cron: " + ", ".join(parts) if parts else "Cron"
+        else:
+            job_info["schedule"] = str(trigger)
+
+        jobs.append(job_info)
+
+    # Get run associations for context
+    async with async_session() as db:
+        runs_result = await db.execute(
+            select(Run).where(Run.is_active == True)
+        )
+        runs = runs_result.scalars().all()
+        run_configs = []
+        for run in runs:
+            run_configs.append({
+                "id": run.id,
+                "name": run.name,
+                "invite_hours_before": run.invite_hours_before,
+                "dropin_open_hours_before": getattr(run, "dropin_open_hours_before", None),
+                "auto_team_minutes_before": run.auto_team_minutes_before,
+                "voting_deadline_hours": run.voting_deadline_hours,
+                "auto_regen_teams": run.auto_regen_teams,
+            })
+
+    return {
+        "running": scheduler.running,
+        "jobs": jobs,
+        "run_configs": run_configs,
+    }
+
+
 @router.get("/users", response_model=UserListResponse)
 async def list_all_users(
     status_filter: str | None = None,
