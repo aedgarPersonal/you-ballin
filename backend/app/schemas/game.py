@@ -47,6 +47,10 @@ class GameResponse(BaseModel):
     spots_remaining: int
     commentary: str | None = None
     odds_line: str | None = None
+    voting_open: bool | None = None
+    votes_cast: int | None = None
+    total_voters: int | None = None
+    voting_deadline: datetime | None = None
     created_at: datetime
 
     model_config = {"from_attributes": True}

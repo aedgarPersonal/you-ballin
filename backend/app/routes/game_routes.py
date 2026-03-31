@@ -187,11 +187,60 @@ async def list_games(
     _user: User = Depends(get_current_user),
 ):
     """List all games for this run, optionally filtered by status."""
+    from app.models.vote import GameVote
+    from sqlalchemy import func as sqlfunc
+
     query = select(Game).where(Game.run_id == run_id).order_by(Game.game_date.desc())
     if status_filter:
         query = query.where(Game.status == status_filter)
     result = await db.execute(query)
-    return result.scalars().all()
+    games = result.scalars().all()
+
+    # Get run's voting deadline config
+    run_result = await db.execute(select(Run).where(Run.id == run_id))
+    run = run_result.scalar_one_or_none()
+    deadline_hours = run.voting_deadline_hours if run else 16
+
+    # Enrich completed games with voting info
+    completed_ids = [g.id for g in games if g.status == GameStatus.COMPLETED]
+    voting_data = {}
+    if completed_ids:
+        # Count participants per game
+        participants = await db.execute(
+            select(TeamAssignment.game_id, sqlfunc.count(TeamAssignment.id))
+            .where(TeamAssignment.game_id.in_(completed_ids))
+            .group_by(TeamAssignment.game_id)
+        )
+        participant_counts = dict(participants.all())
+
+        # Count distinct voters per game
+        voters = await db.execute(
+            select(GameVote.game_id, sqlfunc.count(sqlfunc.distinct(GameVote.voter_id)))
+            .where(GameVote.game_id.in_(completed_ids))
+            .group_by(GameVote.game_id)
+        )
+        vote_counts = dict(voters.all())
+
+        now = datetime.utcnow()
+        for g in games:
+            if g.status == GameStatus.COMPLETED:
+                deadline = g.game_date + timedelta(hours=deadline_hours)
+                voting_data[g.id] = {
+                    "voting_open": now < deadline,
+                    "votes_cast": vote_counts.get(g.id, 0),
+                    "total_voters": participant_counts.get(g.id, 0),
+                    "voting_deadline": deadline,
+                }
+
+    # Build response dicts
+    response = []
+    for g in games:
+        d = GameResponse.model_validate(g).model_dump()
+        if g.id in voting_data:
+            d.update(voting_data[g.id])
+        response.append(d)
+
+    return response
 
 
 @router.post("", response_model=GameResponse, status_code=status.HTTP_201_CREATED)

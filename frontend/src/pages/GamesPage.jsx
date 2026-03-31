@@ -307,6 +307,24 @@ function GameCard({ game, priority = false, past = false }) {
             <p className="text-xs text-gray-500 mt-0.5">{game.location}</p>
           </div>
 
+          {/* Voting banner for completed games */}
+          {game.status === "completed" && game.voting_open && (
+            <div className="mx-4 mb-2 px-3 py-2 rounded-lg bg-yellow-900/20 border border-yellow-700/50 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-sm">🗳️</span>
+                <span className="font-retro text-[8px] text-yellow-400 animate-pulse">VOTING OPEN</span>
+              </div>
+              <div className="text-[10px] text-yellow-400/80">
+                {game.votes_cast}/{game.total_voters} voted
+                {game.voting_deadline && (
+                  <span className="text-gray-500 ml-1.5">
+                    · ends {new Date(game.voting_deadline).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Odds line if available */}
           {game.odds_line && (
             <div className="px-4 pb-2">
