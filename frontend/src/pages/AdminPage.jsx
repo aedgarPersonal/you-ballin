@@ -36,6 +36,8 @@ import {
   updateInviteCode,
   deleteInviteCode,
   getSchedulerStatus,
+  clearRunRsvps,
+  clearRunTeams,
 } from "../api/admin";
 import { adminResetPassword } from "../api/auth";
 import { createGame, generateSeasonGames, listGames, updateGame, cancelGame } from "../api/games";
@@ -1562,6 +1564,51 @@ export default function AdminPage() {
                       </button>
                     </div>
                   </div>
+
+                  {/* Super Admin: Clear RSVPs & Teams */}
+                  {isSuperAdmin && (
+                    <div className="pt-3 mt-3 border-t border-gray-700 space-y-3">
+                      <h4 className="font-retro text-[8px] text-red-400 tracking-wider">DANGER ZONE</h4>
+
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-xs text-gray-300 font-medium">Clear All RSVPs</p>
+                          <p className="text-[10px] text-gray-500">Remove all RSVPs from active games in this run.</p>
+                        </div>
+                        <button type="button" onClick={async () => {
+                          if (!confirm("Clear ALL RSVPs from all active games in this run? This cannot be undone.")) return;
+                          if (!confirm("Are you sure? This will remove every player's RSVP from all non-completed games.")) return;
+                          try {
+                            const { data } = await clearRunRsvps(runId);
+                            toast.success(data.message);
+                          } catch (err) {
+                            toast.error(err.response?.data?.detail || "Failed to clear RSVPs");
+                          }
+                        }} className="bg-red-600 hover:bg-red-700 text-white font-bold py-1.5 px-4 rounded-lg text-xs whitespace-nowrap">
+                          Clear RSVPs
+                        </button>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-xs text-gray-300 font-medium">Clear All Teams</p>
+                          <p className="text-[10px] text-gray-500">Remove team assignments and revert games to Drop-in Open.</p>
+                        </div>
+                        <button type="button" onClick={async () => {
+                          if (!confirm("Clear ALL team assignments from games with teams set? Games will revert to Drop-in Open.")) return;
+                          if (!confirm("Are you sure? This cannot be undone.")) return;
+                          try {
+                            const { data } = await clearRunTeams(runId);
+                            toast.success(data.message);
+                          } catch (err) {
+                            toast.error(err.response?.data?.detail || "Failed to clear teams");
+                          }
+                        }} className="bg-red-600 hover:bg-red-700 text-white font-bold py-1.5 px-4 rounded-lg text-xs whitespace-nowrap">
+                          Clear Teams
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </SettingsSection>
 

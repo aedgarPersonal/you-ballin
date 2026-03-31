@@ -4,6 +4,8 @@ import api from "./client";
 export const listAllUsers = () => api.get("/admin/users");
 export const updateUserAdmin = (userId, data) => api.patch(`/admin/users/${userId}`, data);
 export const getSchedulerStatus = () => api.get("/admin/scheduler");
+export const clearRunRsvps = (runId) => api.delete(`/admin/runs/${runId}/rsvps`);
+export const clearRunTeams = (runId) => api.delete(`/admin/runs/${runId}/teams`);
 
 // --- Run Admin (run-scoped) ---
 export const listPendingRegistrations = (runId) => api.get(`/runs/${runId}/admin/pending`);

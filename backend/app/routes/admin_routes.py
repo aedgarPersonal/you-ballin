@@ -98,6 +98,79 @@ async def get_scheduler_status(
     }
 
 
+@router.delete("/runs/{run_id}/rsvps")
+async def clear_all_rsvps(
+    run_id: int,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(get_current_super_admin),
+):
+    """Delete all RSVPs for all non-completed games in a run (super admin only)."""
+    from app.models.game import Game, GameStatus, RSVP
+    from sqlalchemy import delete
+
+    games_result = await db.execute(
+        select(Game.id).where(
+            Game.run_id == run_id,
+            Game.status.notin_([GameStatus.COMPLETED, GameStatus.CANCELLED, GameStatus.SKIPPED]),
+        )
+    )
+    game_ids = [row[0] for row in games_result.all()]
+
+    if not game_ids:
+        return {"message": "No active games found", "deleted": 0}
+
+    result = await db.execute(
+        delete(RSVP).where(RSVP.game_id.in_(game_ids))
+    )
+    deleted = result.rowcount
+
+    # Reset accepted counts
+    for gid in game_ids:
+        game = await db.scalar(select(Game).where(Game.id == gid))
+        if game:
+            game.accepted_count = 0
+
+    await db.flush()
+    return {"message": f"Cleared {deleted} RSVPs across {len(game_ids)} active games", "deleted": deleted}
+
+
+@router.delete("/runs/{run_id}/teams")
+async def clear_all_teams(
+    run_id: int,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(get_current_super_admin),
+):
+    """Delete all team assignments for non-completed games in a run and revert status (super admin only)."""
+    from app.models.game import Game, GameStatus
+    from app.models.team import TeamAssignment
+    from sqlalchemy import delete
+
+    games_result = await db.execute(
+        select(Game).where(
+            Game.run_id == run_id,
+            Game.status == GameStatus.TEAMS_SET,
+        )
+    )
+    games = games_result.scalars().all()
+
+    if not games:
+        return {"message": "No games with teams set", "cleared": 0}
+
+    game_ids = [g.id for g in games]
+    result = await db.execute(
+        delete(TeamAssignment).where(TeamAssignment.game_id.in_(game_ids))
+    )
+    deleted = result.rowcount
+
+    # Revert game status to DROPIN_OPEN (or INVITES_SENT if no dropin config)
+    for game in games:
+        game.status = GameStatus.DROPIN_OPEN
+        game.odds_line = None
+
+    await db.flush()
+    return {"message": f"Cleared teams from {len(games)} games ({deleted} assignments)", "cleared": len(games)}
+
+
 @router.get("/users", response_model=UserListResponse)
 async def list_all_users(
     status_filter: str | None = None,
