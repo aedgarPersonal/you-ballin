@@ -165,9 +165,12 @@ export default function GameDetailPage() {
   };
 
   const handleStartEdit = () => {
+    // Store the original date string to detect actual user changes
+    const origDate = game.game_date ? new Date(game.game_date).toISOString().slice(0, 16) : "";
     setEditForm({
       title: game.title,
-      game_date: game.game_date ? new Date(game.game_date).toISOString().slice(0, 16) : "",
+      game_date: origDate,
+      _origDate: origDate,
       location: game.location,
       notes: game.notes || "",
     });
@@ -180,13 +183,9 @@ export default function GameDetailPage() {
       if (editForm.title !== game.title) payload.title = editForm.title;
       if (editForm.location !== game.location) payload.location = editForm.location;
       if (editForm.notes !== (game.notes || "")) payload.notes = editForm.notes || null;
-      if (editForm.game_date) {
-        // Compare without seconds/ms to avoid spurious changes from format differences
-        const editMs = new Date(editForm.game_date).getTime();
-        const origMs = new Date(game.game_date).getTime();
-        if (Math.abs(editMs - origMs) > 60000) {
-          payload.game_date = new Date(editForm.game_date).toISOString();
-        }
+      // Only include game_date if the user actually changed the input
+      if (editForm.game_date && editForm.game_date !== editForm._origDate) {
+        payload.game_date = new Date(editForm.game_date).toISOString();
       }
       if (Object.keys(payload).length === 0) {
         setEditing(false);
