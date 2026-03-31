@@ -300,7 +300,7 @@ function GameCard({ game, priority = false, past = false }) {
             </h3>
             <p className="text-sm text-gray-400 mt-1">
               {new Date(game.game_date).toLocaleDateString("en-US", {
-                weekday: "long", month: "long", day: "numeric",
+                weekday: "long", month: "long", day: "numeric", year: "numeric",
                 hour: "numeric", minute: "2-digit",
               })}
             </p>
