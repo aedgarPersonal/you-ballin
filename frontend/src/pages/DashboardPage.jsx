@@ -407,11 +407,7 @@ export default function DashboardPage() {
                         <AwardCard label="X Factor" emoji="⚡" winner={lastAwards.xfactor} />
                         <AwardCard label="Shaqtin'" emoji="🤦" winner={lastAwards.shaqtin} />
                       </div>
-                    ) : (
-                      <p className="text-xs text-gray-500">
-                        Voting open — {lastAwards.votes_cast}/{lastAwards.total_voters} voted
-                      </p>
-                    )}
+                    ) : null}
                   </div>
                 )}
               </div>
