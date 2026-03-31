@@ -439,11 +439,11 @@ export default function PlayerProfilePage() {
             <h2 className="font-retro text-[8px] text-court-400 tracking-widest mb-3">GAME HISTORY</h2>
             <div className="max-h-80 overflow-y-auto space-y-1">
               {gameHistory.map((g) => {
-                const shortDate = new Date(g.game_date).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+                const shortDate = new Date(g.game_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" });
                 return (
                   <Link key={g.game_id} to={`/games/${g.game_id}`}
                     className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-800 transition-colors">
-                    <span className="text-[10px] text-gray-500 w-14 shrink-0">{shortDate}</span>
+                    <span className="text-[10px] text-gray-500 w-20 shrink-0">{shortDate}</span>
                     <span className={`text-[10px] font-bold truncate flex-1 ${g.won ? "text-green-400" : "text-red-400"}`}>
                       {g.team_name}
                     </span>
