@@ -269,9 +269,16 @@ async def _compute_matchups(run_id: int, target_user_id: int, db: AsyncSession) 
         .where(GameResult.game_id.in_(completed_game_ids))
         .options(selectinload(GameResult.team_scores))
     )
+    game_scores: dict[int, dict] = {}
     game_winners: dict[int, str] = {}
     for result in results_result.scalars().all():
         if result.team_scores:
+            score_map = {}
+            total = 0
+            for ts in result.team_scores:
+                score_map[ts.team] = ts.wins
+                total += ts.wins
+            game_scores[result.game_id] = {"scores": score_map, "total": total}
             winner = max(result.team_scores, key=lambda ts: ts.wins)
             if winner.wins > 0:
                 game_winners[result.game_id] = winner.team
@@ -288,20 +295,22 @@ async def _compute_matchups(run_id: int, target_user_id: int, db: AsyncSession) 
         if user_team is None:
             continue
 
-        winning_team = game_winners.get(game_id)
-        user_won = (user_team == winning_team)
+        gs = game_scores.get(game_id)
+        if not gs:
+            continue
+
+        total_games = gs["total"]
+        user_team_wins = gs["scores"].get(user_team, 0)
 
         for uid, team in players:
             if uid == target_user_id:
                 continue
             if team == user_team:
-                teammate_stats[uid]["games"] += 1
-                if user_won:
-                    teammate_stats[uid]["wins"] += 1
+                teammate_stats[uid]["games"] += total_games
+                teammate_stats[uid]["wins"] += user_team_wins
             else:
-                opponent_stats[uid]["games"] += 1
-                if user_won:
-                    opponent_stats[uid]["wins"] += 1
+                opponent_stats[uid]["games"] += total_games
+                opponent_stats[uid]["wins"] += user_team_wins
 
     all_player_ids = set(teammate_stats.keys()) | set(opponent_stats.keys())
     if not all_player_ids:
