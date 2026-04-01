@@ -456,9 +456,10 @@ export default function StatsPage() {
                         })}
                       </div>
                     )}
-                    {(game.mvp || game.shaqtin) && (
+                    {(game.mvp || game.xfactor || game.shaqtin) && (
                       <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-400">
                         {game.mvp && <span>🏆 {game.mvp.full_name.split(" ")[0]}</span>}
+                        {game.xfactor && <span>⚡ {game.xfactor.full_name.split(" ")[0]}</span>}
                         {game.shaqtin && <span>🤦 {game.shaqtin.full_name.split(" ")[0]}</span>}
                       </div>
                     )}

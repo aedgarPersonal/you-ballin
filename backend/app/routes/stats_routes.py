@@ -195,6 +195,7 @@ async def get_run_stats(
                 game_date=game.game_date,
                 team_scores=scores,
                 mvp=get_winner(gv.get("mvp", [])),
+                xfactor=get_winner(gv.get("xfactor", [])),
                 shaqtin=get_winner(gv.get("shaqtin", [])),
                 my_team=my_team,
                 my_won=my_won,
