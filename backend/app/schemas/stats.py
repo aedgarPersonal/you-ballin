@@ -10,6 +10,7 @@ from pydantic import BaseModel
 
 
 class RunOverview(BaseModel):
+    total_sessions: int
     total_games: int
     total_players: int
     avg_roster_size: float

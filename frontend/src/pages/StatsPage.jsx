@@ -371,8 +371,9 @@ export default function StatsPage() {
       )}
 
       {/* Run Overview */}
-      <div className="grid grid-cols-3 gap-3 mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
         {[
+          { val: stats.overview.total_sessions, label: "Sessions", color: "from-court-400 to-court-600" },
           { val: stats.overview.total_games, label: "Games", color: "from-court-400 to-court-600" },
           { val: stats.overview.total_players, label: "Players", color: "from-arcade-400 to-arcade-600" },
           { val: stats.overview.avg_roster_size, label: "Avg Roster", color: "from-purple-400 to-purple-600" },

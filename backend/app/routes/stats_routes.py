@@ -74,8 +74,18 @@ async def get_run_stats(
         select(sqlfunc.avg(counts_subq.c.cnt))
     ) or 0.0
 
+    # Total individual games (granular: sum of all team wins across sessions)
+    total_individual_games = await db.scalar(
+        select(sqlfunc.coalesce(sqlfunc.sum(TeamScore.wins), 0))
+        .select_from(TeamScore)
+        .join(GameResult, TeamScore.game_result_id == GameResult.id)
+        .join(Game, GameResult.game_id == Game.id)
+        .where(Game.run_id == run_id, Game.status == GameStatus.COMPLETED)
+    ) or 0
+
     overview = RunOverview(
-        total_games=completed_count or 0,
+        total_sessions=completed_count or 0,
+        total_games=total_individual_games,
         total_players=player_count or 0,
         avg_roster_size=round(avg_roster, 1),
     )
